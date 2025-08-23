@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import Editor from '../components/Editor'
 
 export default function Home() {
   const [content, setContent] = useState('')
@@ -43,22 +44,46 @@ export default function Home() {
   }
 
   return (
-    <div style={{ padding: '20px', fontFamily: 'monospace' }}>
+    <div className="container">
       <h1>Lekh</h1>
-      <textarea
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        style={{
-          width: '100%',
-          height: '400px',
-          padding: '10px',
-          fontSize: '14px',
-          fontFamily: 'monospace',
-          border: '1px solid #ccc',
-          borderRadius: '4px'
-        }}
-        placeholder="Start writing..."
-      />
+      <Editor content={content} setContent={setContent} />
+      <style jsx global>{`
+        body {
+          background: #FAFAF7;
+          color: #111111;
+          font-size: 18px;
+          line-height: 1.6;
+        }
+        @media (prefers-color-scheme: dark) {
+          body {
+            background: #0B0B0C;
+            color: #EDEDED;
+          }
+        }
+        a {
+          color: #0B57D0;
+          text-decoration: underline;
+        }
+        a:visited {
+          color: #6B4FD3;
+        }
+        @media (prefers-color-scheme: dark) {
+          a {
+            color: #8AB4F8;
+          }
+          a:visited {
+            color: #B39DDB;
+          }
+        }
+      `}</style>
+      <style jsx>{`
+        .container {
+          padding: 20px;
+          font-family: monospace;
+          width: 70vw;
+          margin: 0 auto;
+        }
+      `}</style>
     </div>
   )
 }
