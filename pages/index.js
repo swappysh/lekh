@@ -54,8 +54,10 @@ export default function Home() {
           padding: '10px',
           fontSize: '14px',
           fontFamily: 'monospace',
-          border: '1px solid #ccc',
-          borderRadius: '4px'
+          border: 'none',
+          outline: 'none',
+          resize: 'none',
+          background: 'transparent'
         }}
         placeholder="Start writing..."
       />
