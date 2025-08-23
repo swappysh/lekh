@@ -58,7 +58,7 @@ export default function Home() {
   const shortcuts = useMemo(() => [
     { keys: 'Shift + ?', description: 'Toggle this help' },
     {
-      keys: isMac ? 'Cmd + Option + D' : 'Ctrl + Alt + D',
+      keys: 'Ctrl + Alt + D',
       description: 'Insert current date and time'
     }
   ], [isMac])
@@ -86,9 +86,7 @@ export default function Home() {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
-      const isDateShortcut = isMac 
-        ? (e.metaKey && e.altKey && e.key.toLowerCase() === 'd')
-        : (e.ctrlKey && e.altKey && e.key.toLowerCase() === 'd')
+      const isDateShortcut = e.ctrlKey && e.altKey && e.code === 'KeyD'
 
       if (e.shiftKey && e.key === '?') {
         e.preventDefault()
