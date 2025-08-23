@@ -43,24 +43,64 @@ export default function Home() {
   }
 
   return (
-    <div style={{ padding: '20px', fontFamily: 'monospace' }}>
+    <div className="container">
       <h1>Lekh</h1>
       <textarea
+        className="editor"
         value={content}
         onChange={(e) => setContent(e.target.value)}
-        style={{
-          width: '100%',
-          height: '400px',
-          padding: '10px',
-          fontSize: '14px',
-          fontFamily: 'monospace',
-          border: 'none',
-          outline: 'none',
-          resize: 'none',
-          background: 'transparent'
-        }}
         placeholder="Start writing..."
       />
+      <style jsx global>{`
+        body {
+          background: #FAFAF7;
+          color: #111111;
+          font-size: 18px;
+          line-height: 1.6;
+        }
+        @media (prefers-color-scheme: dark) {
+          body {
+            background: #0B0B0C;
+            color: #EDEDED;
+          }
+        }
+        a {
+          color: #0B57D0;
+          text-decoration: underline;
+        }
+        a:visited {
+          color: #6B4FD3;
+        }
+        @media (prefers-color-scheme: dark) {
+          a {
+            color: #8AB4F8;
+          }
+          a:visited {
+            color: #B39DDB;
+          }
+        }
+      `}</style>
+      <style jsx>{`
+        .container {
+          padding: 20px;
+          font-family: monospace;
+          max-width: 70ch;
+          margin: 0 auto;
+        }
+        .editor {
+          width: 100%;
+          height: 400px;
+          padding: 10px;
+          font-size: 18px;
+          line-height: 1.6;
+          font-family: monospace;
+          border: none;
+          outline: none;
+          resize: none;
+          background: transparent;
+          color: inherit;
+        }
+      `}</style>
     </div>
   )
 }
