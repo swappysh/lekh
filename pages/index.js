@@ -1,10 +1,73 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import Editor from '../components/Editor'
+import { ShortcutsModal } from '../components/ShortcutsModal'
 
 export default function Home() {
   const [content, setContent] = useState('')
   const [docId, setDocId] = useState('main')
+  const [showShortcuts, setShowShortcuts] = useState(false)
+  const editorRef = useRef(null)
+  const [isMac, setIsMac] = useState(false)
+
+  // Platform detection
+  useEffect(() => {
+    if (typeof navigator !== 'undefined') {
+      const platform =
+        navigator.userAgentData?.platform || navigator.platform || ''
+      const mac = /mac/i.test(platform)
+      setIsMac(mac)
+    }
+  }, [])
+  
+  const insertDateTime = useCallback(() => {
+    const editor = editorRef.current
+    if (!editor) {
+      return
+    }
+    const start = editor.selectionStart
+    const end = editor.selectionEnd
+    const dateString = new Date().toLocaleString()
+    setContent((prev) => {
+      const newContent = prev.slice(0, start) + dateString + prev.slice(end)
+      requestAnimationFrame(() => {
+        editor.selectionStart = editor.selectionEnd = start + dateString.length
+      })
+      return newContent
+    })
+  }, [])
+
+  const loadContent = async () => {
+    const { data, error } = await supabase
+      .from('documents')
+      .select('content')
+      .eq('id', docId)
+      .single()
+    
+    if (data) {
+      setContent(data.content || '')
+    }
+  }
+
+  const saveContent = async () => {
+    const { data, error } = await supabase
+      .from('documents')
+      .upsert({ id: docId, content, updated_at: new Date() })
+  }
+
+  const shortcuts = useMemo(() => [
+    { keys: 'Shift + ?', description: 'Toggle this help' },
+    {
+      keys: isMac ? 'Cmd + Option + D' : 'Ctrl + Alt + D',
+      description: 'Insert current date and time'
+    }
+  ], [isMac])
+
+  const keyboardShortcuts = useMemo(() => ({
+    onToggleHelp: () => setShowShortcuts((prev) => !prev),
+    onInsertDateTime: insertDateTime,
+    onEscape: () => setShowShortcuts(false)
+  }), [insertDateTime])
 
   useEffect(() => {
     loadContent()
@@ -20,33 +83,37 @@ export default function Home() {
     return () => clearTimeout(saveTimeout)
   }, [content])
 
-  const loadContent = async () => {
-    console.log('Loading content for doc:', docId)
-    const { data, error } = await supabase
-      .from('documents')
-      .select('content')
-      .eq('id', docId)
-      .single()
-    
-    console.log('Load result:', { data, error })
-    if (data) {
-      setContent(data.content || '')
-    }
-  }
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      const isDateShortcut = isMac 
+        ? (e.metaKey && e.altKey && e.key.toLowerCase() === 'd')
+        : (e.ctrlKey && e.altKey && e.key.toLowerCase() === 'd')
 
-  const saveContent = async () => {
-    console.log('Saving content:', content.length, 'characters')
-    const { data, error } = await supabase
-      .from('documents')
-      .upsert({ id: docId, content, updated_at: new Date() })
-    
-    console.log('Save result:', { data, error })
-  }
+      if (e.shiftKey && e.key === '?') {
+        e.preventDefault()
+        keyboardShortcuts.onToggleHelp?.()
+      } else if (isDateShortcut) {
+        e.preventDefault()
+        keyboardShortcuts.onInsertDateTime?.()
+      } else if (e.key === 'Escape') {
+        keyboardShortcuts.onEscape?.()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [keyboardShortcuts, isMac])
 
   return (
     <div className="container">
       <h1>Lekh</h1>
-      <Editor content={content} setContent={setContent} />
+      <Editor content={content} setContent={setContent} ref={editorRef} />
+      <ShortcutsModal
+        isOpen={showShortcuts}
+        onClose={() => setShowShortcuts(false)}
+        shortcuts={shortcuts}
+      />
       <style jsx global>{`
         body {
           background: #FAFAF7;
