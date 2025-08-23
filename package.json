@@ -1,5 +1,13 @@
 {
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
   "dependencies": {
-    "@anthropic-ai/claude-code": "^1.0.89"
+    "@anthropic-ai/claude-code": "^1.0.89",
+    "next": "^15.5.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
   }
 }

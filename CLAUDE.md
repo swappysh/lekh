@@ -11,6 +11,7 @@ Lekh is a minimal writing website hosted on Vercel where users can write and sav
 - **Frontend**: Simple web interface with text editor
 - **Hosting**: Vercel
 - **Database**: Supabase for content storage
+- **Package Management**: UV and Bun for development tooling
 - **Philosophy**: Minimal implementation, no error handling, focus on core functionality
 
 ## Development Commands
