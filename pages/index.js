@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import Editor from '../components/Editor'
 
 export default function Home() {
   const [content, setContent] = useState('')
   const [docId, setDocId] = useState('main')
-  const editorRef = useRef(null)
 
   useEffect(() => {
     loadContent()
@@ -18,13 +18,6 @@ export default function Home() {
     }, 1000)
 
     return () => clearTimeout(saveTimeout)
-  }, [content])
-
-  useEffect(() => {
-    if (editorRef.current) {
-      editorRef.current.style.height = 'auto'
-      editorRef.current.style.height = editorRef.current.scrollHeight + 'px'
-    }
   }, [content])
 
   const loadContent = async () => {
@@ -53,13 +46,7 @@ export default function Home() {
   return (
     <div className="container">
       <h1>Lekh</h1>
-      <textarea
-        ref={editorRef}
-        className="editor"
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        placeholder="Start writing..."
-      />
+      <Editor content={content} setContent={setContent} />
       <style jsx global>{`
         body {
           background: #FAFAF7;
@@ -93,23 +80,8 @@ export default function Home() {
         .container {
           padding: 20px;
           font-family: monospace;
-          max-width: 70ch;
+          width: 70vw;
           margin: 0 auto;
-        }
-        .editor {
-          width: 100%;
-          min-height: 100vh;
-          padding: 10px;
-          font-size: 18px;
-          line-height: 1.6;
-          font-family: monospace;
-          border: none;
-          outline: none;
-          resize: none;
-          background: transparent;
-          color: inherit;
-          overflow: hidden;
-          box-sizing: border-box;
         }
       `}</style>
     </div>
