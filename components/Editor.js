@@ -1,7 +1,8 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, forwardRef } from 'react'
 
-export default function Editor({ content, setContent }) {
-  const editorRef = useRef(null)
+const Editor = forwardRef(function Editor({ content, setContent }, ref) {
+  const internalRef = useRef(null)
+  const editorRef = ref || internalRef
 
   useEffect(() => {
     if (editorRef.current) {
@@ -38,4 +39,6 @@ export default function Editor({ content, setContent }) {
       `}</style>
     </>
   )
-}
+})
+
+export default Editor
