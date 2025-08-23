@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 
 export default function Home() {
   const [content, setContent] = useState('')
   const [docId, setDocId] = useState('main')
+  const editorRef = useRef(null)
 
   useEffect(() => {
     loadContent()
@@ -17,6 +18,13 @@ export default function Home() {
     }, 1000)
 
     return () => clearTimeout(saveTimeout)
+  }, [content])
+
+  useEffect(() => {
+    if (editorRef.current) {
+      editorRef.current.style.height = 'auto'
+      editorRef.current.style.height = editorRef.current.scrollHeight + 'px'
+    }
   }, [content])
 
   const loadContent = async () => {
@@ -46,6 +54,7 @@ export default function Home() {
     <div className="container">
       <h1>Lekh</h1>
       <textarea
+        ref={editorRef}
         className="editor"
         value={content}
         onChange={(e) => setContent(e.target.value)}
@@ -89,7 +98,7 @@ export default function Home() {
         }
         .editor {
           width: 100%;
-          height: 400px;
+          min-height: 100vh;
           padding: 10px;
           font-size: 18px;
           line-height: 1.6;
@@ -99,6 +108,8 @@ export default function Home() {
           resize: none;
           background: transparent;
           color: inherit;
+          overflow: hidden;
+          box-sizing: border-box;
         }
       `}</style>
     </div>
