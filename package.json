@@ -2,7 +2,13 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:ci": "jest --coverage --watchAll=false --ci",
+    "lint": "echo 'No linting configured'",
+    "type-check": "echo 'No TypeScript configured'"
   },
   "dependencies": {
     "@anthropic-ai/claude-code": "^1.0.89",
@@ -12,5 +18,13 @@
     "random-words": "^2.0.1",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.8.0",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "jest": "^30.0.5",
+    "jest-environment-jsdom": "^30.0.5",
+    "jest-junit": "^16.0.0"
   }
 }

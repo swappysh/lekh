@@ -1,6 +1,9 @@
 # Dependencies
 node_modules/
 
+# Testing
+coverage/
+
 # Next.js
 .next/
 out/
