@@ -6,9 +6,20 @@ import { ShortcutsModal } from '../components/ShortcutsModal'
 export default function Home() {
   const [content, setContent] = useState('')
   const [docId, setDocId] = useState('main')
+  const [sessionId, setSessionId] = useState('')
   const [showShortcuts, setShowShortcuts] = useState(false)
   const editorRef = useRef(null)
   const [isMac, setIsMac] = useState(false)
+
+  // Generate or load session ID
+  useEffect(() => {
+    let sid = localStorage.getItem('lekh-session-id')
+    if (!sid) {
+      sid = crypto.randomUUID()
+      localStorage.setItem('lekh-session-id', sid)
+    }
+    setSessionId(sid)
+  }, [])
 
   // Platform detection
   useEffect(() => {
@@ -38,10 +49,13 @@ export default function Home() {
   }, [])
 
   const loadContent = async () => {
+    if (!sessionId) return
+    
     const { data, error } = await supabase
       .from('documents')
       .select('content')
       .eq('id', docId)
+      .eq('session_id', sessionId)
       .single()
     
     if (data) {
@@ -50,9 +64,11 @@ export default function Home() {
   }
 
   const saveContent = async () => {
+    if (!sessionId) return
+    
     const { data, error } = await supabase
       .from('documents')
-      .upsert({ id: docId, content, updated_at: new Date() })
+      .upsert({ id: docId, session_id: sessionId, content, updated_at: new Date() })
   }
 
   const shortcuts = useMemo(() => [
@@ -71,7 +87,7 @@ export default function Home() {
 
   useEffect(() => {
     loadContent()
-  }, [])
+  }, [sessionId])
 
   useEffect(() => {
     const saveTimeout = setTimeout(() => {
