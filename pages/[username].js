@@ -3,6 +3,8 @@ import { useRouter } from 'next/router'
 import { supabase } from '../lib/supabase'
 import Editor from '../components/Editor'
 import { ShortcutsModal } from '../components/ShortcutsModal'
+import PasswordModal from '../components/PasswordModal'
+import { generateSalt, deriveKey, encryptContent } from '../lib/encryption'
 
 export default function UserPage() {
   const router = useRouter()
@@ -11,6 +13,10 @@ export default function UserPage() {
   const [documentId, setDocumentId] = useState('')
   const [showShortcuts, setShowShortcuts] = useState(false)
   const [userExists, setUserExists] = useState(null)
+  const [showPasswordModal, setShowPasswordModal] = useState(false)
+  const [userSalt, setUserSalt] = useState(null)
+  const [encryptionKey, setEncryptionKey] = useState(null)
+  const [pendingSave, setPendingSave] = useState(null)
   const editorRef = useRef(null)
   const [isMac, setIsMac] = useState(false)
 
@@ -52,10 +58,10 @@ export default function UserPage() {
   const loadContent = async () => {
     if (!username) return
     
-    // Check if user exists
+    // Check if user exists and get salt
     const { data: userData } = await supabase
       .from('users')
-      .select('username')
+      .select('username, salt')
       .eq('username', username)
     
     if (!userData || userData.length === 0) {
@@ -64,6 +70,7 @@ export default function UserPage() {
     }
     
     setUserExists(true)
+    setUserSalt(userData[0].salt)
     
     // Each page load gets a fresh, isolated document
     // No reading back of previous content - start fresh each time
@@ -76,14 +83,50 @@ export default function UserPage() {
     // Don't save empty content
     if (!content || content.trim() === '') return
     
+    // Check if we need password for encryption
+    if (!encryptionKey) {
+      setPendingSave({ documentId, content })
+      setShowPasswordModal(true)
+      return
+    }
+    
+    // Encrypt content before saving
+    const encryptedContent = await encryptContent(content, encryptionKey)
+    
     const { data, error } = await supabase
       .from('documents')
       .upsert({ 
         id: documentId,
         username, 
-        content, 
+        content: encryptedContent, 
         updated_at: new Date() 
       })
+  }
+  
+  const handlePasswordSubmit = async (password) => {
+    if (!userSalt || !pendingSave) return
+    
+    try {
+      const key = await deriveKey(password, userSalt)
+      setEncryptionKey(key)
+      
+      // Encrypt and save the pending content
+      const encryptedContent = await encryptContent(pendingSave.content, key)
+      
+      await supabase
+        .from('documents')
+        .upsert({ 
+          id: pendingSave.documentId,
+          username, 
+          content: encryptedContent, 
+          updated_at: new Date() 
+        })
+      
+      setPendingSave(null)
+      setShowPasswordModal(false)
+    } catch (error) {
+      console.error('Encryption failed:', error)
+    }
   }
 
   const shortcuts = useMemo(() => [
@@ -208,6 +251,15 @@ export default function UserPage() {
         isOpen={showShortcuts}
         onClose={() => setShowShortcuts(false)}
         shortcuts={shortcuts}
+      />
+      <PasswordModal
+        isOpen={showPasswordModal}
+        onSubmit={handlePasswordSubmit}
+        onClose={() => {
+          setShowPasswordModal(false)
+          setPendingSave(null)
+        }}
+        title="Enter Password to Encrypt"
       />
       <button 
         className="help-button"

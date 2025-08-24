@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import Editor from '../components/Editor'
 import { ShortcutsModal } from '../components/ShortcutsModal'
 import { generate } from 'random-words'
+import { generateSalt } from '../lib/encryption'
 
 export default function Home() {
   const [username, setUsername] = useState('')
@@ -46,9 +47,13 @@ export default function Home() {
     setMessage('')
 
     try {
+      const salt = await generateSalt()
       const { data, error } = await supabase
         .from('users')
-        .upsert({ username: username.trim() })
+        .upsert({ 
+          username: username.trim(),
+          salt: salt
+        })
       
       if (error) {
         setMessage('Error: ' + error.message)

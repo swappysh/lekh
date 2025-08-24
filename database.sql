@@ -13,6 +13,7 @@ CREATE TABLE documents (
 -- Create the users table
 CREATE TABLE users (
   username TEXT PRIMARY KEY,
+  salt TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

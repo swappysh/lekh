@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { supabase } from '../../lib/supabase'
+import PasswordModal from '../../components/PasswordModal'
+import { deriveKey, decryptContent } from '../../lib/encryption'
 
 export default function AllEntriesPage() {
   const router = useRouter()
@@ -8,16 +10,20 @@ export default function AllEntriesPage() {
   const [entries, setEntries] = useState([])
   const [loading, setLoading] = useState(true)
   const [userExists, setUserExists] = useState(null)
+  const [showPasswordModal, setShowPasswordModal] = useState(false)
+  const [userSalt, setUserSalt] = useState(null)
+  const [encryptedEntries, setEncryptedEntries] = useState([])
+  const [decryptionAttempted, setDecryptionAttempted] = useState(false)
 
   const loadAllEntries = async () => {
     if (!username) return
     
     setLoading(true)
     
-    // Check if user exists
+    // Check if user exists and get salt
     const { data: userData } = await supabase
       .from('users')
-      .select('username')
+      .select('username, salt')
       .eq('username', username)
     
     if (!userData || userData.length === 0) {
@@ -27,6 +33,7 @@ export default function AllEntriesPage() {
     }
     
     setUserExists(true)
+    setUserSalt(userData[0].salt)
     
     // Fetch all documents for this user
     const { data: documents } = await supabase
@@ -35,8 +42,45 @@ export default function AllEntriesPage() {
       .eq('username', username)
       .order('updated_at', { ascending: false })
     
-    setEntries(documents || [])
+    if (documents && documents.length > 0) {
+      setEncryptedEntries(documents)
+      setShowPasswordModal(true)
+    } else {
+      setEntries([])
+    }
     setLoading(false)
+  }
+  
+  const handlePasswordSubmit = async (password) => {
+    if (!userSalt || !encryptedEntries.length) return
+    
+    try {
+      const key = await deriveKey(password, userSalt)
+      const decryptedEntries = []
+      
+      for (const entry of encryptedEntries) {
+        try {
+          const decryptedContent = await decryptContent(entry.content, key)
+          decryptedEntries.push({
+            ...entry,
+            content: decryptedContent
+          })
+        } catch (error) {
+          console.error('Failed to decrypt entry:', entry.id, error)
+          decryptedEntries.push({
+            ...entry,
+            content: '[Decryption failed]'
+          })
+        }
+      }
+      
+      setEntries(decryptedEntries)
+      setShowPasswordModal(false)
+      setDecryptionAttempted(true)
+    } catch (error) {
+      console.error('Key derivation failed:', error)
+      alert('Invalid password. Please try again.')
+    }
   }
 
   useEffect(() => {
@@ -119,7 +163,11 @@ export default function AllEntriesPage() {
         <p><a href={`/${username}`}>← Back to write</a></p>
       </div>
       
-      {entries.length === 0 ? (
+      {!decryptionAttempted && encryptedEntries.length > 0 ? (
+        <div className="no-entries">
+          <p>Enter password to decrypt and view entries</p>
+        </div>
+      ) : entries.length === 0 ? (
         <div className="no-entries">
           <p>No entries found for {username}</p>
         </div>
@@ -139,6 +187,13 @@ export default function AllEntriesPage() {
           ))}
         </div>
       )}
+      
+      <PasswordModal
+        isOpen={showPasswordModal}
+        onSubmit={handlePasswordSubmit}
+        onClose={() => setShowPasswordModal(false)}
+        title="Enter Password to Decrypt Entries"
+      />
 
       <style jsx global>{`
         body {

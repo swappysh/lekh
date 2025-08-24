@@ -1,7 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react'
-import { useRouter } from 'next/router'
-import AllEntriesPage from '../../pages/[username]/all'
 import { supabase } from '../../lib/supabase'
+import AllEntriesPage from '../../pages/[username]/all'
 
 // Mock the router with different scenarios
 const mockPush = jest.fn()
@@ -24,7 +23,7 @@ const mockEntries = [
     updated_at: '2023-01-01T10:00:00Z'
   },
   {
-    id: 'entry-2', 
+    id: 'entry-2',
     username: 'testuser',
     content: 'Another entry with different content.\nThis one has multiple lines.',
     created_at: '2023-01-02T15:30:00Z',
@@ -32,7 +31,7 @@ const mockEntries = [
   },
   {
     id: 'entry-3',
-    username: 'testuser', 
+    username: 'testuser',
     content: 'Latest entry should appear first.',
     created_at: '2023-01-03T09:15:00Z',
     updated_at: '2023-01-03T09:15:00Z'
@@ -42,10 +41,10 @@ const mockEntries = [
 describe('All Entries Page', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    
+
     // Reset router state
     mockRouter.query = { username: 'testuser' }
-    
+
     // Mock successful user existence check by default
     supabase.from.mockImplementation((table) => {
       if (table === 'users') {
@@ -74,7 +73,7 @@ describe('All Entries Page', () => {
 
   test('renders all entries page when user exists with entries', async () => {
     render(<AllEntriesPage />)
-    
+
     await waitFor(() => {
       expect(screen.getByText('testuser - All Entries')).toBeInTheDocument()
       expect(screen.getByText('← Back to write')).toBeInTheDocument()
@@ -94,9 +93,9 @@ describe('All Entries Page', () => {
         eq: jest.fn(() => Promise.resolve({ data: [], error: null }))
       }))
     }))
-    
+
     render(<AllEntriesPage />)
-    
+
     await waitFor(() => {
       expect(screen.getByText('User Not Found')).toBeInTheDocument()
       expect(screen.getByText('The user "testuser" doesn\'t exist.')).toBeInTheDocument()
@@ -122,9 +121,9 @@ describe('All Entries Page', () => {
         }
       }
     })
-    
+
     render(<AllEntriesPage />)
-    
+
     await waitFor(() => {
       expect(screen.getByText('testuser - All Entries')).toBeInTheDocument()
       expect(screen.getByText('No entries found for testuser')).toBeInTheDocument()
@@ -133,7 +132,7 @@ describe('All Entries Page', () => {
 
   test('displays entries with formatted timestamps', async () => {
     render(<AllEntriesPage />)
-    
+
     await waitFor(() => {
       // Check that timestamps are formatted and displayed
       const timestamps = screen.getAllByText(/\d{1,2}\/\d{1,2}\/\d{4}/)
@@ -145,7 +144,7 @@ describe('All Entries Page', () => {
     const mockOrder = jest.fn(() => Promise.resolve({ data: mockEntries, error: null }))
     const mockEq = jest.fn(() => ({ order: mockOrder }))
     const mockSelect = jest.fn(() => ({ eq: mockEq }))
-    
+
     supabase.from.mockImplementation((table) => {
       if (table === 'users') {
         return {
@@ -158,9 +157,9 @@ describe('All Entries Page', () => {
         return { select: mockSelect }
       }
     })
-    
+
     render(<AllEntriesPage />)
-    
+
     await waitFor(() => {
       expect(mockSelect).toHaveBeenCalledWith('*')
       expect(mockEq).toHaveBeenCalledWith('username', 'testuser')
@@ -170,7 +169,7 @@ describe('All Entries Page', () => {
 
   test('back link has correct href', async () => {
     render(<AllEntriesPage />)
-    
+
     await waitFor(() => {
       const backLink = screen.getByText('← Back to write')
       expect(backLink.closest('a')).toHaveAttribute('href', '/testuser')
@@ -180,7 +179,7 @@ describe('All Entries Page', () => {
   test('handles different usernames correctly', async () => {
     // Change router to different username
     mockRouter.query.username = 'anotheruser'
-    
+
     supabase.from.mockImplementation((table) => {
       if (table === 'users') {
         return {
@@ -199,14 +198,14 @@ describe('All Entries Page', () => {
         }
       }
     })
-    
+
     render(<AllEntriesPage />)
-    
+
     await waitFor(() => {
       expect(screen.getByText('anotheruser - All Entries')).toBeInTheDocument()
       expect(screen.getByText('No entries found for anotheruser')).toBeInTheDocument()
     })
-    
+
     const backLink = screen.getByText('← Back to write')
     expect(backLink.closest('a')).toHaveAttribute('href', '/anotheruser')
   })
@@ -219,7 +218,7 @@ describe('All Entries Page', () => {
       created_at: '2023-01-01T10:00:00Z',
       updated_at: '2023-01-01T10:00:00Z'
     }
-    
+
     supabase.from.mockImplementation((table) => {
       if (table === 'users') {
         return {
@@ -238,13 +237,13 @@ describe('All Entries Page', () => {
         }
       }
     })
-    
+
     render(<AllEntriesPage />)
-    
+
     await waitFor(() => {
       expect(screen.getByText('testuser - All Entries')).toBeInTheDocument()
     })
-    
+
     await waitFor(() => {
       const contentElement = screen.getByText(/Line 1/)
       expect(contentElement).toBeInTheDocument()
@@ -270,13 +269,13 @@ describe('All Entries Page', () => {
         }
       }
     })
-    
+
     render(<AllEntriesPage />)
-    
+
     await waitFor(() => {
       expect(screen.getByText('testuser - All Entries')).toBeInTheDocument()
     })
-    
+
     await waitFor(() => {
       expect(screen.getByText('No entries found for testuser')).toBeInTheDocument()
     })
@@ -284,15 +283,15 @@ describe('All Entries Page', () => {
 
   test('does not crash when router query is undefined', () => {
     mockRouter.query = {}
-    
+
     render(<AllEntriesPage />)
-    
+
     expect(screen.getByText('Loading...')).toBeInTheDocument()
   })
 
   test('applies dark mode styles correctly', async () => {
     render(<AllEntriesPage />)
-    
+
     await waitFor(() => {
       expect(screen.getByText('testuser - All Entries')).toBeInTheDocument()
     })
@@ -303,11 +302,11 @@ describe('All Entries Page', () => {
 
   test('entry dates are properly formatted and displayed', async () => {
     render(<AllEntriesPage />)
-    
+
     await waitFor(() => {
       expect(screen.getByText('testuser - All Entries')).toBeInTheDocument()
     })
-    
+
     await waitFor(() => {
       // Check that timestamps are formatted and displayed
       const timestamps = screen.getAllByText(/\d{1,2}\/\d{1,2}\/\d{4}/)
@@ -317,15 +316,15 @@ describe('All Entries Page', () => {
 
   test('entries are displayed with proper styling and structure', async () => {
     render(<AllEntriesPage />)
-    
+
     await waitFor(() => {
       expect(screen.getByText('testuser - All Entries')).toBeInTheDocument()
     })
-    
+
     await waitFor(() => {
       const entryElements = document.querySelectorAll('.entry')
       expect(entryElements.length).toBe(mockEntries.length)
-      
+
       // Check that each entry has the required structure
       entryElements.forEach(entry => {
         expect(entry.querySelector('.entry-header')).toBeTruthy()
