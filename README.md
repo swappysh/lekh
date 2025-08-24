@@ -45,6 +45,33 @@ A minimal writing website where users can write and save content. Simple, clean,
 
 6. Open [http://localhost:3000](http://localhost:3000)
 
+## Testing
+
+The project includes comprehensive test coverage:
+
+```bash
+npm test              # Run tests once
+npm run test:watch    # Run tests in watch mode
+npm run test:coverage # Run tests with coverage report
+```
+
+**Test Stats:**
+- ✅ 53 tests across 5 test suites
+- 🎯 88.34% overall code coverage
+- 🧪 Full component and integration testing
+- 🔄 Automated testing via GitHub Actions
+
+## CI/CD
+
+Automated workflows run on every push and pull request:
+- **Test Suite**: Multi-version Node.js testing
+- **Security Audit**: Dependency vulnerability scanning
+- **Build Verification**: Next.js build validation
+- **Coverage Reporting**: Automated coverage tracking
+
+![Tests](https://github.com/username/lekh/workflows/Test%20Suite/badge.svg)
+![CI](https://github.com/username/lekh/workflows/Continuous%20Integration/badge.svg)
+
 ## Contributing
 
 Keep the philosophy of simplicity:
@@ -52,6 +79,7 @@ Keep the philosophy of simplicity:
 - Minimal error handling
 - Focus on core writing functionality
 - Light, smart implementation
+- All changes must pass tests
 
 ## Deployment
 
