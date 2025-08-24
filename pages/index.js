@@ -5,19 +5,15 @@ import { ShortcutsModal } from '../components/ShortcutsModal'
 
 export default function Home() {
   const [content, setContent] = useState('')
-  const [sessionId, setSessionId] = useState('')
+  const [documentId, setDocumentId] = useState('')
   const [showShortcuts, setShowShortcuts] = useState(false)
   const editorRef = useRef(null)
   const [isMac, setIsMac] = useState(false)
 
-  // Generate or load session ID
+  // Generate unique document ID for each tab/instance
   useEffect(() => {
-    let sid = localStorage.getItem('lekh-session-id')
-    if (!sid) {
-      sid = crypto.randomUUID()
-      localStorage.setItem('lekh-session-id', sid)
-    }
-    setSessionId(sid)
+    const docId = crypto.randomUUID()
+    setDocumentId(docId)
   }, [])
 
   // Platform detection
@@ -47,26 +43,13 @@ export default function Home() {
     })
   }, [])
 
-  const loadContent = async () => {
-    if (!sessionId) return
-    
-    const { data, error } = await supabase
-      .from('documents')
-      .select('content')
-      .eq('id', sessionId)
-      .single()
-    
-    if (data) {
-      setContent(data.content || '')
-    }
-  }
 
   const saveContent = async () => {
-    if (!sessionId) return
+    if (!documentId) return
     
     const { data, error } = await supabase
       .from('documents')
-      .upsert({ id: sessionId, content, updated_at: new Date() })
+      .upsert({ id: documentId, content, updated_at: new Date() })
   }
 
   const shortcuts = useMemo(() => [
@@ -83,9 +66,6 @@ export default function Home() {
     onEscape: () => setShowShortcuts(false)
   }), [insertDateTime])
 
-  useEffect(() => {
-    loadContent()
-  }, [sessionId])
 
   useEffect(() => {
     const saveTimeout = setTimeout(() => {

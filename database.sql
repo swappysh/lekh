@@ -9,9 +9,5 @@ CREATE TABLE documents (
   updated_at TIMESTAMPTZ
 );
 
--- Enable Row Level Security
-ALTER TABLE documents ENABLE ROW LEVEL SECURITY;
-
--- Create RLS policy that allows access to all documents for authenticated users
-CREATE POLICY "Allow authenticated access" ON documents
-  FOR ALL USING (true);
+-- Disable Row Level Security completely
+ALTER TABLE documents DISABLE ROW LEVEL SECURITY;
