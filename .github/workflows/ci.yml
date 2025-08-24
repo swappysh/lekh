@@ -24,16 +24,7 @@ jobs:
       run: npm ci
 
     - name: Run tests
-      run: npm test -- --coverage --watchAll=false
-
-    - name: Generate test report
-      if: always()
-      uses: dorny/test-reporter@v1
-      with:
-        name: Jest Tests
-        path: coverage/test-results.json
-        reporter: jest-junit
-        fail-on-error: true
+      run: npm run test:ci
 
     - name: Build Next.js application
       run: npm run build
@@ -69,12 +60,4 @@ jobs:
       run: npm audit --audit-level=high
 
     - name: Check for vulnerabilities
-      run: npm audit --audit-level=moderate --json > audit-results.json || true
-
-    - name: Upload audit results
-      if: always()
-      uses: actions/upload-artifact@v3
-      with:
-        name: security-audit
-        path: audit-results.json
-        retention-days: 30
+      run: npm audit --audit-level=moderate || echo "Audit completed with warnings"

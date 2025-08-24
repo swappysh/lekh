@@ -19,14 +19,7 @@ const customJestConfig = {
     '**/*.(test|spec).(js|jsx)'
   ],
   coverageReporters: ['text', 'lcov', 'html'],
-  coverageDirectory: 'coverage',
-  reporters: [
-    'default',
-    ['jest-junit', {
-      outputDirectory: 'coverage',
-      outputName: 'test-results.xml',
-    }]
-  ]
+  coverageDirectory: 'coverage'
 }
 
 module.exports = createJestConfig(customJestConfig)
