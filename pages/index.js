@@ -2,110 +2,150 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import Editor from '../components/Editor'
 import { ShortcutsModal } from '../components/ShortcutsModal'
+import { generate } from 'random-words'
 
 export default function Home() {
-  const [content, setContent] = useState('')
-  const [documentId, setDocumentId] = useState('')
-  const [showShortcuts, setShowShortcuts] = useState(false)
-  const editorRef = useRef(null)
-  const [isMac, setIsMac] = useState(false)
+  const [username, setUsername] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [message, setMessage] = useState('')
+  const [isChecking, setIsChecking] = useState(false)
+  const [isAvailable, setIsAvailable] = useState(null)
 
-  // Generate unique document ID for each tab/instance
+  // Check username availability with debounce
   useEffect(() => {
-    const docId = crypto.randomUUID()
-    setDocumentId(docId)
-  }, [])
-
-  // Platform detection
-  useEffect(() => {
-    if (typeof navigator !== 'undefined') {
-      const platform =
-        navigator.userAgentData?.platform || navigator.platform || ''
-      const mac = /mac/i.test(platform)
-      setIsMac(mac)
-    }
-  }, [])
-  
-  const insertDateTime = useCallback(() => {
-    const editor = editorRef.current
-    if (!editor) {
+    if (!username.trim()) {
+      setIsAvailable(null)
       return
     }
-    const start = editor.selectionStart
-    const end = editor.selectionEnd
-    const dateString = new Date().toLocaleString()
-    setContent((prev) => {
-      const newContent = prev.slice(0, start) + dateString + prev.slice(end)
-      requestAnimationFrame(() => {
-        editor.selectionStart = editor.selectionEnd = start + dateString.length
-      })
-      return newContent
-    })
-  }, [])
 
+    const checkAvailability = async () => {
+      setIsChecking(true)
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('username')
+          .eq('username', username.trim())
+        
+        // Available if empty array or error
+        setIsAvailable(!data || data.length === 0)
+      } catch (err) {
+        setIsAvailable(true) // Available on error (likely doesn't exist)
+      }
+      setIsChecking(false)
+    }
 
-  const saveContent = async () => {
-    if (!documentId) return
+    const timeoutId = setTimeout(checkAvailability, 300)
+    return () => clearTimeout(timeoutId)
+  }, [username])
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    if (!username.trim() || !isAvailable) return
     
-    const { data, error } = await supabase
-      .from('documents')
-      .upsert({ id: documentId, content, updated_at: new Date() })
+    setIsSubmitting(true)
+    setMessage('')
+
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .upsert({ username: username.trim() })
+      
+      if (error) {
+        setMessage('Error: ' + error.message)
+      } else {
+        setMessage(`URL created: https://lekh-tau.vercel.app/${username}`)
+        setUsername('')
+        setIsAvailable(null)
+      }
+    } catch (err) {
+      setMessage('Error creating URL')
+    }
+    
+    setIsSubmitting(false)
   }
 
-  const shortcuts = useMemo(() => [
-    { keys: 'Shift + ?', description: 'Toggle this help' },
-    {
-      keys: 'Ctrl + Alt + D',
-      description: 'Insert current date and time'
-    }
-  ], [isMac])
-
-  const keyboardShortcuts = useMemo(() => ({
-    onToggleHelp: () => setShowShortcuts((prev) => !prev),
-    onInsertDateTime: insertDateTime,
-    onEscape: () => setShowShortcuts(false)
-  }), [insertDateTime])
-
-
-  useEffect(() => {
-    const saveTimeout = setTimeout(() => {
-      if (content) {
-        saveContent()
+  const generateRandomUsername = async () => {
+    // First, get all existing usernames to avoid duplicates
+    const { data: existingUsers } = await supabase
+      .from('users')
+      .select('username')
+    
+    const existingUsernames = new Set(existingUsers?.map(u => u.username) || [])
+    
+    let attempts = 0
+    while (attempts < 20) {
+      // Generate 2 random words and join with hyphen
+      const words = generate(2)
+      const candidate = words.join('-')
+      
+      // Check if this username is not already taken
+      if (!existingUsernames.has(candidate)) {
+        setUsername(candidate)
+        return
       }
-    }, 1000)
-
-    return () => clearTimeout(saveTimeout)
-  }, [content])
-
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      const isDateShortcut = e.ctrlKey && e.altKey && e.code === 'KeyD'
-
-      if (e.shiftKey && e.key === '?') {
-        e.preventDefault()
-        keyboardShortcuts.onToggleHelp?.()
-      } else if (isDateShortcut) {
-        e.preventDefault()
-        keyboardShortcuts.onInsertDateTime?.()
-      } else if (e.key === 'Escape') {
-        keyboardShortcuts.onEscape?.()
-      }
+      
+      attempts++
     }
+    
+    // If all attempts failed, add a timestamp to ensure uniqueness
+    const words = generate(2)
+    const timestamp = Date.now().toString().slice(-4)
+    setUsername(`${words.join('-')}-${timestamp}`)
+  }
 
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [keyboardShortcuts, isMac])
 
   return (
     <div className="container">
-      <h1>Lekh</h1>
-      <Editor content={content} setContent={setContent} ref={editorRef} />
-      <ShortcutsModal
-        isOpen={showShortcuts}
-        onClose={() => setShowShortcuts(false)}
-        shortcuts={shortcuts}
-      />
+      <h1>Create Your Writing URL</h1>
+      <p>Create a personalized URL where you can write and save your content.</p>
+      
+      <form onSubmit={handleSubmit}>
+        <div className="input-group">
+          <label>Choose your URL:</label>
+          <div className="url-preview">
+            https://lekh-tau.vercel.app/
+            <input 
+              type="text" 
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="your-username"
+              pattern="[a-zA-Z0-9_\-]+"
+              title="Only letters, numbers, hyphens, and underscores allowed"
+              required
+            />
+          </div>
+          {username && (
+            <div className="availability-status">
+              {isChecking ? (
+                <span className="checking">⏳ Checking...</span>
+              ) : isAvailable === true ? (
+                <span className="available">✅ Available</span>
+              ) : isAvailable === false ? (
+                <span className="unavailable">❌ Already taken</span>
+              ) : null}
+            </div>
+          )}
+        </div>
+        
+        <div className="buttons">
+          <button type="button" onClick={generateRandomUsername}>
+            Generate Random
+          </button>
+          <button 
+            type="submit" 
+            disabled={isSubmitting || !isAvailable || isChecking}
+          >
+            {isSubmitting ? 'Creating...' : 'Create URL'}
+          </button>
+        </div>
+      </form>
+
+      {message && (
+        <div className={`message ${message.startsWith('Error') ? 'error' : 'success'}`}>
+          {message}
+        </div>
+      )}
+
       <style jsx global>{`
         body {
           background: #FAFAF7;
@@ -139,8 +179,137 @@ export default function Home() {
         .container {
           padding: 20px;
           font-family: monospace;
-          width: 70vw;
+          max-width: 600px;
           margin: 0 auto;
+        }
+
+        .input-group {
+          margin: 20px 0;
+        }
+
+        .availability-status {
+          margin-top: 8px;
+          font-size: 14px;
+        }
+
+        .available {
+          color: #28a745;
+        }
+
+        .unavailable {
+          color: #dc3545;
+        }
+
+        .checking {
+          color: #6c757d;
+        }
+
+        label {
+          display: block;
+          margin-bottom: 10px;
+          font-weight: bold;
+        }
+
+        .url-preview {
+          display: flex;
+          align-items: center;
+          font-size: 16px;
+          border: 1px solid #ccc;
+          border-radius: 4px;
+          overflow: hidden;
+        }
+
+        .url-preview input {
+          border: none;
+          padding: 12px;
+          font-family: monospace;
+          font-size: 16px;
+          background: transparent;
+          flex: 1;
+          outline: none;
+          color: inherit;
+        }
+
+        .buttons {
+          display: flex;
+          gap: 10px;
+          margin: 20px 0;
+        }
+
+        button {
+          padding: 12px 24px;
+          border: 1px solid #ccc;
+          border-radius: 4px;
+          background: white;
+          cursor: pointer;
+          font-family: monospace;
+        }
+
+        button:hover:not(:disabled) {
+          background: #f5f5f5;
+        }
+
+        button:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        .message {
+          padding: 12px;
+          border-radius: 4px;
+          margin: 20px 0;
+        }
+
+        .message.success {
+          background: #d4edda;
+          border: 1px solid #c3e6cb;
+          color: #155724;
+        }
+
+        .message.error {
+          background: #f8d7da;
+          border: 1px solid #f5c6cb;
+          color: #721c24;
+        }
+
+        @media (prefers-color-scheme: dark) {
+          .url-preview {
+            border-color: #555;
+          }
+          
+          button {
+            background: #333;
+            border-color: #555;
+            color: white;
+          }
+          
+          button:hover:not(:disabled) {
+            background: #444;
+          }
+          
+          .message.success {
+            background: #155724;
+            border-color: #0f4419;
+            color: #d4edda;
+          }
+          
+          .message.error {
+            background: #721c24;
+            border-color: #5a1a1f;
+            color: #f8d7da;
+          }
+
+          .available {
+            color: #40d865;
+          }
+
+          .unavailable {
+            color: #ff6b6b;
+          }
+
+          .checking {
+            color: #adb5bd;
+          }
         }
       `}</style>
     </div>
