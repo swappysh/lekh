@@ -9,5 +9,5 @@ CREATE TABLE documents (
   updated_at TIMESTAMPTZ
 );
 
--- Disable Row Level Security for simple access
+-- Disable Row Level Security completely
 ALTER TABLE documents DISABLE ROW LEVEL SECURITY;

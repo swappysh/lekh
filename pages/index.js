@@ -5,10 +5,16 @@ import { ShortcutsModal } from '../components/ShortcutsModal'
 
 export default function Home() {
   const [content, setContent] = useState('')
-  const [docId, setDocId] = useState('main')
+  const [documentId, setDocumentId] = useState('')
   const [showShortcuts, setShowShortcuts] = useState(false)
   const editorRef = useRef(null)
   const [isMac, setIsMac] = useState(false)
+
+  // Generate unique document ID for each tab/instance
+  useEffect(() => {
+    const docId = crypto.randomUUID()
+    setDocumentId(docId)
+  }, [])
 
   // Platform detection
   useEffect(() => {
@@ -37,22 +43,13 @@ export default function Home() {
     })
   }, [])
 
-  const loadContent = async () => {
-    const { data, error } = await supabase
-      .from('documents')
-      .select('content')
-      .eq('id', docId)
-      .single()
-    
-    if (data) {
-      setContent(data.content || '')
-    }
-  }
 
   const saveContent = async () => {
+    if (!documentId) return
+    
     const { data, error } = await supabase
       .from('documents')
-      .upsert({ id: docId, content, updated_at: new Date() })
+      .upsert({ id: documentId, content, updated_at: new Date() })
   }
 
   const shortcuts = useMemo(() => [
@@ -69,9 +66,6 @@ export default function Home() {
     onEscape: () => setShowShortcuts(false)
   }), [insertDateTime])
 
-  useEffect(() => {
-    loadContent()
-  }, [])
 
   useEffect(() => {
     const saveTimeout = setTimeout(() => {
