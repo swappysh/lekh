@@ -87,15 +87,13 @@ export default function UserPage() {
   }
 
   const shortcuts = useMemo(() => [
-    { keys: 'Shift + ?', description: 'Toggle this help' },
     {
-      keys: 'Ctrl + Alt + D',
+      keys: isMac ? 'Ctrl + Option + D' : 'Ctrl + Alt + D',
       description: 'Insert current date and time'
     }
   ], [isMac])
 
   const keyboardShortcuts = useMemo(() => ({
-    onToggleHelp: () => setShowShortcuts((prev) => !prev),
     onInsertDateTime: insertDateTime,
     onEscape: () => setShowShortcuts(false)
   }), [insertDateTime])
@@ -123,10 +121,7 @@ export default function UserPage() {
     const handleKeyDown = (e) => {
       const isDateShortcut = e.ctrlKey && e.altKey && e.code === 'KeyD'
 
-      if (e.shiftKey && e.key === '?') {
-        e.preventDefault()
-        keyboardShortcuts.onToggleHelp?.()
-      } else if (isDateShortcut) {
+      if (isDateShortcut) {
         e.preventDefault()
         keyboardShortcuts.onInsertDateTime?.()
       } else if (e.key === 'Escape') {
@@ -214,6 +209,13 @@ export default function UserPage() {
         onClose={() => setShowShortcuts(false)}
         shortcuts={shortcuts}
       />
+      <button 
+        className="help-button"
+        onClick={() => setShowShortcuts(prev => !prev)}
+        title="Toggle keyboard shortcuts"
+      >
+        ?
+      </button>
       <style jsx global>{`
         body {
           background: #FAFAF7;
@@ -249,6 +251,38 @@ export default function UserPage() {
           font-family: monospace;
           width: 70vw;
           margin: 0 auto;
+        }
+        .help-button {
+          position: fixed;
+          bottom: 20px;
+          right: 20px;
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          background: #0B57D0;
+          color: white;
+          border: none;
+          font-size: 18px;
+          font-weight: bold;
+          cursor: pointer;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 100;
+        }
+        .help-button:hover {
+          background: #0842A0;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        @media (prefers-color-scheme: dark) {
+          .help-button {
+            background: #8AB4F8;
+            color: #0B0B0C;
+          }
+          .help-button:hover {
+            background: #A8C7FA;
+          }
         }
       `}</style>
     </div>
