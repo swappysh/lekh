@@ -73,6 +73,9 @@ export default function UserPage() {
   const saveContent = async () => {
     if (!documentId || !userExists) return
     
+    // Don't save empty content
+    if (!content || content.trim() === '') return
+    
     const { data, error } = await supabase
       .from('documents')
       .upsert({ 
