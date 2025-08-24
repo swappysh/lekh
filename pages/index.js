@@ -146,6 +146,22 @@ export default function Home() {
         </div>
       )}
 
+      <section className="help">
+        <h2>What is this?</h2>
+        <p>
+          This is a place to write without interruptions. There is no
+          authentication—just open your link anywhere and start writing.
+        </p>
+        <p>
+          Reading isn't the focus, but you can view everything you've written by
+          visiting https://lekh.space/username/all.
+        </p>
+        <p>
+          Have feedback or found a bug? Raise an issue at{' '}
+          <a href="https://github.com/swappysh/lekh">github.com/swappysh/lekh</a>.
+        </p>
+      </section>
+
       <style jsx global>{`
         body {
           background: #FAFAF7;
@@ -270,6 +286,18 @@ export default function Home() {
           background: #f8d7da;
           border: 1px solid #f5c6cb;
           color: #721c24;
+        }
+
+        .help {
+          margin-top: 40px;
+        }
+
+        .help h2 {
+          margin-bottom: 10px;
+        }
+
+        .help p {
+          margin: 0 0 10px 0;
         }
 
         @media (prefers-color-scheme: dark) {
