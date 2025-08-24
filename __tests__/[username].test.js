@@ -247,4 +247,51 @@ describe('User Writing Page', () => {
     await new Promise(resolve => setTimeout(resolve, 1500))
     expect(mockUpsert).not.toHaveBeenCalled()
   })
+
+  test('does not save empty or whitespace-only content', async () => {
+    // Reset router state
+    mockRouter.query.username = 'testuser'
+    
+    const mockUpsert = jest.fn(() => Promise.resolve({ data: {}, error: null }))
+    supabase.from.mockImplementation((table) => {
+      if (table === 'users') {
+        return {
+          select: jest.fn(() => ({
+            eq: jest.fn(() => Promise.resolve({ data: [{ username: 'testuser' }], error: null }))
+          }))
+        }
+      }
+      if (table === 'documents') {
+        return {
+          upsert: mockUpsert
+        }
+      }
+    })
+    
+    const user = userEvent.setup()
+    render(<UserPage />)
+    
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Start writing...')).toBeInTheDocument()
+    })
+    
+    const editor = screen.getByPlaceholderText('Start writing...')
+    
+    // Test whitespace-only content
+    await user.type(editor, '   ')
+    await new Promise(resolve => setTimeout(resolve, 1200))
+    expect(mockUpsert).not.toHaveBeenCalled()
+    
+    // Test that actual content still gets saved
+    await user.clear(editor)
+    await user.type(editor, 'Real content')
+    await waitFor(() => {
+      expect(mockUpsert).toHaveBeenCalledWith({
+        id: 'test-uuid-12345',
+        username: 'testuser',
+        content: 'Real content',
+        updated_at: expect.any(Date)
+      })
+    }, { timeout: 2000 })
+  }, 10000)
 })
