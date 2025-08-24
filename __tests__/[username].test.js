@@ -118,29 +118,31 @@ describe('User Writing Page', () => {
     }, { timeout: 2000 })
   })
 
-  test('toggles shortcuts modal with Shift + ?', async () => {
+  test('toggles shortcuts modal with help button click', async () => {
+    const user = userEvent.setup()
     render(<UserPage />)
     
     await waitFor(() => {
       expect(screen.getByPlaceholderText('Start writing...')).toBeInTheDocument()
     })
     
-    // Press Shift + ?
-    fireEvent.keyDown(window, { key: '?', shiftKey: true })
+    // Click help button to open
+    const helpButton = screen.getByTitle('Toggle keyboard shortcuts')
+    await user.click(helpButton)
     
     await waitFor(() => {
       expect(screen.getByText('Keyboard Shortcuts')).toBeInTheDocument()
     })
     
-    // Press Escape to close
-    fireEvent.keyDown(window, { key: 'Escape' })
+    // Click help button again to close
+    await user.click(helpButton)
     
     await waitFor(() => {
       expect(screen.queryByText('Keyboard Shortcuts')).not.toBeInTheDocument()
     })
   })
 
-  test('inserts date and time with Ctrl + Alt + D', async () => {
+  test('inserts date and time with Ctrl + Alt + D on PC', async () => {
     const mockDate = new Date('2023-01-01 12:00:00')
     jest.spyOn(global, 'Date').mockImplementation(() => mockDate)
     const mockToLocaleString = jest.fn(() => '1/1/2023, 12:00:00 PM')
@@ -156,6 +158,42 @@ describe('User Writing Page', () => {
     editor.focus()
     
     // Press Ctrl + Alt + D
+    fireEvent.keyDown(window, { key: 'd', code: 'KeyD', ctrlKey: true, altKey: true })
+    
+    await waitFor(() => {
+      expect(editor.value).toBe('1/1/2023, 12:00:00 PM')
+    })
+    
+    jest.restoreAllMocks()
+  })
+
+  test('inserts date and time with Ctrl + Option + D on Mac', async () => {
+    // Mock Mac platform
+    const mockNavigator = {
+      userAgentData: { platform: 'macOS' },
+      platform: 'MacIntel'
+    }
+    
+    Object.defineProperty(window, 'navigator', {
+      value: mockNavigator,
+      writable: true
+    })
+    
+    const mockDate = new Date('2023-01-01 12:00:00')
+    jest.spyOn(global, 'Date').mockImplementation(() => mockDate)
+    const mockToLocaleString = jest.fn(() => '1/1/2023, 12:00:00 PM')
+    mockDate.toLocaleString = mockToLocaleString
+    
+    render(<UserPage />)
+    
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Start writing...')).toBeInTheDocument()
+    })
+    
+    const editor = screen.getByPlaceholderText('Start writing...')
+    editor.focus()
+    
+    // Press Ctrl + Alt + D (same keys, just displayed differently on Mac)
     fireEvent.keyDown(window, { key: 'd', code: 'KeyD', ctrlKey: true, altKey: true })
     
     await waitFor(() => {
@@ -210,13 +248,14 @@ describe('User Writing Page', () => {
     })
     
     // The component should detect Mac platform (this affects internal state)
-    // We can't directly test the state, but the shortcuts should work the same way
-    fireEvent.keyDown(window, { key: '?', shiftKey: true })
+    // We can click the help button to open shortcuts
+    const helpButton = screen.getByTitle('Toggle keyboard shortcuts')
+    fireEvent.click(helpButton)
     
     await waitFor(() => {
       expect(screen.getByText('Keyboard Shortcuts')).toBeInTheDocument()
-      // Should show the shortcuts list with Ctrl + Alt + D
-      expect(screen.getByText('Ctrl + Alt + D')).toBeInTheDocument()
+      // Should show the shortcuts list with Ctrl + Option + D on Mac
+      expect(screen.getByText('Ctrl + Option + D')).toBeInTheDocument()
     })
   })
 
@@ -246,6 +285,18 @@ describe('User Writing Page', () => {
     // Wait to ensure no save attempt is made
     await new Promise(resolve => setTimeout(resolve, 1500))
     expect(mockUpsert).not.toHaveBeenCalled()
+  })
+
+  test('renders help button in bottom right corner', async () => {
+    render(<UserPage />)
+    
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Start writing...')).toBeInTheDocument()
+    })
+    
+    const helpButton = screen.getByTitle('Toggle keyboard shortcuts')
+    expect(helpButton).toBeInTheDocument()
+    expect(helpButton).toHaveTextContent('?')
   })
 
   test('does not save empty or whitespace-only content', async () => {

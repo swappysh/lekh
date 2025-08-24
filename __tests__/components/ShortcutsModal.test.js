@@ -5,7 +5,6 @@ import { ShortcutsModal } from '../../components/ShortcutsModal'
 describe('ShortcutsModal Component', () => {
   const mockOnClose = jest.fn()
   const mockShortcuts = [
-    { keys: 'Shift + ?', description: 'Toggle this help' },
     { keys: 'Ctrl + Alt + D', description: 'Insert current date and time' },
     { keys: 'Ctrl + S', description: 'Save document' }
   ]
@@ -46,9 +45,6 @@ describe('ShortcutsModal Component', () => {
         shortcuts={mockShortcuts} 
       />
     )
-    
-    expect(screen.getByText('Shift + ?')).toBeInTheDocument()
-    expect(screen.getByText(/Toggle this help/)).toBeInTheDocument()
     
     expect(screen.getByText('Ctrl + Alt + D')).toBeInTheDocument()
     expect(screen.getByText(/Insert current date and time/)).toBeInTheDocument()
