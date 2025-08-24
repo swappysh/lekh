@@ -5,7 +5,6 @@ import { ShortcutsModal } from '../components/ShortcutsModal'
 
 export default function Home() {
   const [content, setContent] = useState('')
-  const [docId, setDocId] = useState('main')
   const [sessionId, setSessionId] = useState('')
   const [showShortcuts, setShowShortcuts] = useState(false)
   const editorRef = useRef(null)
@@ -54,8 +53,7 @@ export default function Home() {
     const { data, error } = await supabase
       .from('documents')
       .select('content')
-      .eq('id', docId)
-      .eq('session_id', sessionId)
+      .eq('id', sessionId)
       .single()
     
     if (data) {
@@ -68,7 +66,7 @@ export default function Home() {
     
     const { data, error } = await supabase
       .from('documents')
-      .upsert({ id: docId, session_id: sessionId, content, updated_at: new Date() })
+      .upsert({ id: sessionId, content, updated_at: new Date() })
   }
 
   const shortcuts = useMemo(() => [
