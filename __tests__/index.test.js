@@ -125,7 +125,7 @@ describe('Home Page', () => {
     await user.click(submitButton)
     
     await waitFor(() => {
-      expect(screen.getByText(/URL created: https:\/\/lekh-tau\.vercel\.app\/newuser/)).toBeInTheDocument()
+      expect(screen.getByText(/URL created: https:\/\/lekh\.space\/newuser/)).toBeInTheDocument()
     })
   })
 
