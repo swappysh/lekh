@@ -53,7 +53,7 @@ export default function Home() {
       if (error) {
         setMessage('Error: ' + error.message)
       } else {
-        setMessage(`URL created: https://lekh-tau.vercel.app/${username}`)
+        setMessage(`URL created: https://lekh.space/${username}`)
         setUsername('')
         setIsAvailable(null)
       }
@@ -103,7 +103,7 @@ export default function Home() {
         <div className="input-group">
           <label>Choose your URL:</label>
           <div className="url-preview">
-            https://lekh-tau.vercel.app/
+            https://lekh.space/
             <input 
               type="text" 
               value={username}

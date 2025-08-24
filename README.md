@@ -4,7 +4,7 @@ A minimal writing website where users can write and save content. Simple, clean,
 
 ## Live Demo
 
-[Visit Lekh](https://lekh-tau.vercel.app/)
+[Visit Lekh](https://lekh.space/)
 
 ## Features
 
