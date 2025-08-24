@@ -154,7 +154,7 @@ export default function Home() {
         </p>
         <p>
           Reading isn't the focus, but you can view everything you've written by
-          visiting <a href="/all">/all</a>.
+          visiting https://lekh.space/username/all.
         </p>
         <p>
           Have feedback or found a bug? Raise an issue at{' '}
