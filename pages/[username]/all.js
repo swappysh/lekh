@@ -15,6 +15,7 @@ export default function AllEntriesPage() {
   const [encryptedPrivateKey, setEncryptedPrivateKey] = useState(null)
   const [encryptedEntries, setEncryptedEntries] = useState([])
   const [decryptionAttempted, setDecryptionAttempted] = useState(false)
+  const [isPublic, setIsPublic] = useState(false)
 
   const loadAllEntries = async () => {
     if (!username) return
@@ -24,7 +25,7 @@ export default function AllEntriesPage() {
     // Check if user exists and get encryption data
     const { data: userData } = await supabase
       .from('users')
-      .select('username, salt, encrypted_private_key')
+      .select('username, salt, encrypted_private_key, is_public')
       .eq('username', username)
 
     if (!userData || userData.length === 0) {
@@ -36,6 +37,7 @@ export default function AllEntriesPage() {
     setUserExists(true)
     setUserSalt(userData[0].salt)
     setEncryptedPrivateKey(userData[0].encrypted_private_key)
+    setIsPublic(userData[0].is_public)
 
     // Fetch all documents for this user
     const { data: documents } = await supabase
@@ -46,7 +48,34 @@ export default function AllEntriesPage() {
 
     if (documents && documents.length > 0) {
       setEncryptedEntries(documents)
-      setShowPasswordModal(true)
+      if (userData[0].is_public) {
+        const decryptedEntries = []
+        for (const entry of documents) {
+          try {
+            const decryptedContent = await PublicKeyEncryption.decrypt(
+              entry.encrypted_content,
+              entry.encrypted_data_key,
+              username,
+              userData[0].encrypted_private_key,
+              userData[0].salt
+            )
+            decryptedEntries.push({
+              ...entry,
+              content: decryptedContent
+            })
+          } catch (error) {
+            console.error('Failed to decrypt entry:', entry.id, error)
+            decryptedEntries.push({
+              ...entry,
+              content: '[Decryption failed - invalid password or corrupted data]'
+            })
+          }
+        }
+        setEntries(decryptedEntries)
+        setDecryptionAttempted(true)
+      } else {
+        setShowPasswordModal(true)
+      }
     } else {
       setEntries([])
     }
@@ -197,12 +226,14 @@ export default function AllEntriesPage() {
         </div>
       )}
 
-      <PasswordModal
-        isOpen={showPasswordModal}
-        onSubmit={handlePasswordSubmit}
-        onClose={() => setShowPasswordModal(false)}
-        title="Enter Password to Decrypt Entries"
-      />
+      {!isPublic && (
+        <PasswordModal
+          isOpen={showPasswordModal}
+          onSubmit={handlePasswordSubmit}
+          onClose={() => setShowPasswordModal(false)}
+          title="Enter Password to Decrypt Entries"
+        />
+      )}
 
       <style jsx global>{`
         body {

@@ -17,6 +17,7 @@ CREATE TABLE users (
   public_key TEXT NOT NULL,
   encrypted_private_key TEXT NOT NULL,
   salt TEXT NOT NULL,
+  is_public BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

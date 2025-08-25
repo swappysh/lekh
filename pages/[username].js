@@ -16,6 +16,10 @@ export default function UserPage() {
   const [publicKey, setPublicKey] = useState(null)
   const editorRef = useRef(null)
   const [isMac, setIsMac] = useState(false)
+  const [isPublic, setIsPublic] = useState(false)
+  const [userSalt, setUserSalt] = useState(null)
+  const [encryptedPrivateKey, setEncryptedPrivateKey] = useState(null)
+  const [publicEntries, setPublicEntries] = useState([])
 
   // Generate unique document ID for each user session
   useEffect(() => {
@@ -55,10 +59,10 @@ export default function UserPage() {
   const loadContent = async () => {
     if (!username) return
 
-    // Check if user exists and get public key
+    // Check if user exists and get public key and visibility
     const { data: userData } = await supabase
       .from('users')
-      .select('username, public_key')
+      .select('username, public_key, is_public, encrypted_private_key, salt')
       .eq('username', username)
 
     if (!userData || userData.length === 0) {
@@ -68,10 +72,15 @@ export default function UserPage() {
 
     setUserExists(true)
     setPublicKey(userData[0].public_key)
-
-    // Each page load gets a fresh, isolated document
-    // No reading back of previous content - start fresh each time
-    setContent('')
+    setIsPublic(userData[0].is_public)
+    if (userData[0].is_public) {
+      setEncryptedPrivateKey(userData[0].encrypted_private_key)
+      setUserSalt(userData[0].salt)
+      await loadPublicEntries(userData[0].encrypted_private_key, userData[0].salt)
+    } else {
+      // Each private page load gets a fresh, isolated document
+      setContent('')
+    }
   }
 
   const saveContent = async () => {
@@ -120,6 +129,55 @@ export default function UserPage() {
       loadContent()
     }
   }, [username])
+
+  const loadPublicEntries = async (encPrivKey = encryptedPrivateKey, saltVal = userSalt) => {
+    if (!username || !encPrivKey || !saltVal) return
+
+    const { data: documents } = await supabase
+      .from('documents')
+      .select('id, encrypted_content, encrypted_data_key, updated_at')
+      .eq('username', username)
+      .order('updated_at', { ascending: true })
+
+    if (documents) {
+      const decrypted = []
+      for (const doc of documents) {
+        if (doc.id === documentId) continue
+        try {
+          const text = await PublicKeyEncryption.decrypt(
+            doc.encrypted_content,
+            doc.encrypted_data_key,
+            username,
+            encPrivKey,
+            saltVal
+          )
+          decrypted.push({ id: doc.id, content: text })
+        } catch (err) {
+          console.error('Failed to decrypt doc', doc.id, err)
+        }
+      }
+      setPublicEntries(decrypted)
+    }
+  }
+
+  useEffect(() => {
+    if (!username || !isPublic || !encryptedPrivateKey || !userSalt) return
+
+    const channel = supabase
+      .channel('public-docs-' + username)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'documents', filter: `username=eq.${username}` },
+        async () => {
+          await loadPublicEntries()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [username, isPublic, encryptedPrivateKey, userSalt])
 
   useEffect(() => {
     if (!userExists) return
@@ -220,6 +278,14 @@ export default function UserPage() {
   return (
     <div className="container">
       <h1>{username}</h1>
+      {isPublic && <div className="public-label">Public Page</div>}
+      {isPublic && publicEntries.length > 0 && (
+        <div className="public-entries">
+          {publicEntries.map((entry) => (
+            <div key={entry.id} className="public-entry">{entry.content}</div>
+          ))}
+        </div>
+      )}
       <Editor content={content} setContent={setContent} ref={editorRef} />
       <ShortcutsModal
         isOpen={showShortcuts}
@@ -300,6 +366,17 @@ export default function UserPage() {
           .help-button:hover {
             background: #A8C7FA;
           }
+        }
+        .public-label {
+          font-weight: bold;
+          margin-bottom: 10px;
+        }
+        .public-entries {
+          margin-bottom: 20px;
+        }
+        .public-entry {
+          white-space: pre-wrap;
+          margin-bottom: 10px;
         }
       `}</style>
     </div>
