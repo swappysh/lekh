@@ -182,10 +182,11 @@ export default function Home() {
       <section className="help">
         <h2>What is this?</h2>
         <p>
-          This is a place to write without interruptions. There is no
-          authentication—just open your link anywhere and start writing.
+          This is a place to write without interruptions. Write-only philosophy: once you write something, you can't edit it.
+          No authentication—just open your link anywhere and start writing.
         </p>
         <p>
+          All writes are public, so people can communicate by writing to each other.
           Reading isn't the focus, but you can view everything you've written by
           visiting https://lekh.space/username/all.
         </p>
