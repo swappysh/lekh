@@ -128,8 +128,8 @@ describe('Home Page', () => {
     const usernameInput = screen.getByPlaceholderText('your-username')
     await user.type(usernameInput, 'newuser')
     
-    const passwordInput = screen.getByPlaceholderText('Enter a secure password')
-    await user.type(passwordInput, 'securepassword123')
+    const passwordInput = screen.getByPlaceholderText('Enter a secure password (min 12 chars)')
+    await user.type(passwordInput, 'SecurePassword123')
     
     await waitFor(() => {
       expect(screen.getByText('✅ Available')).toBeInTheDocument()
@@ -161,8 +161,8 @@ describe('Home Page', () => {
     const usernameInput = screen.getByPlaceholderText('your-username')
     await user.type(usernameInput, 'erroruser')
     
-    const passwordInput = screen.getByPlaceholderText('Enter a secure password')
-    await user.type(passwordInput, 'securepassword123')
+    const passwordInput = screen.getByPlaceholderText('Enter a secure password (min 12 chars)')
+    await user.type(passwordInput, 'SecurePassword123')
     
     await waitFor(() => {
       expect(screen.getByText('✅ Available')).toBeInTheDocument()
