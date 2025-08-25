@@ -39,9 +39,21 @@ export default function Home() {
     return () => clearTimeout(timeoutId)
   }, [username])
 
+  const validatePassword = (pwd) => {
+    return pwd.length >= 12 && 
+           /[A-Z]/.test(pwd) && 
+           /[a-z]/.test(pwd) && 
+           /[0-9]/.test(pwd)
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!username.trim() || !password.trim() || !isAvailable) return
+
+    if (!validatePassword(password)) {
+      setMessage('Error: Password must be at least 12 characters with uppercase, lowercase, and numbers')
+      return
+    }
 
     setIsSubmitting(true)
     setMessage('')
@@ -152,11 +164,14 @@ export default function Home() {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter a secure password"
+            placeholder="Enter a secure password (min 12 chars)"
             required
+            minLength="12"
+            pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{12,}$"
+            title="Password must be at least 12 characters with uppercase, lowercase, and numbers"
           />
           <div className="password-hint">
-            This password will be required to encrypt/decrypt your content.
+            Password must be at least 12 characters with uppercase, lowercase, and numbers. Required to encrypt/decrypt your content.
           </div>
         </div>
 
@@ -166,7 +181,7 @@ export default function Home() {
           </button>
           <button
             type="submit"
-            disabled={isSubmitting || !isAvailable || isChecking || !password.trim()}
+            disabled={isSubmitting || !isAvailable || isChecking || !password.trim() || !validatePassword(password)}
           >
             {isSubmitting ? 'Creating...' : 'Create URL'}
           </button>

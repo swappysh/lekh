@@ -31,10 +31,9 @@ global.TextDecoder = class TextDecoder {
 const mockCrypto = {
   randomUUID: () => 'test-uuid-12345',
   getRandomValues: jest.fn((array) => {
-    // Fill with pseudo-random values that change each call
-    const seed = Math.floor(Math.random() * 1000000)
+    // Fill with truly random values for each call  
     for (let i = 0; i < array.length; i++) {
-      array[i] = (seed + i) % 256
+      array[i] = Math.floor(Math.random() * 256)
     }
     return array
   }),
