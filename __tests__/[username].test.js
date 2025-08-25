@@ -3,6 +3,16 @@ import userEvent from '@testing-library/user-event'
 import { supabase } from '../lib/supabase'
 import UserPage from '../pages/[username]'
 
+// Mock PublicKeyEncryption
+jest.mock('../lib/publicKeyEncryption', () => ({
+  PublicKeyEncryption: {
+    encrypt: jest.fn(() => Promise.resolve({
+      encryptedContent: 'mock-encrypted-content',
+      encryptedDataKey: 'mock-encrypted-data-key'
+    }))
+  }
+}))
+
 // Mock the router with different scenarios
 const mockPush = jest.fn()
 const mockRouter = {
@@ -24,7 +34,7 @@ describe('User Writing Page', () => {
       if (table === 'users') {
         return {
           select: jest.fn(() => ({
-            eq: jest.fn(() => Promise.resolve({ data: [{ username: 'testuser' }], error: null }))
+            eq: jest.fn(() => Promise.resolve({ data: [{ username: 'testuser', public_key: 'mock-public-key' }], error: null }))
           }))
         }
       }
@@ -85,7 +95,7 @@ describe('User Writing Page', () => {
       if (table === 'users') {
         return {
           select: jest.fn(() => ({
-            eq: jest.fn(() => Promise.resolve({ data: [{ username: 'testuser' }], error: null }))
+            eq: jest.fn(() => Promise.resolve({ data: [{ username: 'testuser', public_key: 'mock-public-key' }], error: null }))
           }))
         }
       }
@@ -111,7 +121,8 @@ describe('User Writing Page', () => {
       expect(mockUpsert).toHaveBeenCalledWith({
         id: 'test-uuid-12345',
         username: 'testuser',
-        content: 'Test content',
+        encrypted_content: 'mock-encrypted-content',
+        encrypted_data_key: 'mock-encrypted-data-key',
         updated_at: expect.any(Date)
       })
     }, { timeout: 2000 })
@@ -307,7 +318,7 @@ describe('User Writing Page', () => {
       if (table === 'users') {
         return {
           select: jest.fn(() => ({
-            eq: jest.fn(() => Promise.resolve({ data: [{ username: 'testuser' }], error: null }))
+            eq: jest.fn(() => Promise.resolve({ data: [{ username: 'testuser', public_key: 'mock-public-key' }], error: null }))
           }))
         }
       }
@@ -339,7 +350,8 @@ describe('User Writing Page', () => {
       expect(mockUpsert).toHaveBeenCalledWith({
         id: 'test-uuid-12345',
         username: 'testuser',
-        content: 'Real content',
+        encrypted_content: 'mock-encrypted-content',
+        encrypted_data_key: 'mock-encrypted-data-key',
         updated_at: expect.any(Date)
       })
     }, { timeout: 2000 })

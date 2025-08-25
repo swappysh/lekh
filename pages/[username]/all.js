@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
-import { supabase } from '../../lib/supabase'
+import { useEffect, useState } from 'react'
 import PasswordModal from '../../components/PasswordModal'
-import { deriveKey, decryptContent } from '../../lib/encryption'
+import { PublicKeyEncryption } from '../../lib/publicKeyEncryption'
+import { supabase } from '../../lib/supabase'
 
 export default function AllEntriesPage() {
   const router = useRouter()
@@ -12,36 +12,38 @@ export default function AllEntriesPage() {
   const [userExists, setUserExists] = useState(null)
   const [showPasswordModal, setShowPasswordModal] = useState(false)
   const [userSalt, setUserSalt] = useState(null)
+  const [encryptedPrivateKey, setEncryptedPrivateKey] = useState(null)
   const [encryptedEntries, setEncryptedEntries] = useState([])
   const [decryptionAttempted, setDecryptionAttempted] = useState(false)
 
   const loadAllEntries = async () => {
     if (!username) return
-    
+
     setLoading(true)
-    
-    // Check if user exists and get salt
+
+    // Check if user exists and get encryption data
     const { data: userData } = await supabase
       .from('users')
-      .select('username, salt')
+      .select('username, salt, encrypted_private_key')
       .eq('username', username)
-    
+
     if (!userData || userData.length === 0) {
       setUserExists(false)
       setLoading(false)
       return
     }
-    
+
     setUserExists(true)
     setUserSalt(userData[0].salt)
-    
+    setEncryptedPrivateKey(userData[0].encrypted_private_key)
+
     // Fetch all documents for this user
     const { data: documents } = await supabase
       .from('documents')
-      .select('*')
+      .select('id, username, encrypted_content, encrypted_data_key, created_at, updated_at')
       .eq('username', username)
       .order('updated_at', { ascending: false })
-    
+
     if (documents && documents.length > 0) {
       setEncryptedEntries(documents)
       setShowPasswordModal(true)
@@ -50,17 +52,24 @@ export default function AllEntriesPage() {
     }
     setLoading(false)
   }
-  
+
   const handlePasswordSubmit = async (password) => {
-    if (!userSalt || !encryptedEntries.length) return
-    
+    if (!userSalt || !encryptedPrivateKey || !encryptedEntries.length) return
+
     try {
-      const key = await deriveKey(password, userSalt)
       const decryptedEntries = []
-      
+
       for (const entry of encryptedEntries) {
         try {
-          const decryptedContent = await decryptContent(entry.content, key)
+          // Decrypt content using public key encryption
+          const decryptedContent = await PublicKeyEncryption.decrypt(
+            entry.encrypted_content,
+            entry.encrypted_data_key,
+            password,
+            encryptedPrivateKey,
+            userSalt
+          )
+          
           decryptedEntries.push({
             ...entry,
             content: decryptedContent
@@ -69,16 +78,16 @@ export default function AllEntriesPage() {
           console.error('Failed to decrypt entry:', entry.id, error)
           decryptedEntries.push({
             ...entry,
-            content: '[Decryption failed]'
+            content: '[Decryption failed - invalid password or corrupted data]'
           })
         }
       }
-      
+
       setEntries(decryptedEntries)
       setShowPasswordModal(false)
       setDecryptionAttempted(true)
     } catch (error) {
-      console.error('Key derivation failed:', error)
+      console.error('Decryption process failed:', error)
       alert('Invalid password. Please try again.')
     }
   }
@@ -114,7 +123,7 @@ export default function AllEntriesPage() {
       <div className="container">
         <h1>User Not Found</h1>
         <p>The user "{username}" doesn't exist.</p>
-        <p><a href="/users">Create a new user URL</a></p>
+        <p><a href="/">Create a new user URL</a></p>
         <style jsx global>{`
           body {
             background: #FAFAF7;
@@ -162,7 +171,7 @@ export default function AllEntriesPage() {
         <h1>{username} - All Entries</h1>
         <p><a href={`/${username}`}>← Back to write</a></p>
       </div>
-      
+
       {!decryptionAttempted && encryptedEntries.length > 0 ? (
         <div className="no-entries">
           <p>Enter password to decrypt and view entries</p>
@@ -187,7 +196,7 @@ export default function AllEntriesPage() {
           ))}
         </div>
       )}
-      
+
       <PasswordModal
         isOpen={showPasswordModal}
         onSubmit={handlePasswordSubmit}
@@ -224,7 +233,7 @@ export default function AllEntriesPage() {
           }
         }
       `}</style>
-      
+
       <style jsx>{`
         .container {
           padding: 20px;

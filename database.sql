@@ -5,14 +5,17 @@
 CREATE TABLE documents (
   id TEXT PRIMARY KEY,
   username TEXT,
-  content TEXT,
+  encrypted_content TEXT NOT NULL,
+  encrypted_data_key TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ
 );
 
--- Create the users table
+-- Create the users table  
 CREATE TABLE users (
   username TEXT PRIMARY KEY,
+  public_key TEXT NOT NULL,
+  encrypted_private_key TEXT NOT NULL,
   salt TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );

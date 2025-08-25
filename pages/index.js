@@ -1,12 +1,12 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
-import { supabase } from '../lib/supabase'
-import Editor from '../components/Editor'
-import { ShortcutsModal } from '../components/ShortcutsModal'
 import { generate } from 'random-words'
+import { useEffect, useState } from 'react'
 import { generateSalt } from '../lib/encryption'
+import { PublicKeyEncryption } from '../lib/publicKeyEncryption'
+import { supabase } from '../lib/supabase'
 
 export default function Home() {
   const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState('')
   const [isChecking, setIsChecking] = useState(false)
@@ -26,7 +26,7 @@ export default function Home() {
           .from('users')
           .select('username')
           .eq('username', username.trim())
-        
+
         // Available if empty array or error
         setIsAvailable(!data || data.length === 0)
       } catch (err) {
@@ -41,31 +41,45 @@ export default function Home() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!username.trim() || !isAvailable) return
-    
+    if (!username.trim() || !password.trim() || !isAvailable) return
+
     setIsSubmitting(true)
     setMessage('')
 
     try {
-      const salt = await generateSalt()
+      const saltBytes = crypto.getRandomValues(new Uint8Array(16))
+      
+      // Generate author keypair and encrypt private key with password
+      const { publicKey, encryptedPrivateKey, salt } = await PublicKeyEncryption.generateAuthorKeys(
+        password, 
+        saltBytes
+      )
+      
       const { data, error } = await supabase
         .from('users')
-        .upsert({ 
+        .upsert({
           username: username.trim(),
+          public_key: publicKey,
+          encrypted_private_key: encryptedPrivateKey,
           salt: salt
         })
-      
+
       if (error) {
         setMessage('Error: ' + error.message)
       } else {
-        setMessage(`URL created: https://lekh.space/${username}`)
+        setMessage(`URL created: https://lekh.space/${username.trim()}`)
+        // Redirect to the writing page after creation
+        setTimeout(() => {
+          window.location.href = `/${username.trim()}`
+        }, 2000)
         setUsername('')
+        setPassword('')
         setIsAvailable(null)
       }
     } catch (err) {
-      setMessage('Error creating URL')
+      setMessage('Error creating URL: ' + err.message)
     }
-    
+
     setIsSubmitting(false)
   }
 
@@ -74,24 +88,24 @@ export default function Home() {
     const { data: existingUsers } = await supabase
       .from('users')
       .select('username')
-    
+
     const existingUsernames = new Set(existingUsers?.map(u => u.username) || [])
-    
+
     let attempts = 0
     while (attempts < 20) {
       // Generate 2 random words and join with hyphen
       const words = generate(2)
       const candidate = words.join('-')
-      
+
       // Check if this username is not already taken
       if (!existingUsernames.has(candidate)) {
         setUsername(candidate)
         return
       }
-      
+
       attempts++
     }
-    
+
     // If all attempts failed, add a timestamp to ensure uniqueness
     const words = generate(2)
     const timestamp = Date.now().toString().slice(-4)
@@ -103,14 +117,14 @@ export default function Home() {
     <div className="container">
       <h1>Create Your Writing URL</h1>
       <p>Create a personalized URL where you can write and save your content.</p>
-      
+
       <form onSubmit={handleSubmit}>
         <div className="input-group">
           <label>Choose your URL:</label>
           <div className="url-preview">
             https://lekh.space/
-            <input 
-              type="text" 
+            <input
+              type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="your-username"
@@ -131,14 +145,28 @@ export default function Home() {
             </div>
           )}
         </div>
-        
+
+        <div className="input-group">
+          <label>Set your password:</label>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Enter a secure password"
+            required
+          />
+          <div className="password-hint">
+            This password will be required to encrypt/decrypt your content.
+          </div>
+        </div>
+
         <div className="buttons">
           <button type="button" onClick={generateRandomUsername}>
             Generate Random
           </button>
-          <button 
-            type="submit" 
-            disabled={isSubmitting || !isAvailable || isChecking}
+          <button
+            type="submit"
+            disabled={isSubmitting || !isAvailable || isChecking || !password.trim()}
           >
             {isSubmitting ? 'Creating...' : 'Create URL'}
           </button>
@@ -251,6 +279,30 @@ export default function Home() {
           color: inherit;
         }
 
+        input[type="password"] {
+          width: 100%;
+          padding: 12px;
+          border: 1px solid #ccc;
+          border-radius: 4px;
+          font-family: monospace;
+          font-size: 16px;
+          background: white;
+          color: inherit;
+          box-sizing: border-box;
+        }
+
+        input[type="password"]:focus {
+          outline: none;
+          border-color: #0B57D0;
+          box-shadow: 0 0 0 2px rgba(11, 87, 208, 0.1);
+        }
+
+        .password-hint {
+          margin-top: 8px;
+          font-size: 14px;
+          color: #6c757d;
+        }
+
         .buttons {
           display: flex;
           gap: 10px;
@@ -341,6 +393,21 @@ export default function Home() {
           }
 
           .checking {
+            color: #adb5bd;
+          }
+
+          input[type="password"] {
+            background: #333;
+            border-color: #555;
+            color: white;
+          }
+
+          input[type="password"]:focus {
+            border-color: #8AB4F8;
+            box-shadow: 0 0 0 2px rgba(138, 180, 248, 0.1);
+          }
+
+          .password-hint {
             color: #adb5bd;
           }
         }

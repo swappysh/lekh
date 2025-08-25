@@ -8,6 +8,17 @@ jest.mock('random-words', () => ({
   generate: jest.fn(() => ['test', 'username'])
 }))
 
+// Mock PublicKeyEncryption
+jest.mock('../lib/publicKeyEncryption', () => ({
+  PublicKeyEncryption: {
+    generateAuthorKeys: jest.fn(() => Promise.resolve({
+      publicKey: 'mock-public-key',
+      encryptedPrivateKey: 'mock-encrypted-private-key',
+      salt: 'mock-salt'
+    }))
+  }
+}))
+
 describe('Home Page', () => {
   beforeEach(() => {
     jest.clearAllMocks()
@@ -114,8 +125,11 @@ describe('Home Page', () => {
     const user = userEvent.setup()
     render(<Home />)
     
-    const input = screen.getByPlaceholderText('your-username')
-    await user.type(input, 'newuser')
+    const usernameInput = screen.getByPlaceholderText('your-username')
+    await user.type(usernameInput, 'newuser')
+    
+    const passwordInput = screen.getByPlaceholderText('Enter a secure password')
+    await user.type(passwordInput, 'securepassword123')
     
     await waitFor(() => {
       expect(screen.getByText('✅ Available')).toBeInTheDocument()
@@ -144,8 +158,11 @@ describe('Home Page', () => {
     const user = userEvent.setup()
     render(<Home />)
     
-    const input = screen.getByPlaceholderText('your-username')
-    await user.type(input, 'erroruser')
+    const usernameInput = screen.getByPlaceholderText('your-username')
+    await user.type(usernameInput, 'erroruser')
+    
+    const passwordInput = screen.getByPlaceholderText('Enter a secure password')
+    await user.type(passwordInput, 'securepassword123')
     
     await waitFor(() => {
       expect(screen.getByText('✅ Available')).toBeInTheDocument()

@@ -152,7 +152,7 @@ describe('Encryption Utilities', () => {
     })
   })
 
-  describe('End-to-End Encryption with Mocks', () => {
+  describe('End-to-End Basic Encryption with Mocks', () => {
     it('should encrypt and decrypt content successfully with mocked crypto', async () => {
       const password = 'test-password-123'
       const originalContent = 'This is secret content that should be encrypted!'

@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/router'
-import { supabase } from '../lib/supabase'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Editor from '../components/Editor'
-import { ShortcutsModal } from '../components/ShortcutsModal'
 import PasswordModal from '../components/PasswordModal'
-import { generateSalt, deriveKey, encryptContent } from '../lib/encryption'
+import { ShortcutsModal } from '../components/ShortcutsModal'
+import { PublicKeyEncryption } from '../lib/publicKeyEncryption'
+import { supabase } from '../lib/supabase'
 
 export default function UserPage() {
   const router = useRouter()
@@ -13,10 +13,7 @@ export default function UserPage() {
   const [documentId, setDocumentId] = useState('')
   const [showShortcuts, setShowShortcuts] = useState(false)
   const [userExists, setUserExists] = useState(null)
-  const [showPasswordModal, setShowPasswordModal] = useState(false)
-  const [userSalt, setUserSalt] = useState(null)
-  const [encryptionKey, setEncryptionKey] = useState(null)
-  const [pendingSave, setPendingSave] = useState(null)
+  const [publicKey, setPublicKey] = useState(null)
   const editorRef = useRef(null)
   const [isMac, setIsMac] = useState(false)
 
@@ -37,7 +34,7 @@ export default function UserPage() {
       setIsMac(mac)
     }
   }, [])
-  
+
   const insertDateTime = useCallback(() => {
     const editor = editorRef.current
     if (!editor) {
@@ -57,77 +54,54 @@ export default function UserPage() {
 
   const loadContent = async () => {
     if (!username) return
-    
-    // Check if user exists and get salt
+
+    // Check if user exists and get public key
     const { data: userData } = await supabase
       .from('users')
-      .select('username, salt')
+      .select('username, public_key')
       .eq('username', username)
-    
+
     if (!userData || userData.length === 0) {
       setUserExists(false)
       return
     }
-    
+
     setUserExists(true)
-    setUserSalt(userData[0].salt)
-    
+    setPublicKey(userData[0].public_key)
+
     // Each page load gets a fresh, isolated document
     // No reading back of previous content - start fresh each time
     setContent('')
   }
 
   const saveContent = async () => {
-    if (!documentId || !userExists) return
-    
+    if (!documentId || !userExists || !publicKey) return
+
     // Don't save empty content
     if (!content || content.trim() === '') return
-    
-    // Check if we need password for encryption
-    if (!encryptionKey) {
-      setPendingSave({ documentId, content })
-      setShowPasswordModal(true)
-      return
-    }
-    
-    // Encrypt content before saving
-    const encryptedContent = await encryptContent(content, encryptionKey)
-    
-    const { data, error } = await supabase
-      .from('documents')
-      .upsert({ 
-        id: documentId,
-        username, 
-        content: encryptedContent, 
-        updated_at: new Date() 
-      })
-  }
-  
-  const handlePasswordSubmit = async (password) => {
-    if (!userSalt || !pendingSave) return
-    
+
     try {
-      const key = await deriveKey(password, userSalt)
-      setEncryptionKey(key)
-      
-      // Encrypt and save the pending content
-      const encryptedContent = await encryptContent(pendingSave.content, key)
-      
-      await supabase
+      // Encrypt content using public key encryption (hybrid encryption)
+      const { encryptedContent, encryptedDataKey } = await PublicKeyEncryption.encrypt(content, publicKey)
+
+      const { data, error } = await supabase
         .from('documents')
-        .upsert({ 
-          id: pendingSave.documentId,
-          username, 
-          content: encryptedContent, 
-          updated_at: new Date() 
+        .upsert({
+          id: documentId,
+          username,
+          encrypted_content: encryptedContent,
+          encrypted_data_key: encryptedDataKey,
+          updated_at: new Date()
         })
-      
-      setPendingSave(null)
-      setShowPasswordModal(false)
+
+      if (error) {
+        console.error('Failed to save document:', error)
+      }
     } catch (error) {
-      console.error('Encryption failed:', error)
+      console.error('Failed to encrypt content:', error)
     }
   }
+
 
   const shortcuts = useMemo(() => [
     {
@@ -149,7 +123,7 @@ export default function UserPage() {
 
   useEffect(() => {
     if (!userExists) return
-    
+
     const saveTimeout = setTimeout(() => {
       if (content !== undefined) {
         saveContent()
@@ -201,7 +175,7 @@ export default function UserPage() {
       <div className="container">
         <h1>User Not Found</h1>
         <p>The user "{username}" doesn't exist.</p>
-        <p><a href="/users">Create a new user URL</a></p>
+        <p><a href="/">Create a new user URL</a></p>
         <style jsx global>{`
           body {
             background: #FAFAF7;
@@ -252,16 +226,7 @@ export default function UserPage() {
         onClose={() => setShowShortcuts(false)}
         shortcuts={shortcuts}
       />
-      <PasswordModal
-        isOpen={showPasswordModal}
-        onSubmit={handlePasswordSubmit}
-        onClose={() => {
-          setShowPasswordModal(false)
-          setPendingSave(null)
-        }}
-        title="Enter Password to Encrypt"
-      />
-      <button 
+      <button
         className="help-button"
         onClick={() => setShowShortcuts(prev => !prev)}
         title="Toggle keyboard shortcuts"
