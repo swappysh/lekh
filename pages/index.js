@@ -186,7 +186,7 @@ export default function Home() {
           No authentication—just open your link anywhere and start writing.
         </p>
         <p>
-          All writes are public and encrypted, so people can communicate by writing to each other.
+          All writes are public and encrypted. You can also write to someone else by visiting their URL.
           Reading isn't the focus, but you can view everything you've written by
           visiting https://lekh.space/username/all.
         </p>
