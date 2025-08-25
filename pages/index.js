@@ -1,4 +1,3 @@
-import { generate } from 'random-words'
 import { useEffect, useState } from 'react'
 import { generateSalt } from '../lib/encryption'
 import { PublicKeyEncryption } from '../lib/publicKeyEncryption'
@@ -96,32 +95,32 @@ export default function Home() {
   }
 
   const generateRandomUsername = async () => {
-    // First, get all existing usernames to avoid duplicates
-    const { data: existingUsers } = await supabase
-      .from('users')
-      .select('username')
-
-    const existingUsernames = new Set(existingUsers?.map(u => u.username) || [])
-
     let attempts = 0
-    while (attempts < 20) {
-      // Generate 2 random words and join with hyphen
-      const words = generate(2)
-      const candidate = words.join('-')
+    while (attempts < 5) {
+      try {
+        const response = await fetch('/api/random-username')
+        const { username: candidate } = await response.json()
 
-      // Check if this username is not already taken
-      if (!existingUsernames.has(candidate)) {
-        setUsername(candidate)
-        return
+        const { data, error } = await supabase
+          .from('users')
+          .select('username')
+          .eq('username', candidate)
+
+        if (!error && (!data || data.length === 0)) {
+          setUsername(candidate)
+          setIsAvailable(true)
+          return
+        }
+      } catch (err) {
+        // ignore and retry
       }
 
       attempts++
     }
 
-    // If all attempts failed, add a timestamp to ensure uniqueness
-    const words = generate(2)
-    const timestamp = Date.now().toString().slice(-4)
-    setUsername(`${words.join('-')}-${timestamp}`)
+    const fallback = `user-${Date.now().toString().slice(-4)}`
+    setUsername(fallback)
+    setIsAvailable(true)
   }
 
 

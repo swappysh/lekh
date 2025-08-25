@@ -3,11 +3,6 @@ import userEvent from '@testing-library/user-event'
 import Home from '../pages/index'
 import { supabase } from '../lib/supabase'
 
-// Mock the random-words library
-jest.mock('random-words', () => ({
-  generate: jest.fn(() => ['test', 'username'])
-}))
-
 // Mock PublicKeyEncryption
 jest.mock('../lib/publicKeyEncryption', () => ({
   PublicKeyEncryption: {
@@ -22,6 +17,7 @@ jest.mock('../lib/publicKeyEncryption', () => ({
 describe('Home Page', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    global.fetch = jest.fn()
   })
 
   test('renders home page with title and form', () => {
@@ -81,12 +77,22 @@ describe('Home Page', () => {
   })
 
   test('generates random username when button clicked', async () => {
+    global.fetch.mockResolvedValueOnce({
+      json: () => Promise.resolve({ username: 'test-username' })
+    })
+
+    supabase.from.mockImplementation(() => ({
+      select: jest.fn(() => ({
+        eq: jest.fn(() => Promise.resolve({ data: [], error: null }))
+      }))
+    }))
+
     const user = userEvent.setup()
     render(<Home />)
-    
+
     const generateButton = screen.getByText('Generate Random')
     await user.click(generateButton)
-    
+
     const input = screen.getByPlaceholderText('your-username')
     expect(input.value).toBe('test-username')
   })
