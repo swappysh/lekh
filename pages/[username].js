@@ -1,8 +1,10 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/router'
-import { supabase } from '../lib/supabase'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Editor from '../components/Editor'
+import PasswordModal from '../components/PasswordModal'
 import { ShortcutsModal } from '../components/ShortcutsModal'
+import { PublicKeyEncryption } from '../lib/publicKeyEncryption'
+import { supabase } from '../lib/supabase'
 
 export default function UserPage() {
   const router = useRouter()
@@ -11,6 +13,7 @@ export default function UserPage() {
   const [documentId, setDocumentId] = useState('')
   const [showShortcuts, setShowShortcuts] = useState(false)
   const [userExists, setUserExists] = useState(null)
+  const [publicKey, setPublicKey] = useState(null)
   const editorRef = useRef(null)
   const [isMac, setIsMac] = useState(false)
 
@@ -31,7 +34,7 @@ export default function UserPage() {
       setIsMac(mac)
     }
   }, [])
-  
+
   const insertDateTime = useCallback(() => {
     const editor = editorRef.current
     if (!editor) {
@@ -51,40 +54,54 @@ export default function UserPage() {
 
   const loadContent = async () => {
     if (!username) return
-    
-    // Check if user exists
+
+    // Check if user exists and get public key
     const { data: userData } = await supabase
       .from('users')
-      .select('username')
+      .select('username, public_key')
       .eq('username', username)
-    
+
     if (!userData || userData.length === 0) {
       setUserExists(false)
       return
     }
-    
+
     setUserExists(true)
-    
+    setPublicKey(userData[0].public_key)
+
     // Each page load gets a fresh, isolated document
     // No reading back of previous content - start fresh each time
     setContent('')
   }
 
   const saveContent = async () => {
-    if (!documentId || !userExists) return
-    
+    if (!documentId || !userExists || !publicKey) return
+
     // Don't save empty content
     if (!content || content.trim() === '') return
-    
-    const { data, error } = await supabase
-      .from('documents')
-      .upsert({ 
-        id: documentId,
-        username, 
-        content, 
-        updated_at: new Date() 
-      })
+
+    try {
+      // Encrypt content using public key encryption (hybrid encryption)
+      const { encryptedContent, encryptedDataKey } = await PublicKeyEncryption.encrypt(content, publicKey)
+
+      const { data, error } = await supabase
+        .from('documents')
+        .upsert({
+          id: documentId,
+          username,
+          encrypted_content: encryptedContent,
+          encrypted_data_key: encryptedDataKey,
+          updated_at: new Date()
+        })
+
+      if (error) {
+        console.error('Failed to save document:', error)
+      }
+    } catch (error) {
+      console.error('Failed to encrypt content:', error)
+    }
   }
+
 
   const shortcuts = useMemo(() => [
     {
@@ -106,7 +123,7 @@ export default function UserPage() {
 
   useEffect(() => {
     if (!userExists) return
-    
+
     const saveTimeout = setTimeout(() => {
       if (content !== undefined) {
         saveContent()
@@ -158,7 +175,7 @@ export default function UserPage() {
       <div className="container">
         <h1>User Not Found</h1>
         <p>The user "{username}" doesn't exist.</p>
-        <p><a href="/users">Create a new user URL</a></p>
+        <p><a href="/">Create a new user URL</a></p>
         <style jsx global>{`
           body {
             background: #FAFAF7;
@@ -209,7 +226,7 @@ export default function UserPage() {
         onClose={() => setShowShortcuts(false)}
         shortcuts={shortcuts}
       />
-      <button 
+      <button
         className="help-button"
         onClick={() => setShowShortcuts(prev => !prev)}
         title="Toggle keyboard shortcuts"

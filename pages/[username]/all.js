@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
+import { useEffect, useState } from 'react'
+import PasswordModal from '../../components/PasswordModal'
+import { PublicKeyEncryption } from '../../lib/publicKeyEncryption'
 import { supabase } from '../../lib/supabase'
 
 export default function AllEntriesPage() {
@@ -8,35 +10,86 @@ export default function AllEntriesPage() {
   const [entries, setEntries] = useState([])
   const [loading, setLoading] = useState(true)
   const [userExists, setUserExists] = useState(null)
+  const [showPasswordModal, setShowPasswordModal] = useState(false)
+  const [userSalt, setUserSalt] = useState(null)
+  const [encryptedPrivateKey, setEncryptedPrivateKey] = useState(null)
+  const [encryptedEntries, setEncryptedEntries] = useState([])
+  const [decryptionAttempted, setDecryptionAttempted] = useState(false)
 
   const loadAllEntries = async () => {
     if (!username) return
-    
+
     setLoading(true)
-    
-    // Check if user exists
+
+    // Check if user exists and get encryption data
     const { data: userData } = await supabase
       .from('users')
-      .select('username')
+      .select('username, salt, encrypted_private_key')
       .eq('username', username)
-    
+
     if (!userData || userData.length === 0) {
       setUserExists(false)
       setLoading(false)
       return
     }
-    
+
     setUserExists(true)
-    
+    setUserSalt(userData[0].salt)
+    setEncryptedPrivateKey(userData[0].encrypted_private_key)
+
     // Fetch all documents for this user
     const { data: documents } = await supabase
       .from('documents')
-      .select('*')
+      .select('id, username, encrypted_content, encrypted_data_key, created_at, updated_at')
       .eq('username', username)
       .order('updated_at', { ascending: false })
-    
-    setEntries(documents || [])
+
+    if (documents && documents.length > 0) {
+      setEncryptedEntries(documents)
+      setShowPasswordModal(true)
+    } else {
+      setEntries([])
+    }
     setLoading(false)
+  }
+
+  const handlePasswordSubmit = async (password) => {
+    if (!userSalt || !encryptedPrivateKey || !encryptedEntries.length) return
+
+    try {
+      const decryptedEntries = []
+
+      for (const entry of encryptedEntries) {
+        try {
+          // Decrypt content using public key encryption
+          const decryptedContent = await PublicKeyEncryption.decrypt(
+            entry.encrypted_content,
+            entry.encrypted_data_key,
+            password,
+            encryptedPrivateKey,
+            userSalt
+          )
+          
+          decryptedEntries.push({
+            ...entry,
+            content: decryptedContent
+          })
+        } catch (error) {
+          console.error('Failed to decrypt entry:', entry.id, error)
+          decryptedEntries.push({
+            ...entry,
+            content: '[Decryption failed - invalid password or corrupted data]'
+          })
+        }
+      }
+
+      setEntries(decryptedEntries)
+      setShowPasswordModal(false)
+      setDecryptionAttempted(true)
+    } catch (error) {
+      console.error('Decryption process failed:', error)
+      alert('Invalid password. Please try again.')
+    }
   }
 
   useEffect(() => {
@@ -70,7 +123,7 @@ export default function AllEntriesPage() {
       <div className="container">
         <h1>User Not Found</h1>
         <p>The user "{username}" doesn't exist.</p>
-        <p><a href="/users">Create a new user URL</a></p>
+        <p><a href="/">Create a new user URL</a></p>
         <style jsx global>{`
           body {
             background: #FAFAF7;
@@ -118,8 +171,12 @@ export default function AllEntriesPage() {
         <h1>{username} - All Entries</h1>
         <p><a href={`/${username}`}>← Back to write</a></p>
       </div>
-      
-      {entries.length === 0 ? (
+
+      {!decryptionAttempted && encryptedEntries.length > 0 ? (
+        <div className="no-entries">
+          <p>Enter password to decrypt and view entries</p>
+        </div>
+      ) : entries.length === 0 ? (
         <div className="no-entries">
           <p>No entries found for {username}</p>
         </div>
@@ -139,6 +196,13 @@ export default function AllEntriesPage() {
           ))}
         </div>
       )}
+
+      <PasswordModal
+        isOpen={showPasswordModal}
+        onSubmit={handlePasswordSubmit}
+        onClose={() => setShowPasswordModal(false)}
+        title="Enter Password to Decrypt Entries"
+      />
 
       <style jsx global>{`
         body {
@@ -169,7 +233,7 @@ export default function AllEntriesPage() {
           }
         }
       `}</style>
-      
+
       <style jsx>{`
         .container {
           padding: 20px;
