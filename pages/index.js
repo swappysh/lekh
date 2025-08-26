@@ -103,26 +103,33 @@ export default function Home() {
     while (attempts < 5) {
       try {
         const response = await fetch('/api/random-username')
-        const { username: candidate } = await response.json()
-
-        const { data, error } = await supabase
-          .from('users')
-          .select('username')
-          .eq('username', candidate)
-
-        if (!error && (!data || data.length === 0)) {
-          setUsername(candidate)
-          setIsAvailable(true)
-          return
+        if (!response.ok) {
+          throw new Error('API request failed')
         }
-      } catch (err) {
-        // ignore and retry
-      }
+        
+        const { username: candidate, error } = await response.json()
+        
+        if (error) {
+          throw new Error(error)
+        }
 
-      attempts++
+        // API already ensures uniqueness, so we can trust the result
+        setUsername(candidate)
+        setIsAvailable(true)
+        return
+      } catch (err) {
+        // Network/parsing errors - retry
+        if (err instanceof TypeError || err.name === 'NetworkError' || err.message === 'API request failed') {
+          attempts++
+          continue
+        }
+        // Other errors - break and use fallback
+        break
+      }
     }
 
-    const fallback = `user-${Date.now().toString().slice(-4)}`
+    // Fallback with more uniqueness
+    const fallback = `user-${Date.now().toString().slice(-4)}-${Math.random().toString(36).substr(2, 3)}`
     setUsername(fallback)
     setIsAvailable(true)
   }
