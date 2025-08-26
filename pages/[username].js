@@ -19,9 +19,6 @@ export default function UserPage() {
   const editorRef = useRef(null)
   const [isMac, setIsMac] = useState(false)
   const [isPublic, setIsPublic] = useState(false)
-  const [userSalt, setUserSalt] = useState(null)
-  const [encryptedPrivateKey, setEncryptedPrivateKey] = useState(null)
-  const [publicEntries, setPublicEntries] = useState([])
   const [collaborativeDoc, setCollaborativeDoc] = useState(null)
   const [activeEditors, setActiveEditors] = useState([])
   const [collaborativeContent, setCollaborativeContent] = useState('')
@@ -79,9 +76,7 @@ export default function UserPage() {
     setPublicKey(userData[0].public_key)
     setIsPublic(userData[0].is_public)
     if (userData[0].is_public) {
-      setEncryptedPrivateKey(userData[0].encrypted_private_key)
-      setUserSalt(userData[0].salt)
-      await loadPublicEntries(userData[0].encrypted_private_key, userData[0].salt)
+      // Public pages use only collaborative documents - no historical entries
       await initCollaborativeDocument()
     } else {
       // Each private page load gets a fresh, isolated document
@@ -145,54 +140,7 @@ export default function UserPage() {
     }
   }, [collaborativeDoc])
 
-  const loadPublicEntries = async (encPrivKey = encryptedPrivateKey, saltVal = userSalt) => {
-    if (!username || !encPrivKey || !saltVal) return
 
-    const { data: documents } = await supabase
-      .from('documents')
-      .select('id, encrypted_content, encrypted_data_key, updated_at')
-      .eq('username', username)
-      .order('updated_at', { ascending: true })
-
-    if (documents) {
-      const decrypted = []
-      for (const doc of documents) {
-        if (doc.id === documentId) continue
-        try {
-          const text = await PublicKeyEncryption.decrypt(
-            doc.encrypted_content,
-            doc.encrypted_data_key,
-            username,
-            encPrivKey,
-            saltVal
-          )
-          decrypted.push({ id: doc.id, content: text })
-        } catch (err) {
-          console.error('Failed to decrypt doc', doc.id, err)
-        }
-      }
-      setPublicEntries(decrypted)
-    }
-  }
-
-  useEffect(() => {
-    if (!username || !isPublic || !encryptedPrivateKey || !userSalt) return
-
-    const channel = supabase
-      .channel('public-docs-' + username)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'documents', filter: `username=eq.${username}` },
-        async () => {
-          await loadPublicEntries()
-        }
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [username, isPublic, encryptedPrivateKey, userSalt])
 
   // Initialize collaborative document for public pages
   const initCollaborativeDocument = async () => {
@@ -329,13 +277,6 @@ export default function UserPage() {
     <div className="container">
       <h1>{username}</h1>
       {isPublic && <div className="public-label">Public Page</div>}
-      {isPublic && publicEntries.length > 0 && (
-        <div className="public-entries">
-          {publicEntries.map((entry) => (
-            <div key={entry.id} className="public-entry">{entry.content}</div>
-          ))}
-        </div>
-      )}
       {isPublic ? (
         <CollaborativeEditor 
           content={collaborativeContent}
@@ -430,13 +371,6 @@ export default function UserPage() {
         }
         .public-label {
           font-weight: bold;
-          margin-bottom: 10px;
-        }
-        .public-entries {
-          margin-bottom: 20px;
-        }
-        .public-entry {
-          white-space: pre-wrap;
           margin-bottom: 10px;
         }
       `}</style>

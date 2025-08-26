@@ -358,8 +358,7 @@ describe('User Writing Page', () => {
     }, { timeout: 2000 })
   }, 10000)
 
-  test('renders public entries and updates on realtime changes', async () => {
-    let documentsCall = 0
+  test('renders public page with collaborative editor', async () => {
     supabase.from.mockImplementation((table) => {
       if (table === 'users') {
         return {
@@ -373,25 +372,6 @@ describe('User Writing Page', () => {
                 salt: 'mock-salt'
               }],
               error: null
-            }))
-          }))
-        }
-      }
-      if (table === 'documents') {
-        return {
-          select: jest.fn(() => ({
-            eq: jest.fn(() => ({
-              order: jest.fn(() => {
-                documentsCall++
-                const base = [
-                  { id: 'doc1', encrypted_content: 'enc1', encrypted_data_key: 'key1', updated_at: '2024-01-01' },
-                  { id: 'doc2', encrypted_content: 'enc2', encrypted_data_key: 'key2', updated_at: '2024-01-02' }
-                ]
-                return Promise.resolve({
-                  data: documentsCall === 1 ? base : [...base, { id: 'doc3', encrypted_content: 'enc3', encrypted_data_key: 'key3', updated_at: '2024-01-03' }],
-                  error: null
-                })
-              })
             }))
           }))
         }
@@ -423,12 +403,8 @@ describe('User Writing Page', () => {
       }
     })
 
-    let channelCallback
     const channel = {
-      on: jest.fn((event, filter, cb) => {
-        channelCallback = cb
-        return channel
-      }),
+      on: jest.fn().mockReturnThis(),
       subscribe: jest.fn()
     }
     supabase.channel = jest.fn(() => channel)
@@ -440,17 +416,9 @@ describe('User Writing Page', () => {
       expect(screen.getByText('Public Page')).toBeInTheDocument()
     })
 
+    // Should show collaborative editor instead of historical entries
     await waitFor(() => {
-      expect(screen.getByText('Decrypted enc1')).toBeInTheDocument()
-      expect(screen.getByText('Decrypted enc2')).toBeInTheDocument()
-    })
-
-    await act(async () => {
-      await channelCallback()
-    })
-
-    await waitFor(() => {
-      expect(screen.getByText('Decrypted enc3')).toBeInTheDocument()
+      expect(screen.getByPlaceholderText('Start writing...')).toBeInTheDocument()
     })
   })
 })
