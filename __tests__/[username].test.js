@@ -396,6 +396,31 @@ describe('User Writing Page', () => {
           }))
         }
       }
+      // Mock collaborative document tables
+      if (table === 'collaborative_documents') {
+        return {
+          select: jest.fn(() => ({
+            eq: jest.fn(() => ({
+              single: jest.fn(() => Promise.resolve({ data: null, error: { code: 'PGRST116' } }))
+            }))
+          })),
+          insert: jest.fn(() => ({
+            select: jest.fn(() => ({
+              single: jest.fn(() => Promise.resolve({ data: { username: 'testuser', content: '', version: 0 }, error: null }))
+            }))
+          }))
+        }
+      }
+      if (table === 'active_editors') {
+        return {
+          upsert: jest.fn(() => Promise.resolve({ data: {}, error: null })),
+          select: jest.fn(() => ({
+            eq: jest.fn(() => ({
+              gte: jest.fn(() => Promise.resolve({ data: [], error: null }))
+            }))
+          }))
+        }
+      }
     })
 
     let channelCallback
