@@ -1,9 +1,11 @@
 import { useRouter } from 'next/router'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Editor from '../components/Editor'
+import CollaborativeEditor from '../components/CollaborativeEditor'
 import PasswordModal from '../components/PasswordModal'
 import { ShortcutsModal } from '../components/ShortcutsModal'
 import { PublicKeyEncryption } from '../lib/publicKeyEncryption'
+import { CollaborativeDocument } from '../lib/collaborativeDocument'
 import { supabase } from '../lib/supabase'
 
 export default function UserPage() {
@@ -16,6 +18,10 @@ export default function UserPage() {
   const [publicKey, setPublicKey] = useState(null)
   const editorRef = useRef(null)
   const [isMac, setIsMac] = useState(false)
+  const [isPublic, setIsPublic] = useState(false)
+  const [collaborativeDoc, setCollaborativeDoc] = useState(null)
+  const [activeEditors, setActiveEditors] = useState([])
+  const [collaborativeContent, setCollaborativeContent] = useState('')
 
   // Generate unique document ID for each user session
   useEffect(() => {
@@ -55,10 +61,10 @@ export default function UserPage() {
   const loadContent = async () => {
     if (!username) return
 
-    // Check if user exists and get public key
+    // Check if user exists and get public key and visibility
     const { data: userData } = await supabase
       .from('users')
-      .select('username, public_key')
+      .select('username, public_key, is_public, encrypted_private_key, salt')
       .eq('username', username)
 
     if (!userData || userData.length === 0) {
@@ -68,10 +74,14 @@ export default function UserPage() {
 
     setUserExists(true)
     setPublicKey(userData[0].public_key)
-
-    // Each page load gets a fresh, isolated document
-    // No reading back of previous content - start fresh each time
-    setContent('')
+    setIsPublic(userData[0].is_public)
+    if (userData[0].is_public) {
+      // Public pages use only collaborative documents - no historical entries
+      await initCollaborativeDocument()
+    } else {
+      // Each private page load gets a fresh, isolated document
+      setContent('')
+    }
   }
 
   const saveContent = async () => {
@@ -121,8 +131,54 @@ export default function UserPage() {
     }
   }, [username])
 
+  // Cleanup collaborative document on unmount
   useEffect(() => {
-    if (!userExists) return
+    return () => {
+      if (collaborativeDoc) {
+        collaborativeDoc.disconnect()
+      }
+    }
+  }, [collaborativeDoc])
+
+
+
+  // Initialize collaborative document for public pages
+  const initCollaborativeDocument = async () => {
+    try {
+      const doc = new CollaborativeDocument(username)
+      await doc.init()
+      
+      doc.setOnContentChange((newContent) => {
+        setCollaborativeContent(newContent)
+      })
+      
+      doc.setOnActiveEditorsChange((editors) => {
+        setActiveEditors(editors)
+      })
+      
+      setCollaborativeDoc(doc)
+      setCollaborativeContent(doc.getContent())
+    } catch (error) {
+      console.error('Failed to initialize collaborative document:', error)
+    }
+  }
+
+  // Handle collaborative content changes
+  const handleCollaborativeChange = async (newContent, cursorPosition) => {
+    if (collaborativeDoc) {
+      await collaborativeDoc.handleLocalChange(newContent, cursorPosition)
+    }
+  }
+
+  // Handle cursor position changes for collaboration
+  const handleCursorChange = async (cursorPosition) => {
+    if (collaborativeDoc) {
+      await collaborativeDoc.updateCursorPosition(cursorPosition)
+    }
+  }
+
+  useEffect(() => {
+    if (!userExists || isPublic) return
 
     const saveTimeout = setTimeout(() => {
       if (content !== undefined) {
@@ -131,7 +187,7 @@ export default function UserPage() {
     }, 1000)
 
     return () => clearTimeout(saveTimeout)
-  }, [content, userExists])
+  }, [content, userExists, isPublic])
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -220,7 +276,19 @@ export default function UserPage() {
   return (
     <div className="container">
       <h1>{username}</h1>
-      <Editor content={content} setContent={setContent} ref={editorRef} />
+      {isPublic && <div className="public-label">Public Page</div>}
+      {isPublic ? (
+        <CollaborativeEditor 
+          content={collaborativeContent}
+          onContentChange={handleCollaborativeChange}
+          onCursorChange={handleCursorChange}
+          activeEditors={activeEditors}
+          isCollaborative={true}
+          ref={editorRef}
+        />
+      ) : (
+        <Editor content={content} setContent={setContent} ref={editorRef} />
+      )}
       <ShortcutsModal
         isOpen={showShortcuts}
         onClose={() => setShowShortcuts(false)}
@@ -300,6 +368,10 @@ export default function UserPage() {
           .help-button:hover {
             background: #A8C7FA;
           }
+        }
+        .public-label {
+          font-weight: bold;
+          margin-bottom: 10px;
         }
       `}</style>
     </div>
