@@ -1,0 +1,449 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="jest tests" tests="207" failures="0" errors="0" time="6.843">
+  <testsuite name="End-to-End Encryption Flow" errors="0" failures="0" skipped="0" timestamp="2025-08-26T06:42:22" time="0.505" tests="13">
+    <testcase classname="End-to-End Encryption Flow Complete User Journey - New User should handle complete flow: user creation -&gt; write -&gt; read" name="End-to-End Encryption Flow Complete User Journey - New User should handle complete flow: user creation -&gt; write -&gt; read" time="0.005">
+    </testcase>
+    <testcase classname="End-to-End Encryption Flow Complete User Journey - Existing User should handle complete flow: login -&gt; write -&gt; read for existing user" name="End-to-End Encryption Flow Complete User Journey - Existing User should handle complete flow: login -&gt; write -&gt; read for existing user" time="0.001">
+    </testcase>
+    <testcase classname="End-to-End Encryption Flow Password Modal Integration should integrate password modal with encryption workflow" name="End-to-End Encryption Flow Password Modal Integration should integrate password modal with encryption workflow" time="0.18">
+    </testcase>
+    <testcase classname="End-to-End Encryption Flow Password Modal Integration should handle password modal cancellation" name="End-to-End Encryption Flow Password Modal Integration should handle password modal cancellation" time="0.027">
+    </testcase>
+    <testcase classname="End-to-End Encryption Flow Error Recovery Scenarios should handle encryption failure during write operation" name="End-to-End Encryption Flow Error Recovery Scenarios should handle encryption failure during write operation" time="0.001">
+    </testcase>
+    <testcase classname="End-to-End Encryption Flow Error Recovery Scenarios should handle database failure during write operation" name="End-to-End Encryption Flow Error Recovery Scenarios should handle database failure during write operation" time="0">
+    </testcase>
+    <testcase classname="End-to-End Encryption Flow Error Recovery Scenarios should handle partial decryption failure during read operation" name="End-to-End Encryption Flow Error Recovery Scenarios should handle partial decryption failure during read operation" time="0.001">
+    </testcase>
+    <testcase classname="End-to-End Encryption Flow Security Scenarios should ensure different passwords produce different encrypted content" name="End-to-End Encryption Flow Security Scenarios should ensure different passwords produce different encrypted content" time="0">
+    </testcase>
+    <testcase classname="End-to-End Encryption Flow Security Scenarios should ensure same content encrypted multiple times produces different ciphertext" name="End-to-End Encryption Flow Security Scenarios should ensure same content encrypted multiple times produces different ciphertext" time="0.001">
+    </testcase>
+    <testcase classname="End-to-End Encryption Flow Security Scenarios should fail decryption with wrong password" name="End-to-End Encryption Flow Security Scenarios should fail decryption with wrong password" time="0">
+    </testcase>
+    <testcase classname="End-to-End Encryption Flow Performance and Edge Cases should handle large content efficiently" name="End-to-End Encryption Flow Performance and Edge Cases should handle large content efficiently" time="0">
+    </testcase>
+    <testcase classname="End-to-End Encryption Flow Performance and Edge Cases should handle empty content edge case" name="End-to-End Encryption Flow Performance and Edge Cases should handle empty content edge case" time="0.001">
+    </testcase>
+    <testcase classname="End-to-End Encryption Flow Performance and Edge Cases should handle concurrent encryption/decryption operations" name="End-to-End Encryption Flow Performance and Edge Cases should handle concurrent encryption/decryption operations" time="0">
+    </testcase>
+  </testsuite>
+  <testsuite name="All Entries Page" errors="0" failures="0" skipped="0" timestamp="2025-08-26T06:42:22" time="0.84" tests="14">
+    <testcase classname="All Entries Page shows loading state initially" name="All Entries Page shows loading state initially" time="0.029">
+    </testcase>
+    <testcase classname="All Entries Page renders all entries page when user exists with entries" name="All Entries Page renders all entries page when user exists with entries" time="0.183">
+    </testcase>
+    <testcase classname="All Entries Page shows user not found when user does not exist" name="All Entries Page shows user not found when user does not exist" time="0.006">
+    </testcase>
+    <testcase classname="All Entries Page shows no entries message when user exists but has no entries" name="All Entries Page shows no entries message when user exists but has no entries" time="0.007">
+    </testcase>
+    <testcase classname="All Entries Page displays entries with formatted timestamps after password entry" name="All Entries Page displays entries with formatted timestamps after password entry" time="0.067">
+    </testcase>
+    <testcase classname="All Entries Page queries documents in correct order (newest first)" name="All Entries Page queries documents in correct order (newest first)" time="0.007">
+    </testcase>
+    <testcase classname="All Entries Page back link has correct href" name="All Entries Page back link has correct href" time="0.009">
+    </testcase>
+    <testcase classname="All Entries Page handles different usernames correctly" name="All Entries Page handles different usernames correctly" time="0.009">
+    </testcase>
+    <testcase classname="All Entries Page preserves whitespace and line breaks in entry content" name="All Entries Page preserves whitespace and line breaks in entry content" time="0.065">
+    </testcase>
+    <testcase classname="All Entries Page handles null or undefined entries gracefully" name="All Entries Page handles null or undefined entries gracefully" time="0.007">
+    </testcase>
+    <testcase classname="All Entries Page does not crash when router query is undefined" name="All Entries Page does not crash when router query is undefined" time="0.001">
+    </testcase>
+    <testcase classname="All Entries Page applies dark mode styles correctly" name="All Entries Page applies dark mode styles correctly" time="0.008">
+    </testcase>
+    <testcase classname="All Entries Page entry dates are properly formatted and displayed" name="All Entries Page entry dates are properly formatted and displayed" time="0.067">
+    </testcase>
+    <testcase classname="All Entries Page entries are displayed with proper styling and structure" name="All Entries Page entries are displayed with proper styling and structure" time="0.064">
+    </testcase>
+  </testsuite>
+  <testsuite name="PasswordModal" errors="0" failures="0" skipped="0" timestamp="2025-08-26T06:42:22" time="0.343" tests="16">
+    <testcase classname="PasswordModal should not render when isOpen is false" name="PasswordModal should not render when isOpen is false" time="0.004">
+    </testcase>
+    <testcase classname="PasswordModal should render with default title when isOpen is true" name="PasswordModal should render with default title when isOpen is true" time="0.017">
+    </testcase>
+    <testcase classname="PasswordModal should render with custom title" name="PasswordModal should render with custom title" time="0.003">
+    </testcase>
+    <testcase classname="PasswordModal should focus the password input when modal opens" name="PasswordModal should focus the password input when modal opens" time="0.012">
+    </testcase>
+    <testcase classname="PasswordModal should disable submit button when password is empty" name="PasswordModal should disable submit button when password is empty" time="0.008">
+    </testcase>
+    <testcase classname="PasswordModal should enable submit button when password is entered" name="PasswordModal should enable submit button when password is entered" time="0.044">
+    </testcase>
+    <testcase classname="PasswordModal should call onSubmit with password when form is submitted" name="PasswordModal should call onSubmit with password when form is submitted" time="0.051">
+    </testcase>
+    <testcase classname="PasswordModal should call onSubmit when Enter key is pressed" name="PasswordModal should call onSubmit when Enter key is pressed" time="0.047">
+    </testcase>
+    <testcase classname="PasswordModal should not submit when password is only whitespace" name="PasswordModal should not submit when password is only whitespace" time="0.03">
+    </testcase>
+    <testcase classname="PasswordModal should call onClose when Cancel button is clicked" name="PasswordModal should call onClose when Cancel button is clicked" time="0.013">
+    </testcase>
+    <testcase classname="PasswordModal should call onClose when overlay is clicked" name="PasswordModal should call onClose when overlay is clicked" time="0.012">
+    </testcase>
+    <testcase classname="PasswordModal should call onClose when Escape key is pressed" name="PasswordModal should call onClose when Escape key is pressed" time="0.006">
+    </testcase>
+    <testcase classname="PasswordModal should update password value when user types" name="PasswordModal should update password value when user types" time="0.032">
+    </testcase>
+    <testcase classname="PasswordModal should clear password when modal is reopened" name="PasswordModal should clear password when modal is reopened" time="0.005">
+    </testcase>
+    <testcase classname="PasswordModal should have correct input type for password field" name="PasswordModal should have correct input type for password field" time="0.002">
+    </testcase>
+    <testcase classname="PasswordModal should render with proper accessibility attributes" name="PasswordModal should render with proper accessibility attributes" time="0.007">
+    </testcase>
+  </testsuite>
+  <testsuite name="Editor Component" errors="0" failures="0" skipped="0" timestamp="2025-08-26T06:42:23" time="0.118" tests="11">
+    <testcase classname="Editor Component renders textarea with placeholder" name="Editor Component renders textarea with placeholder" time="0.004">
+    </testcase>
+    <testcase classname="Editor Component displays provided content" name="Editor Component displays provided content" time="0.002">
+    </testcase>
+    <testcase classname="Editor Component calls setContent when typing" name="Editor Component calls setContent when typing" time="0.03">
+    </testcase>
+    <testcase classname="Editor Component calls setContent when content changes" name="Editor Component calls setContent when content changes" time="0.003">
+    </testcase>
+    <testcase classname="Editor Component auto-resizes based on content" name="Editor Component auto-resizes based on content" time="0.004">
+    </testcase>
+    <testcase classname="Editor Component works with forwarded ref" name="Editor Component works with forwarded ref" time="0.003">
+    </testcase>
+    <testcase classname="Editor Component handles empty content" name="Editor Component handles empty content" time="0.001">
+    </testcase>
+    <testcase classname="Editor Component handles multiline content" name="Editor Component handles multiline content" time="0.001">
+    </testcase>
+    <testcase classname="Editor Component has correct CSS classes and attributes" name="Editor Component has correct CSS classes and attributes" time="0.001">
+    </testcase>
+    <testcase classname="Editor Component auto-resize effect runs on content change" name="Editor Component auto-resize effect runs on content change" time="0.002">
+    </testcase>
+    <testcase classname="Editor Component textarea supports selection range functionality" name="Editor Component textarea supports selection range functionality" time="0.017">
+    </testcase>
+  </testsuite>
+  <testsuite name="ShortcutsModal Component" errors="0" failures="0" skipped="0" timestamp="2025-08-26T06:42:23" time="0.096" tests="11">
+    <testcase classname="ShortcutsModal Component does not render when isOpen is false" name="ShortcutsModal Component does not render when isOpen is false" time="0.002">
+    </testcase>
+    <testcase classname="ShortcutsModal Component renders modal when isOpen is true" name="ShortcutsModal Component renders modal when isOpen is true" time="0.004">
+    </testcase>
+    <testcase classname="ShortcutsModal Component renders all provided shortcuts" name="ShortcutsModal Component renders all provided shortcuts" time="0.003">
+    </testcase>
+    <testcase classname="ShortcutsModal Component shows escape instruction" name="ShortcutsModal Component shows escape instruction" time="0.002">
+    </testcase>
+    <testcase classname="ShortcutsModal Component calls onClose when clicking overlay" name="ShortcutsModal Component calls onClose when clicking overlay" time="0.018">
+    </testcase>
+    <testcase classname="ShortcutsModal Component does not call onClose when clicking modal content" name="ShortcutsModal Component does not call onClose when clicking modal content" time="0.009">
+    </testcase>
+    <testcase classname="ShortcutsModal Component handles empty shortcuts array" name="ShortcutsModal Component handles empty shortcuts array" time="0.004">
+    </testcase>
+    <testcase classname="ShortcutsModal Component renders shortcuts with proper key-description structure" name="ShortcutsModal Component renders shortcuts with proper key-description structure" time="0.004">
+    </testcase>
+    <testcase classname="ShortcutsModal Component has correct modal styling and positioning" name="ShortcutsModal Component has correct modal styling and positioning" time="0.004">
+    </testcase>
+    <testcase classname="ShortcutsModal Component prevents event propagation when clicking modal content" name="ShortcutsModal Component prevents event propagation when clicking modal content" time="0.002">
+    </testcase>
+    <testcase classname="ShortcutsModal Component uses description as key for list items" name="ShortcutsModal Component uses description as key for list items" time="0.003">
+    </testcase>
+  </testsuite>
+  <testsuite name="Encrypted Write Functionality" errors="0" failures="0" skipped="0" timestamp="2025-08-26T06:42:23" time="0.049" tests="14">
+    <testcase classname="Encrypted Write Functionality saveContent workflow should encrypt content before saving to database" name="Encrypted Write Functionality saveContent workflow should encrypt content before saving to database" time="0.001">
+    </testcase>
+    <testcase classname="Encrypted Write Functionality saveContent workflow should handle encryption errors gracefully" name="Encrypted Write Functionality saveContent workflow should handle encryption errors gracefully" time="0.001">
+    </testcase>
+    <testcase classname="Encrypted Write Functionality saveContent workflow should not save empty content" name="Encrypted Write Functionality saveContent workflow should not save empty content" time="0">
+    </testcase>
+    <testcase classname="Encrypted Write Functionality saveContent workflow should generate unique document IDs" name="Encrypted Write Functionality saveContent workflow should generate unique document IDs" time="0">
+    </testcase>
+    <testcase classname="Encrypted Write Functionality password handling workflow should trigger password modal when encryption key is missing" name="Encrypted Write Functionality password handling workflow should trigger password modal when encryption key is missing" time="0.001">
+    </testcase>
+    <testcase classname="Encrypted Write Functionality password handling workflow should process pending save after password submission" name="Encrypted Write Functionality password handling workflow should process pending save after password submission" time="0">
+    </testcase>
+    <testcase classname="Encrypted Write Functionality password handling workflow should handle password derivation errors" name="Encrypted Write Functionality password handling workflow should handle password derivation errors" time="0.008">
+    </testcase>
+    <testcase classname="Encrypted Write Functionality user creation workflow should create user with salt when saving first document" name="Encrypted Write Functionality user creation workflow should create user with salt when saving first document" time="0">
+    </testcase>
+    <testcase classname="Encrypted Write Functionality user creation workflow should use existing user salt for encryption" name="Encrypted Write Functionality user creation workflow should use existing user salt for encryption" time="0">
+    </testcase>
+    <testcase classname="Encrypted Write Functionality database error handling should handle database connection errors" name="Encrypted Write Functionality database error handling should handle database connection errors" time="0.001">
+    </testcase>
+    <testcase classname="Encrypted Write Functionality database error handling should handle network errors gracefully" name="Encrypted Write Functionality database error handling should handle network errors gracefully" time="0.008">
+    </testcase>
+    <testcase classname="Encrypted Write Functionality content validation should handle special characters in content" name="Encrypted Write Functionality content validation should handle special characters in content" time="0.001">
+    </testcase>
+    <testcase classname="Encrypted Write Functionality content validation should handle very long content" name="Encrypted Write Functionality content validation should handle very long content" time="0">
+    </testcase>
+    <testcase classname="Encrypted Write Functionality content validation should handle unicode content correctly" name="Encrypted Write Functionality content validation should handle unicode content correctly" time="0.001">
+    </testcase>
+  </testsuite>
+  <testsuite name="Encrypted Read Functionality" errors="0" failures="0" skipped="0" timestamp="2025-08-26T06:42:23" time="0.048" tests="17">
+    <testcase classname="Encrypted Read Functionality loadAllEntries workflow should fetch user salt before loading entries" name="Encrypted Read Functionality loadAllEntries workflow should fetch user salt before loading entries" time="0">
+    </testcase>
+    <testcase classname="Encrypted Read Functionality loadAllEntries workflow should handle user not found" name="Encrypted Read Functionality loadAllEntries workflow should handle user not found" time="0">
+    </testcase>
+    <testcase classname="Encrypted Read Functionality loadAllEntries workflow should fetch encrypted documents for user" name="Encrypted Read Functionality loadAllEntries workflow should fetch encrypted documents for user" time="0">
+    </testcase>
+    <testcase classname="Encrypted Read Functionality loadAllEntries workflow should handle no documents found" name="Encrypted Read Functionality loadAllEntries workflow should handle no documents found" time="0">
+    </testcase>
+    <testcase classname="Encrypted Read Functionality password submission and decryption workflow should decrypt entries with correct password" name="Encrypted Read Functionality password submission and decryption workflow should decrypt entries with correct password" time="0.001">
+    </testcase>
+    <testcase classname="Encrypted Read Functionality password submission and decryption workflow should handle decryption failure with wrong password" name="Encrypted Read Functionality password submission and decryption workflow should handle decryption failure with wrong password" time="0">
+    </testcase>
+    <testcase classname="Encrypted Read Functionality password submission and decryption workflow should handle partial decryption failures" name="Encrypted Read Functionality password submission and decryption workflow should handle partial decryption failures" time="0.001">
+    </testcase>
+    <testcase classname="Encrypted Read Functionality error handling should handle database errors when fetching user" name="Encrypted Read Functionality error handling should handle database errors when fetching user" time="0">
+    </testcase>
+    <testcase classname="Encrypted Read Functionality error handling should handle database errors when fetching documents" name="Encrypted Read Functionality error handling should handle database errors when fetching documents" time="0.001">
+    </testcase>
+    <testcase classname="Encrypted Read Functionality error handling should handle network errors gracefully" name="Encrypted Read Functionality error handling should handle network errors gracefully" time="0.005">
+    </testcase>
+    <testcase classname="Encrypted Read Functionality error handling should handle malformed encrypted content" name="Encrypted Read Functionality error handling should handle malformed encrypted content" time="0.001">
+    </testcase>
+    <testcase classname="Encrypted Read Functionality error handling should handle empty encrypted content" name="Encrypted Read Functionality error handling should handle empty encrypted content" time="0.001">
+    </testcase>
+    <testcase classname="Encrypted Read Functionality content validation after decryption should correctly decrypt special characters" name="Encrypted Read Functionality content validation after decryption should correctly decrypt special characters" time="0.001">
+    </testcase>
+    <testcase classname="Encrypted Read Functionality content validation after decryption should correctly decrypt unicode content" name="Encrypted Read Functionality content validation after decryption should correctly decrypt unicode content" time="0">
+    </testcase>
+    <testcase classname="Encrypted Read Functionality content validation after decryption should correctly decrypt long content" name="Encrypted Read Functionality content validation after decryption should correctly decrypt long content" time="0.001">
+    </testcase>
+    <testcase classname="Encrypted Read Functionality content validation after decryption should handle entries with newlines and formatting" name="Encrypted Read Functionality content validation after decryption should handle entries with newlines and formatting" time="0">
+    </testcase>
+    <testcase classname="Encrypted Read Functionality sorting and ordering should maintain correct document ordering" name="Encrypted Read Functionality sorting and ordering should maintain correct document ordering" time="0.001">
+    </testcase>
+  </testsuite>
+  <testsuite name="CollaborativeEditor" errors="0" failures="0" skipped="0" timestamp="2025-08-26T06:42:23" time="0.13" tests="11">
+    <testcase classname="CollaborativeEditor renders editor with placeholder text" name="CollaborativeEditor renders editor with placeholder text" time="0.003">
+    </testcase>
+    <testcase classname="CollaborativeEditor displays content correctly" name="CollaborativeEditor displays content correctly" time="0.001">
+    </testcase>
+    <testcase classname="CollaborativeEditor calls onContentChange when typing" name="CollaborativeEditor calls onContentChange when typing" time="0.039">
+    </testcase>
+    <testcase classname="CollaborativeEditor calls onCursorChange when cursor moves" name="CollaborativeEditor calls onCursorChange when cursor moves" time="0.002">
+    </testcase>
+    <testcase classname="CollaborativeEditor shows active editors indicator when collaborative" name="CollaborativeEditor shows active editors indicator when collaborative" time="0.003">
+    </testcase>
+    <testcase classname="CollaborativeEditor shows singular form for one editor" name="CollaborativeEditor shows singular form for one editor" time="0.006">
+    </testcase>
+    <testcase classname="CollaborativeEditor hides active editors indicator when not collaborative" name="CollaborativeEditor hides active editors indicator when not collaborative" time="0.002">
+    </testcase>
+    <testcase classname="CollaborativeEditor hides active editors indicator when no active editors" name="CollaborativeEditor hides active editors indicator when no active editors" time="0.002">
+    </testcase>
+    <testcase classname="CollaborativeEditor renders cursor indicators for active editors" name="CollaborativeEditor renders cursor indicators for active editors" time="0.005">
+    </testcase>
+    <testcase classname="CollaborativeEditor does not render cursors when not collaborative" name="CollaborativeEditor does not render cursors when not collaborative" time="0.002">
+    </testcase>
+    <testcase classname="CollaborativeEditor forwards ref correctly" name="CollaborativeEditor forwards ref correctly" time="0.002">
+    </testcase>
+  </testsuite>
+  <testsuite name="Supabase Integration" errors="0" failures="0" skipped="0" timestamp="2025-08-26T06:42:23" time="0.041" tests="12">
+    <testcase classname="Supabase Integration Users table operations checks username availability" name="Supabase Integration Users table operations checks username availability" time="0">
+    </testcase>
+    <testcase classname="Supabase Integration Users table operations creates new user" name="Supabase Integration Users table operations creates new user" time="0">
+    </testcase>
+    <testcase classname="Supabase Integration Users table operations handles username already exists" name="Supabase Integration Users table operations handles username already exists" time="0.001">
+    </testcase>
+    <testcase classname="Supabase Integration Users table operations handles database error during availability check" name="Supabase Integration Users table operations handles database error during availability check" time="0">
+    </testcase>
+    <testcase classname="Supabase Integration Documents table operations saves document content" name="Supabase Integration Documents table operations saves document content" time="0.001">
+    </testcase>
+    <testcase classname="Supabase Integration Documents table operations updates existing document" name="Supabase Integration Documents table operations updates existing document" time="0">
+    </testcase>
+    <testcase classname="Supabase Integration Documents table operations handles document save error" name="Supabase Integration Documents table operations handles document save error" time="0.001">
+    </testcase>
+    <testcase classname="Supabase Integration Integration patterns simulates full user creation flow" name="Supabase Integration Integration patterns simulates full user creation flow" time="0.001">
+    </testcase>
+    <testcase classname="Supabase Integration Integration patterns simulates user verification and document save flow" name="Supabase Integration Integration patterns simulates user verification and document save flow" time="0.001">
+    </testcase>
+    <testcase classname="Supabase Integration Integration patterns handles network errors gracefully" name="Supabase Integration Integration patterns handles network errors gracefully" time="0">
+    </testcase>
+    <testcase classname="Supabase Integration Environment configuration supabase client is properly configured" name="Supabase Integration Environment configuration supabase client is properly configured" time="0">
+    </testcase>
+    <testcase classname="Supabase Integration Environment configuration handles missing environment variables gracefully" name="Supabase Integration Environment configuration handles missing environment variables gracefully" time="0.001">
+    </testcase>
+  </testsuite>
+  <testsuite name="CollaborativeDocument" errors="0" failures="0" skipped="0" timestamp="2025-08-26T06:42:23" time="0.052" tests="7">
+    <testcase classname="CollaborativeDocument initialization creates collaborative document with correct properties" name="CollaborativeDocument initialization creates collaborative document with correct properties" time="0.001">
+    </testcase>
+    <testcase classname="CollaborativeDocument operational transforms integration transforms pending operations against remote operations" name="CollaborativeDocument operational transforms integration transforms pending operations against remote operations" time="0.001">
+    </testcase>
+    <testcase classname="CollaborativeDocument operational transforms integration ignores operations from same client" name="CollaborativeDocument operational transforms integration ignores operations from same client" time="0">
+    </testcase>
+    <testcase classname="CollaborativeDocument content management applies operations to content correctly" name="CollaborativeDocument content management applies operations to content correctly" time="0">
+    </testcase>
+    <testcase classname="CollaborativeDocument content management gets current content and version" name="CollaborativeDocument content management gets current content and version" time="0.001">
+    </testcase>
+    <testcase classname="CollaborativeDocument callback management sets and calls content change callback" name="CollaborativeDocument callback management sets and calls content change callback" time="0">
+    </testcase>
+    <testcase classname="CollaborativeDocument callback management sets active editors change callback" name="CollaborativeDocument callback management sets active editors change callback" time="0.001">
+    </testcase>
+  </testsuite>
+  <testsuite name="PublicKeyEncryption" errors="0" failures="0" skipped="0" timestamp="2025-08-26T06:42:23" time="0.061" tests="11">
+    <testcase classname="PublicKeyEncryption generateAuthorKeys should generate author keys with encrypted private key" name="PublicKeyEncryption generateAuthorKeys should generate author keys with encrypted private key" time="0.002">
+    </testcase>
+    <testcase classname="PublicKeyEncryption generateAuthorKeys should call crypto.subtle.generateKey with RSA-OAEP" name="PublicKeyEncryption generateAuthorKeys should call crypto.subtle.generateKey with RSA-OAEP" time="0">
+    </testcase>
+    <testcase classname="PublicKeyEncryption generateAuthorKeys should export and encrypt private key" name="PublicKeyEncryption generateAuthorKeys should export and encrypt private key" time="0.001">
+    </testcase>
+    <testcase classname="PublicKeyEncryption derivePasswordKey should derive key using PBKDF2" name="PublicKeyEncryption derivePasswordKey should derive key using PBKDF2" time="0">
+    </testcase>
+    <testcase classname="PublicKeyEncryption encrypt should perform hybrid encryption" name="PublicKeyEncryption encrypt should perform hybrid encryption" time="0">
+    </testcase>
+    <testcase classname="PublicKeyEncryption encrypt should generate random data key and encrypt content" name="PublicKeyEncryption encrypt should generate random data key and encrypt content" time="0.001">
+    </testcase>
+    <testcase classname="PublicKeyEncryption decrypt should call necessary crypto operations for decryption" name="PublicKeyEncryption decrypt should call necessary crypto operations for decryption" time="0.001">
+    </testcase>
+    <testcase classname="PublicKeyEncryption decrypt should throw error on invalid input format" name="PublicKeyEncryption decrypt should throw error on invalid input format" time="0.01">
+    </testcase>
+    <testcase classname="PublicKeyEncryption encryptWithPasswordKey should encrypt data with AES-GCM" name="PublicKeyEncryption encryptWithPasswordKey should encrypt data with AES-GCM" time="0.001">
+    </testcase>
+    <testcase classname="PublicKeyEncryption decryptWithPasswordKey should call AES-GCM decrypt with correct parameters" name="PublicKeyEncryption decryptWithPasswordKey should call AES-GCM decrypt with correct parameters" time="0.008">
+    </testcase>
+    <testcase classname="PublicKeyEncryption End-to-end workflow should complete full encryption/decryption workflow" name="PublicKeyEncryption End-to-end workflow should complete full encryption/decryption workflow" time="0.001">
+    </testcase>
+  </testsuite>
+  <testsuite name="OperationalTransforms" errors="0" failures="0" skipped="0" timestamp="2025-08-26T06:42:23" time="0.044" tests="22">
+    <testcase classname="OperationalTransforms Operation class creates insert operation" name="OperationalTransforms Operation class creates insert operation" time="0.001">
+    </testcase>
+    <testcase classname="OperationalTransforms Operation class creates delete operation" name="OperationalTransforms Operation class creates delete operation" time="0">
+    </testcase>
+    <testcase classname="OperationalTransforms transform operations transforms insert after insert" name="OperationalTransforms transform operations transforms insert after insert" time="0">
+    </testcase>
+    <testcase classname="OperationalTransforms transform operations transforms insert before insert - no change" name="OperationalTransforms transform operations transforms insert before insert - no change" time="0">
+    </testcase>
+    <testcase classname="OperationalTransforms transform operations transforms insert after delete" name="OperationalTransforms transform operations transforms insert after delete" time="0">
+    </testcase>
+    <testcase classname="OperationalTransforms transform operations transforms delete after insert" name="OperationalTransforms transform operations transforms delete after insert" time="0">
+    </testcase>
+    <testcase classname="OperationalTransforms transform operations transforms delete within insert range" name="OperationalTransforms transform operations transforms delete within insert range" time="0">
+    </testcase>
+    <testcase classname="OperationalTransforms transform operations transforms overlapping deletes" name="OperationalTransforms transform operations transforms overlapping deletes" time="0">
+    </testcase>
+    <testcase classname="OperationalTransforms transform operations returns null for completely contained delete" name="OperationalTransforms transform operations returns null for completely contained delete" time="0">
+    </testcase>
+    <testcase classname="OperationalTransforms transform operations ignores operations from same client" name="OperationalTransforms transform operations ignores operations from same client" time="0.001">
+    </testcase>
+    <testcase classname="OperationalTransforms apply operations applies insert operation" name="OperationalTransforms apply operations applies insert operation" time="0">
+    </testcase>
+    <testcase classname="OperationalTransforms apply operations applies delete operation" name="OperationalTransforms apply operations applies delete operation" time="0.006">
+    </testcase>
+    <testcase classname="OperationalTransforms apply operations applies insert at beginning" name="OperationalTransforms apply operations applies insert at beginning" time="0">
+    </testcase>
+    <testcase classname="OperationalTransforms apply operations applies insert at end" name="OperationalTransforms apply operations applies insert at end" time="0.002">
+    </testcase>
+    <testcase classname="OperationalTransforms apply operations applies delete at beginning" name="OperationalTransforms apply operations applies delete at beginning" time="0">
+    </testcase>
+    <testcase classname="OperationalTransforms apply operations applies delete at end" name="OperationalTransforms apply operations applies delete at end" time="0">
+    </testcase>
+    <testcase classname="OperationalTransforms transform multiple operations transforms list of operations against single operation" name="OperationalTransforms transform multiple operations transforms list of operations against single operation" time="0.001">
+    </testcase>
+    <testcase classname="OperationalTransforms transform multiple operations filters out null operations" name="OperationalTransforms transform multiple operations filters out null operations" time="0">
+    </testcase>
+    <testcase classname="OperationalTransforms generate operations from text diff generates insert operation for added text" name="OperationalTransforms generate operations from text diff generates insert operation for added text" time="0.001">
+    </testcase>
+    <testcase classname="OperationalTransforms generate operations from text diff generates delete operation for removed text" name="OperationalTransforms generate operations from text diff generates delete operation for removed text" time="0">
+    </testcase>
+    <testcase classname="OperationalTransforms generate operations from text diff generates no operations for identical text" name="OperationalTransforms generate operations from text diff generates no operations for identical text" time="0">
+    </testcase>
+    <testcase classname="OperationalTransforms generate operations from text diff handles complex changes with multiple operations" name="OperationalTransforms generate operations from text diff handles complex changes with multiple operations" time="0">
+    </testcase>
+  </testsuite>
+  <testsuite name="All Entries Integration" errors="0" failures="0" skipped="0" timestamp="2025-08-26T06:42:23" time="0.058" tests="13">
+    <testcase classname="All Entries Integration User validation for all entries verifies user exists before fetching entries" name="All Entries Integration User validation for all entries verifies user exists before fetching entries" time="0.001">
+    </testcase>
+    <testcase classname="All Entries Integration User validation for all entries handles non-existent user gracefully" name="All Entries Integration User validation for all entries handles non-existent user gracefully" time="0.001">
+    </testcase>
+    <testcase classname="All Entries Integration Documents fetching for all entries fetches all documents for a user with correct ordering" name="All Entries Integration Documents fetching for all entries fetches all documents for a user with correct ordering" time="0">
+    </testcase>
+    <testcase classname="All Entries Integration Documents fetching for all entries handles user with no documents" name="All Entries Integration Documents fetching for all entries handles user with no documents" time="0">
+    </testcase>
+    <testcase classname="All Entries Integration Documents fetching for all entries handles database error during document fetch" name="All Entries Integration Documents fetching for all entries handles database error during document fetch" time="0">
+    </testcase>
+    <testcase classname="All Entries Integration Full all entries flow integration simulates complete all entries page load flow" name="All Entries Integration Full all entries flow integration simulates complete all entries page load flow" time="0.001">
+    </testcase>
+    <testcase classname="All Entries Integration Full all entries flow integration handles flow when user does not exist" name="All Entries Integration Full all entries flow integration handles flow when user does not exist" time="0.001">
+    </testcase>
+    <testcase classname="All Entries Integration Full all entries flow integration handles mixed content types in documents" name="All Entries Integration Full all entries flow integration handles mixed content types in documents" time="0">
+    </testcase>
+    <testcase classname="All Entries Integration Performance and edge cases handles large number of documents efficiently" name="All Entries Integration Performance and edge cases handles large number of documents efficiently" time="0.001">
+    </testcase>
+    <testcase classname="All Entries Integration Performance and edge cases handles documents with null/undefined values" name="All Entries Integration Performance and edge cases handles documents with null/undefined values" time="0.001">
+    </testcase>
+    <testcase classname="All Entries Integration Performance and edge cases handles network timeouts gracefully" name="All Entries Integration Performance and edge cases handles network timeouts gracefully" time="0">
+    </testcase>
+    <testcase classname="All Entries Integration Data consistency and ordering ensures documents are returned in descending order by updated_at" name="All Entries Integration Data consistency and ordering ensures documents are returned in descending order by updated_at" time="0.002">
+    </testcase>
+    <testcase classname="All Entries Integration Data consistency and ordering handles documents with identical timestamps" name="All Entries Integration Data consistency and ordering handles documents with identical timestamps" time="0">
+    </testcase>
+  </testsuite>
+  <testsuite name="Encryption Utilities" errors="0" failures="0" skipped="0" timestamp="2025-08-26T06:42:23" time="0.044" tests="10">
+    <testcase classname="Encryption Utilities generateSalt should generate a 32-character hex salt" name="Encryption Utilities generateSalt should generate a 32-character hex salt" time="0.001">
+    </testcase>
+    <testcase classname="Encryption Utilities generateSalt should generate unique salts" name="Encryption Utilities generateSalt should generate unique salts" time="0">
+    </testcase>
+    <testcase classname="Encryption Utilities deriveKey should derive key using PBKDF2" name="Encryption Utilities deriveKey should derive key using PBKDF2" time="0.001">
+    </testcase>
+    <testcase classname="Encryption Utilities deriveKey should handle hex salt conversion correctly" name="Encryption Utilities deriveKey should handle hex salt conversion correctly" time="0.001">
+    </testcase>
+    <testcase classname="Encryption Utilities encryptContent should encrypt content with AES-GCM" name="Encryption Utilities encryptContent should encrypt content with AES-GCM" time="0">
+    </testcase>
+    <testcase classname="Encryption Utilities encryptContent should return iv:encrypted format" name="Encryption Utilities encryptContent should return iv:encrypted format" time="0">
+    </testcase>
+    <testcase classname="Encryption Utilities decryptContent should decrypt content with AES-GCM" name="Encryption Utilities decryptContent should decrypt content with AES-GCM" time="0.001">
+    </testcase>
+    <testcase classname="Encryption Utilities decryptContent should parse iv and encrypted data correctly" name="Encryption Utilities decryptContent should parse iv and encrypted data correctly" time="0">
+    </testcase>
+    <testcase classname="Encryption Utilities End-to-End Basic Encryption with Mocks should encrypt and decrypt content successfully with mocked crypto" name="Encryption Utilities End-to-End Basic Encryption with Mocks should encrypt and decrypt content successfully with mocked crypto" time="0.001">
+    </testcase>
+    <testcase classname="Encryption Utilities End-to-End Basic Encryption with Mocks should handle decryption workflow with mocked crypto" name="Encryption Utilities End-to-End Basic Encryption with Mocks should handle decryption workflow with mocked crypto" time="0.001">
+    </testcase>
+  </testsuite>
+  <testsuite name="Home Page" errors="0" failures="0" skipped="0" timestamp="2025-08-26T06:42:22" time="2.32" tests="11">
+    <testcase classname="Home Page renders home page with title and form" name="Home Page renders home page with title and form" time="0.043">
+    </testcase>
+    <testcase classname="Home Page updates username input when typing" name="Home Page updates username input when typing" time="0.101">
+    </testcase>
+    <testcase classname="Home Page checks username availability when typing" name="Home Page checks username availability when typing" time="0.359">
+    </testcase>
+    <testcase classname="Home Page shows username as unavailable when taken" name="Home Page shows username as unavailable when taken" time="0.334">
+    </testcase>
+    <testcase classname="Home Page generates random username when button clicked" name="Home Page generates random username when button clicked" time="0.031">
+    </testcase>
+    <testcase classname="Home Page disables submit button when username is unavailable" name="Home Page disables submit button when username is unavailable" time="0.048">
+    </testcase>
+    <testcase classname="Home Page submits form successfully with available username" name="Home Page submits form successfully with available username" time="0.369">
+    </testcase>
+    <testcase classname="Home Page shows error message when submission fails" name="Home Page shows error message when submission fails" time="0.353">
+    </testcase>
+    <testcase classname="Home Page validates username pattern with invalid characters" name="Home Page validates username pattern with invalid characters" time="0.004">
+    </testcase>
+    <testcase classname="Home Page hides password field when public page selected" name="Home Page hides password field when public page selected" time="0.015">
+    </testcase>
+    <testcase classname="Home Page allows creating public page without password" name="Home Page allows creating public page without password" time="0.363">
+    </testcase>
+  </testsuite>
+  <testsuite name="User Writing Page" errors="0" failures="0" skipped="0" timestamp="2025-08-26T06:42:23" time="5.032" tests="14">
+    <testcase classname="User Writing Page shows loading state initially" name="User Writing Page shows loading state initially" time="0.009">
+    </testcase>
+    <testcase classname="User Writing Page renders user page when user exists" name="User Writing Page renders user page when user exists" time="0.008">
+    </testcase>
+    <testcase classname="User Writing Page shows user not found when user does not exist" name="User Writing Page shows user not found when user does not exist" time="0.012">
+    </testcase>
+    <testcase classname="User Writing Page updates content when typing in editor" name="User Writing Page updates content when typing in editor" time="0.06">
+    </testcase>
+    <testcase classname="User Writing Page auto-saves content after typing with debounce" name="User Writing Page auto-saves content after typing with debounce" time="1.049">
+    </testcase>
+    <testcase classname="User Writing Page toggles shortcuts modal with help button click" name="User Writing Page toggles shortcuts modal with help button click" time="0.026">
+    </testcase>
+    <testcase classname="User Writing Page inserts date and time with Ctrl + Alt + D on PC" name="User Writing Page inserts date and time with Ctrl + Alt + D on PC" time="0.008">
+    </testcase>
+    <testcase classname="User Writing Page inserts date and time with Ctrl + Option + D on Mac" name="User Writing Page inserts date and time with Ctrl + Option + D on Mac" time="0.008">
+    </testcase>
+    <testcase classname="User Writing Page generates unique document ID for each user session" name="User Writing Page generates unique document ID for each user session" time="0.009">
+    </testcase>
+    <testcase classname="User Writing Page handles platform detection for Mac shortcuts" name="User Writing Page handles platform detection for Mac shortcuts" time="0.007">
+    </testcase>
+    <testcase classname="User Writing Page does not save content when user does not exist" name="User Writing Page does not save content when user does not exist" time="1.508">
+    </testcase>
+    <testcase classname="User Writing Page renders help button in bottom right corner" name="User Writing Page renders help button in bottom right corner" time="0.006">
+    </testcase>
+    <testcase classname="User Writing Page does not save empty or whitespace-only content" name="User Writing Page does not save empty or whitespace-only content" time="2.263">
+    </testcase>
+    <testcase classname="User Writing Page renders public entries and updates on realtime changes" name="User Writing Page renders public entries and updates on realtime changes" time="0.014">
+    </testcase>
+  </testsuite>
+</testsuites>

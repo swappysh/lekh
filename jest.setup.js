@@ -67,12 +67,41 @@ Object.defineProperty(global, 'crypto', {
 
 // Mock Supabase
 jest.mock('./lib/supabase', () => ({
-  supabase: {
-    from: jest.fn(() => ({
-      select: jest.fn(() => ({
-        eq: jest.fn(() => Promise.resolve({ data: [], error: null }))
-      })),
-      upsert: jest.fn(() => Promise.resolve({ data: {}, error: null }))
-    }))
-  }
+	supabase: {
+		from: jest.fn((table) => {
+			// Support delete().eq().eq() chain used by active_editors cleanup
+			const deleteChain = () => ({
+				eq: jest.fn(() => ({
+					eq: jest.fn(() => Promise.resolve({ data: {}, error: null }))
+				}))
+			})
+
+			if (table === 'active_editors') {
+				return {
+					select: jest.fn(() => ({
+						eq: jest.fn(() => ({
+							gte: jest.fn(() => Promise.resolve({ data: [], error: null }))
+						}))
+					})),
+					upsert: jest.fn(() => Promise.resolve({ data: {}, error: null })),
+					delete: jest.fn(deleteChain)
+				}
+			}
+
+			return {
+				select: jest.fn(() => ({
+					eq: jest.fn(() => Promise.resolve({ data: [], error: null }))
+				})),
+				upsert: jest.fn(() => Promise.resolve({ data: {}, error: null })),
+				insert: jest.fn(() => ({ select: jest.fn(() => ({ single: jest.fn(() => Promise.resolve({ data: {}, error: null })) })) })),
+				update: jest.fn(() => ({ eq: jest.fn(() => Promise.resolve({ data: {}, error: null })) })),
+				delete: jest.fn(deleteChain)
+			}
+		}),
+		channel: jest.fn(() => ({
+			on: jest.fn(function () { return this }),
+			subscribe: jest.fn(function () { return this })
+		})),
+		removeChannel: jest.fn()
+	}
 }))
