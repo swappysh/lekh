@@ -1,4 +1,3 @@
-import { generate } from 'random-words'
 import { useEffect, useState } from 'react'
 import { generateSalt } from '../lib/encryption'
 import { PublicKeyEncryption } from '../lib/publicKeyEncryption'
@@ -100,32 +99,39 @@ export default function Home() {
   }
 
   const generateRandomUsername = async () => {
-    // First, get all existing usernames to avoid duplicates
-    const { data: existingUsers } = await supabase
-      .from('users')
-      .select('username')
-
-    const existingUsernames = new Set(existingUsers?.map(u => u.username) || [])
-
     let attempts = 0
-    while (attempts < 20) {
-      // Generate 2 random words and join with hyphen
-      const words = generate(2)
-      const candidate = words.join('-')
+    while (attempts < 5) {
+      try {
+        const response = await fetch('/api/random-username')
+        if (!response.ok) {
+          throw new Error('API request failed')
+        }
+        
+        const { username: candidate, error } = await response.json()
+        
+        if (error) {
+          throw new Error(error)
+        }
 
-      // Check if this username is not already taken
-      if (!existingUsernames.has(candidate)) {
+        // API already ensures uniqueness, so we can trust the result
         setUsername(candidate)
+        setIsAvailable(true)
         return
+      } catch (err) {
+        // Network/parsing errors - retry
+        if (err instanceof TypeError || err.name === 'NetworkError' || err.message === 'API request failed') {
+          attempts++
+          continue
+        }
+        // Other errors - break and use fallback
+        break
       }
-
-      attempts++
     }
 
-    // If all attempts failed, add a timestamp to ensure uniqueness
-    const words = generate(2)
-    const timestamp = Date.now().toString().slice(-4)
-    setUsername(`${words.join('-')}-${timestamp}`)
+    // Fallback with more uniqueness
+    const fallback = `user-${Date.now().toString().slice(-4)}-${Math.random().toString(36).substr(2, 3)}`
+    setUsername(fallback)
+    setIsAvailable(true)
   }
 
 

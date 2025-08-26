@@ -4,11 +4,6 @@ import Home from '../pages/index'
 import { supabase } from '../lib/supabase'
 import { PublicKeyEncryption } from '../lib/publicKeyEncryption'
 
-// Mock the random-words library
-jest.mock('random-words', () => ({
-  generate: jest.fn(() => ['test', 'username'])
-}))
-
 // Mock PublicKeyEncryption
 jest.mock('../lib/publicKeyEncryption', () => ({
   PublicKeyEncryption: {
@@ -23,6 +18,7 @@ jest.mock('../lib/publicKeyEncryption', () => ({
 describe('Home Page', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    global.fetch = jest.fn()
   })
 
   test('renders home page with title and form', () => {
@@ -82,14 +78,60 @@ describe('Home Page', () => {
   })
 
   test('generates random username when button clicked', async () => {
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ username: 'test-username' })
+    })
+
     const user = userEvent.setup()
     render(<Home />)
-    
+
     const generateButton = screen.getByText('Generate Random')
     await user.click(generateButton)
-    
-    const input = screen.getByPlaceholderText('your-username')
-    expect(input.value).toBe('test-username')
+
+    await waitFor(() => {
+      const input = screen.getByPlaceholderText('your-username')
+      expect(input.value).toBe('test-username')
+    })
+  })
+
+  test('handles API errors when generating username', async () => {
+    global.fetch.mockResolvedValueOnce({
+      ok: false,
+      json: () => Promise.resolve({ error: 'API error' })
+    })
+
+    const user = userEvent.setup()
+    render(<Home />)
+
+    const generateButton = screen.getByText('Generate Random')
+    await user.click(generateButton)
+
+    await waitFor(() => {
+      const input = screen.getByPlaceholderText('your-username')
+      // Should fall back to user-generated username
+      expect(input.value).toMatch(/^user-\d{4}-\w{3}$/)
+    })
+  })
+
+  test('retries on network errors when generating username', async () => {
+    global.fetch
+      .mockRejectedValueOnce(new TypeError('Network error'))
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ username: 'retry-success' })
+      })
+
+    const user = userEvent.setup()
+    render(<Home />)
+
+    const generateButton = screen.getByText('Generate Random')
+    await user.click(generateButton)
+
+    await waitFor(() => {
+      const input = screen.getByPlaceholderText('your-username')
+      expect(input.value).toBe('retry-success')
+    })
   })
 
   test('disables submit button when username is unavailable', async () => {
