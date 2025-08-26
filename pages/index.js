@@ -11,6 +11,7 @@ export default function Home() {
   const [message, setMessage] = useState('')
   const [isChecking, setIsChecking] = useState(false)
   const [isAvailable, setIsAvailable] = useState(null)
+  const [isPublic, setIsPublic] = useState(false)
 
   // Check username availability with debounce
   useEffect(() => {
@@ -48,9 +49,9 @@ export default function Home() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!username.trim() || !password.trim() || !isAvailable) return
+    if (!username.trim() || (!isPublic && !password.trim()) || !isAvailable) return
 
-    if (!validatePassword(password)) {
+    if (!isPublic && !validatePassword(password)) {
       setMessage('Error: Password must be at least 12 characters with uppercase, lowercase, and numbers')
       return
     }
@@ -62,8 +63,9 @@ export default function Home() {
       const saltBytes = crypto.getRandomValues(new Uint8Array(16))
       
       // Generate author keypair and encrypt private key with password
+      const effectivePassword = isPublic ? username.trim() : password
       const { publicKey, encryptedPrivateKey, salt } = await PublicKeyEncryption.generateAuthorKeys(
-        password, 
+        effectivePassword,
         saltBytes
       )
       
@@ -73,7 +75,8 @@ export default function Home() {
           username: username.trim(),
           public_key: publicKey,
           encrypted_private_key: encryptedPrivateKey,
-          salt: salt
+          salt: salt,
+          is_public: isPublic
         })
 
       if (error) {
@@ -86,6 +89,7 @@ export default function Home() {
         }, 2000)
         setUsername('')
         setPassword('')
+        setIsPublic(false)
         setIsAvailable(null)
       }
     } catch (err) {
@@ -129,8 +133,28 @@ export default function Home() {
     <div className="container">
       <h1>Create Your Writing URL</h1>
       <p>Create a personalized URL where you can write and save your content.</p>
+      <div className="page-types">
+        <div className="page-type">
+          <h3>🔒 Private Pages</h3>
+          <p>Password-protected writing with encrypted storage. Each session creates a separate document.</p>
+        </div>
+        <div className="page-type">
+          <h3>🌍 Public Pages</h3>
+          <p>Collaborative writing with real-time editing. Multiple people can write together simultaneously with automatic conflict resolution.</p>
+        </div>
+      </div>
 
       <form onSubmit={handleSubmit}>
+        <div className="input-group">
+          <label>
+            <input
+              type="checkbox"
+              checked={isPublic}
+              onChange={(e) => setIsPublic(e.target.checked)}
+            />{' '}
+            Public page
+          </label>
+        </div>
         <div className="input-group">
           <label>Choose your URL:</label>
           <div className="url-preview">
@@ -158,22 +182,24 @@ export default function Home() {
           )}
         </div>
 
-        <div className="input-group">
-          <label>Set your password:</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter a secure password (min 12 chars)"
-            required
-            minLength="12"
-            pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{12,}$"
-            title="Password must be at least 12 characters with uppercase, lowercase, and numbers"
-          />
-          <div className="password-hint">
-            Password must be at least 12 characters with uppercase, lowercase, and numbers. Required to encrypt/decrypt your content.
+        {!isPublic && (
+          <div className="input-group">
+            <label>Set your password:</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter a secure password (min 12 chars)"
+              required
+              minLength="12"
+              pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{12,}$"
+              title="Password must be at least 12 characters with uppercase, lowercase, and numbers"
+            />
+            <div className="password-hint">
+              Password must be at least 12 characters with uppercase, lowercase, and numbers. Required to encrypt/decrypt your content.
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="buttons">
           <button type="button" onClick={generateRandomUsername}>
@@ -181,7 +207,12 @@ export default function Home() {
           </button>
           <button
             type="submit"
-            disabled={isSubmitting || !isAvailable || isChecking || !password.trim() || !validatePassword(password)}
+            disabled={
+              isSubmitting ||
+              !isAvailable ||
+              isChecking ||
+              (!isPublic && (!password.trim() || !validatePassword(password)))
+            }
           >
             {isSubmitting ? 'Creating...' : 'Create URL'}
           </button>
@@ -246,6 +277,32 @@ export default function Home() {
           font-family: monospace;
           max-width: 600px;
           margin: 0 auto;
+        }
+
+        .page-types {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 20px;
+          margin: 30px 0;
+        }
+
+        .page-type {
+          padding: 20px;
+          border: 2px solid #ddd;
+          border-radius: 8px;
+          background: #f9f9f9;
+        }
+
+        .page-type h3 {
+          margin: 0 0 10px 0;
+          font-size: 18px;
+        }
+
+        .page-type p {
+          margin: 0;
+          font-size: 14px;
+          line-height: 1.4;
+          color: #666;
         }
 
         .input-group {
@@ -425,6 +482,15 @@ export default function Home() {
 
           .password-hint {
             color: #adb5bd;
+          }
+
+          .page-type {
+            background: #2a2a2a;
+            border-color: #555;
+          }
+
+          .page-type p {
+            color: #ccc;
           }
         }
       `}</style>

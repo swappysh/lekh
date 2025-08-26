@@ -2,6 +2,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import Home from '../pages/index'
 import { supabase } from '../lib/supabase'
+import { PublicKeyEncryption } from '../lib/publicKeyEncryption'
 
 // Mock the random-words library
 jest.mock('random-words', () => ({
@@ -185,5 +186,57 @@ describe('Home Page', () => {
     // The input has pattern validation, so invalid characters should be handled by the browser
     expect(input).toHaveAttribute('pattern', '[a-zA-Z0-9_\\-]+')
     expect(input).toHaveAttribute('title', 'Only letters, numbers, hyphens, and underscores allowed')
+  })
+
+  test('hides password field when public page selected', async () => {
+    const user = userEvent.setup()
+    render(<Home />)
+
+    expect(screen.getByPlaceholderText('Enter a secure password (min 12 chars)')).toBeInTheDocument()
+
+    const publicCheckbox = screen.getByLabelText('Public page')
+    await user.click(publicCheckbox)
+
+    expect(screen.queryByPlaceholderText('Enter a secure password (min 12 chars)')).not.toBeInTheDocument()
+  })
+
+  test('allows creating public page without password', async () => {
+    const mockUpsert = jest.fn(() => Promise.resolve({ data: {}, error: null }))
+    supabase.from.mockImplementation((table) => {
+      if (table === 'users') {
+        return {
+          select: jest.fn(() => ({ eq: jest.fn(() => Promise.resolve({ data: [], error: null })) })),
+          upsert: mockUpsert
+        }
+      }
+    })
+
+    const user = userEvent.setup()
+    render(<Home />)
+
+    const publicCheckbox = screen.getByLabelText('Public page')
+    await user.click(publicCheckbox)
+
+    const usernameInput = screen.getByPlaceholderText('your-username')
+    await user.type(usernameInput, 'publicuser')
+
+    await waitFor(() => {
+      expect(screen.getByText('✅ Available')).toBeInTheDocument()
+    })
+
+    const submitButton = screen.getByText('Create URL')
+    await user.click(submitButton)
+
+    await waitFor(() => {
+      expect(PublicKeyEncryption.generateAuthorKeys).toHaveBeenCalledWith('publicuser', expect.any(Uint8Array))
+      expect(mockUpsert).toHaveBeenCalledWith({
+        username: 'publicuser',
+        public_key: 'mock-public-key',
+        encrypted_private_key: 'mock-encrypted-private-key',
+        salt: 'mock-salt',
+        is_public: true
+      })
+      expect(screen.getByText(/URL created: https:\/\/lekh\.space\/publicuser/)).toBeInTheDocument()
+    })
   })
 })

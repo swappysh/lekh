@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { supabase } from '../lib/supabase'
 import UserPage from '../pages/[username]'
@@ -9,7 +9,8 @@ jest.mock('../lib/publicKeyEncryption', () => ({
     encrypt: jest.fn(() => Promise.resolve({
       encryptedContent: 'mock-encrypted-content',
       encryptedDataKey: 'mock-encrypted-data-key'
-    }))
+    })),
+    decrypt: jest.fn((enc) => Promise.resolve(`Decrypted ${enc}`))
   }
 }))
 
@@ -356,4 +357,68 @@ describe('User Writing Page', () => {
       })
     }, { timeout: 2000 })
   }, 10000)
+
+  test('renders public page with collaborative editor', async () => {
+    supabase.from.mockImplementation((table) => {
+      if (table === 'users') {
+        return {
+          select: jest.fn(() => ({
+            eq: jest.fn(() => Promise.resolve({
+              data: [{
+                username: 'testuser',
+                public_key: 'mock-public-key',
+                is_public: true,
+                encrypted_private_key: 'mock-encrypted-private-key',
+                salt: 'mock-salt'
+              }],
+              error: null
+            }))
+          }))
+        }
+      }
+      // Mock collaborative document tables
+      if (table === 'collaborative_documents') {
+        return {
+          select: jest.fn(() => ({
+            eq: jest.fn(() => ({
+              single: jest.fn(() => Promise.resolve({ data: null, error: { code: 'PGRST116' } }))
+            }))
+          })),
+          insert: jest.fn(() => ({
+            select: jest.fn(() => ({
+              single: jest.fn(() => Promise.resolve({ data: { username: 'testuser', content: '', version: 0 }, error: null }))
+            }))
+          }))
+        }
+      }
+      if (table === 'active_editors') {
+        return {
+          upsert: jest.fn(() => Promise.resolve({ data: {}, error: null })),
+          select: jest.fn(() => ({
+            eq: jest.fn(() => ({
+              gte: jest.fn(() => Promise.resolve({ data: [], error: null }))
+            }))
+          }))
+        }
+      }
+    })
+
+    const channel = {
+      on: jest.fn().mockReturnThis(),
+      subscribe: jest.fn()
+    }
+    supabase.channel = jest.fn(() => channel)
+    supabase.removeChannel = jest.fn()
+
+    render(<UserPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Public Page')).toBeInTheDocument()
+    })
+
+    // Should show collaborative editor instead of historical entries
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Start writing...')).toBeInTheDocument()
+    })
+  })
 })
