@@ -1,9 +1,11 @@
 import { useRouter } from 'next/router'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Editor from '../components/Editor'
+import CollaborativeEditor from '../components/CollaborativeEditor'
 import PasswordModal from '../components/PasswordModal'
 import { ShortcutsModal } from '../components/ShortcutsModal'
 import { PublicKeyEncryption } from '../lib/publicKeyEncryption'
+import { CollaborativeDocument } from '../lib/collaborativeDocument'
 import { supabase } from '../lib/supabase'
 
 export default function UserPage() {
@@ -20,6 +22,9 @@ export default function UserPage() {
   const [userSalt, setUserSalt] = useState(null)
   const [encryptedPrivateKey, setEncryptedPrivateKey] = useState(null)
   const [publicEntries, setPublicEntries] = useState([])
+  const [collaborativeDoc, setCollaborativeDoc] = useState(null)
+  const [activeEditors, setActiveEditors] = useState([])
+  const [collaborativeContent, setCollaborativeContent] = useState('')
 
   // Generate unique document ID for each user session
   useEffect(() => {
@@ -77,6 +82,7 @@ export default function UserPage() {
       setEncryptedPrivateKey(userData[0].encrypted_private_key)
       setUserSalt(userData[0].salt)
       await loadPublicEntries(userData[0].encrypted_private_key, userData[0].salt)
+      await initCollaborativeDocument()
     } else {
       // Each private page load gets a fresh, isolated document
       setContent('')
@@ -130,6 +136,15 @@ export default function UserPage() {
     }
   }, [username])
 
+  // Cleanup collaborative document on unmount
+  useEffect(() => {
+    return () => {
+      if (collaborativeDoc) {
+        collaborativeDoc.disconnect()
+      }
+    }
+  }, [collaborativeDoc])
+
   const loadPublicEntries = async (encPrivKey = encryptedPrivateKey, saltVal = userSalt) => {
     if (!username || !encPrivKey || !saltVal) return
 
@@ -179,8 +194,43 @@ export default function UserPage() {
     }
   }, [username, isPublic, encryptedPrivateKey, userSalt])
 
+  // Initialize collaborative document for public pages
+  const initCollaborativeDocument = async () => {
+    try {
+      const doc = new CollaborativeDocument(username)
+      await doc.init()
+      
+      doc.setOnContentChange((newContent) => {
+        setCollaborativeContent(newContent)
+      })
+      
+      doc.setOnActiveEditorsChange((editors) => {
+        setActiveEditors(editors)
+      })
+      
+      setCollaborativeDoc(doc)
+      setCollaborativeContent(doc.getContent())
+    } catch (error) {
+      console.error('Failed to initialize collaborative document:', error)
+    }
+  }
+
+  // Handle collaborative content changes
+  const handleCollaborativeChange = async (newContent, cursorPosition) => {
+    if (collaborativeDoc) {
+      await collaborativeDoc.handleLocalChange(newContent, cursorPosition)
+    }
+  }
+
+  // Handle cursor position changes for collaboration
+  const handleCursorChange = async (cursorPosition) => {
+    if (collaborativeDoc) {
+      await collaborativeDoc.updateCursorPosition(cursorPosition)
+    }
+  }
+
   useEffect(() => {
-    if (!userExists) return
+    if (!userExists || isPublic) return
 
     const saveTimeout = setTimeout(() => {
       if (content !== undefined) {
@@ -189,7 +239,7 @@ export default function UserPage() {
     }, 1000)
 
     return () => clearTimeout(saveTimeout)
-  }, [content, userExists])
+  }, [content, userExists, isPublic])
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -286,7 +336,18 @@ export default function UserPage() {
           ))}
         </div>
       )}
-      <Editor content={content} setContent={setContent} ref={editorRef} />
+      {isPublic ? (
+        <CollaborativeEditor 
+          content={collaborativeContent}
+          onContentChange={handleCollaborativeChange}
+          onCursorChange={handleCursorChange}
+          activeEditors={activeEditors}
+          isCollaborative={true}
+          ref={editorRef}
+        />
+      ) : (
+        <Editor content={content} setContent={setContent} ref={editorRef} />
+      )}
       <ShortcutsModal
         isOpen={showShortcuts}
         onClose={() => setShowShortcuts(false)}
