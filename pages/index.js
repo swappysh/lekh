@@ -133,6 +133,16 @@ export default function Home() {
     <div className="container">
       <h1>Create Your Writing URL</h1>
       <p>Create a personalized URL where you can write and save your content.</p>
+      <div className="page-types">
+        <div className="page-type">
+          <h3>🔒 Private Pages</h3>
+          <p>Password-protected writing with encrypted storage. Each session creates a separate document.</p>
+        </div>
+        <div className="page-type">
+          <h3>🌍 Public Pages</h3>
+          <p>Collaborative writing with real-time editing. Multiple people can write together simultaneously with automatic conflict resolution.</p>
+        </div>
+      </div>
 
       <form onSubmit={handleSubmit}>
         <div className="input-group">
@@ -267,6 +277,32 @@ export default function Home() {
           font-family: monospace;
           max-width: 600px;
           margin: 0 auto;
+        }
+
+        .page-types {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 20px;
+          margin: 30px 0;
+        }
+
+        .page-type {
+          padding: 20px;
+          border: 2px solid #ddd;
+          border-radius: 8px;
+          background: #f9f9f9;
+        }
+
+        .page-type h3 {
+          margin: 0 0 10px 0;
+          font-size: 18px;
+        }
+
+        .page-type p {
+          margin: 0;
+          font-size: 14px;
+          line-height: 1.4;
+          color: #666;
         }
 
         .input-group {
@@ -446,6 +482,15 @@ export default function Home() {
 
           .password-hint {
             color: #adb5bd;
+          }
+
+          .page-type {
+            background: #2a2a2a;
+            border-color: #555;
+          }
+
+          .page-type p {
+            color: #ccc;
           }
         }
       `}</style>
