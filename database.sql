@@ -57,3 +57,8 @@ ALTER TABLE users DISABLE ROW LEVEL SECURITY;
 ALTER TABLE collaborative_documents DISABLE ROW LEVEL SECURITY;
 ALTER TABLE document_operations DISABLE ROW LEVEL SECURITY;
 ALTER TABLE active_editors DISABLE ROW LEVEL SECURITY;
+
+-- Add indexes for better query performance
+CREATE INDEX idx_document_operations_username_version ON document_operations(username, version);
+CREATE INDEX idx_active_editors_last_seen ON active_editors(last_seen);
+CREATE INDEX idx_document_operations_timestamp ON document_operations(timestamp);
