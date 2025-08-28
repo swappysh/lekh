@@ -135,6 +135,10 @@ export default function UserPage() {
   useEffect(() => {
     return () => {
       if (collaborativeDoc) {
+        // Clear health check interval
+        if (collaborativeDoc.healthCheckInterval) {
+          clearInterval(collaborativeDoc.healthCheckInterval)
+        }
         collaborativeDoc.disconnect()
       }
     }
@@ -158,6 +162,18 @@ export default function UserPage() {
       
       setCollaborativeDoc(doc)
       setCollaborativeContent(doc.getContent())
+
+      // Set up periodic connection health checks
+      const healthCheckInterval = setInterval(() => {
+        if (doc && !doc.isConnected) {
+          console.log('Connection lost, attempting to reconnect...')
+          doc.checkConnectionHealth()
+        }
+      }, 30000) // Check every 30 seconds
+
+      // Store interval ID for cleanup
+      doc.healthCheckInterval = healthCheckInterval
+
     } catch (error) {
       console.error('Failed to initialize collaborative document:', error)
     }

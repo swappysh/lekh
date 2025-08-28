@@ -62,3 +62,30 @@ ALTER TABLE active_editors DISABLE ROW LEVEL SECURITY;
 CREATE INDEX idx_document_operations_username_version ON document_operations(username, version);
 CREATE INDEX idx_active_editors_last_seen ON active_editors(last_seen);
 CREATE INDEX idx_document_operations_timestamp ON document_operations(timestamp);
+
+-- Enable Realtime for collaborative tables
+ALTER PUBLICATION supabase_realtime ADD TABLE document_operations;
+ALTER PUBLICATION supabase_realtime ADD TABLE active_editors;
+ALTER PUBLICATION supabase_realtime ADD TABLE collaborative_documents;
+
+-- Create a function to clean up old active editors
+CREATE OR REPLACE FUNCTION cleanup_inactive_editors()
+RETURNS void AS $$
+BEGIN
+  DELETE FROM active_editors 
+  WHERE last_seen < NOW() - INTERVAL '2 minutes';
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create a trigger to clean up on inserts
+CREATE OR REPLACE FUNCTION trigger_cleanup_editors()
+RETURNS trigger AS $$
+BEGIN
+  PERFORM cleanup_inactive_editors();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER cleanup_editors_trigger
+  AFTER INSERT ON active_editors
+  EXECUTE FUNCTION trigger_cleanup_editors();
