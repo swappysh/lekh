@@ -308,6 +308,7 @@ export default function UserPage() {
           onCursorChange={handleCursorChange}
           activeEditors={activeEditors}
           isCollaborative={true}
+          showActiveIndicator={false}
           ref={editorRef}
         />
       ) : (

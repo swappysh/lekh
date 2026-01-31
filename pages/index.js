@@ -323,8 +323,10 @@ export default function Home() {
           <button className="back-link" onClick={() => {
             setShowPublicFlow(false)
             setUsername('')
+            setPassword('')
             setMessage('')
             setIsAvailable(null)
+            setIsChecking(false)
           }}>
             ← Back to private space
           </button>
