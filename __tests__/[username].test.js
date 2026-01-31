@@ -412,8 +412,9 @@ describe('User Writing Page', () => {
 
     render(<UserPage />)
 
+    // Should not show the "Public Page" label by default
     await waitFor(() => {
-      expect(screen.getByText('Public Page')).toBeInTheDocument()
+      expect(screen.queryByText('Public Page')).not.toBeInTheDocument()
     })
 
     // Should show collaborative editor instead of historical entries
