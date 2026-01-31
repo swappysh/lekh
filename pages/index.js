@@ -11,6 +11,7 @@ export default function Home() {
   const [isChecking, setIsChecking] = useState(false)
   const [isAvailable, setIsAvailable] = useState(null)
   const [showPublicFlow, setShowPublicFlow] = useState(false)
+  const [acknowledgedRisk, setAcknowledgedRisk] = useState(false)
 
   // Check username availability with debounce
   useEffect(() => {
@@ -39,11 +40,20 @@ export default function Home() {
     return () => clearTimeout(timeoutId)
   }, [username])
 
-  const validatePassword = (pwd) => {
-    return pwd.length >= 12 && 
-           /[A-Z]/.test(pwd) && 
-           /[a-z]/.test(pwd) && 
-           /[0-9]/.test(pwd)
+  const getPasswordStrength = (pwd) => {
+    if (!pwd) return null
+    
+    const hasLength = pwd.length >= 8
+    const hasUpper = /[A-Z]/.test(pwd)
+    const hasLower = /[a-z]/.test(pwd)
+    const hasNumber = /[0-9]/.test(pwd)
+    const hasSpecial = /[^A-Za-z0-9]/.test(pwd)
+    
+    const score = [hasLength, hasUpper, hasLower, hasNumber, hasSpecial].filter(Boolean).length
+    
+    if (score <= 2) return 'weak'
+    if (score <= 3) return 'okay'
+    return 'strong'
   }
 
   const handleSubmit = async (e) => {
@@ -52,8 +62,9 @@ export default function Home() {
     
     if (!username.trim() || (!isPublic && !password.trim()) || !isAvailable) return
 
-    if (!isPublic && !validatePassword(password)) {
-      setMessage('Error: Password must be at least 12 characters with uppercase, lowercase, and numbers')
+    const passwordStrength = getPasswordStrength(password)
+    if (!isPublic && passwordStrength === 'weak' && !acknowledgedRisk) {
+      setMessage('Error: Please acknowledge the risk of using a weak password')
       return
     }
 
@@ -92,6 +103,7 @@ export default function Home() {
         setPassword('')
         setShowPublicFlow(false)
         setIsAvailable(null)
+        setAcknowledgedRisk(false)
       }
     } catch (err) {
       setMessage('Error creating URL: ' + err.message)
@@ -177,16 +189,35 @@ export default function Home() {
               <input
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter a secure password (min 12 chars)"
+                onChange={(e) => {
+                  setPassword(e.target.value)
+                  setAcknowledgedRisk(false) // Reset when password changes
+                }}
+                placeholder="Enter a password"
                 required
-                minLength="12"
-                pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{12,}$"
-                title="Password must be at least 12 characters with uppercase, lowercase, and numbers"
               />
+              {password && (
+                <div className={`password-strength ${getPasswordStrength(password)}`}>
+                  {getPasswordStrength(password) === 'weak' && '⚠️ Weak password'}
+                  {getPasswordStrength(password) === 'okay' && '✓ Okay password'}
+                  {getPasswordStrength(password) === 'strong' && '✓ Strong password'}
+                </div>
+              )}
               <div className="password-hint">
-                At least 12 characters with uppercase, lowercase, and numbers. Only you can read your writing.
+                If you forget this password, your writing is lost forever. No password reset available.
               </div>
+              {password && getPasswordStrength(password) === 'weak' && (
+                <div className="risk-acknowledgment">
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={acknowledgedRisk}
+                      onChange={(e) => setAcknowledgedRisk(e.target.checked)}
+                    />
+                    {' '}I understand the risk of using a weak password
+                  </label>
+                </div>
+              )}
             </div>
 
             <div className="buttons">
@@ -200,7 +231,7 @@ export default function Home() {
                   !isAvailable ||
                   isChecking ||
                   !password.trim() ||
-                  !validatePassword(password)
+                  (getPasswordStrength(password) === 'weak' && !acknowledgedRisk)
                 }
               >
                 {isSubmitting ? 'Creating...' : 'Create my space'}
@@ -475,6 +506,44 @@ export default function Home() {
           color: #6c757d;
         }
 
+        .password-strength {
+          margin-top: 8px;
+          font-size: 14px;
+          font-weight: bold;
+        }
+
+        .password-strength.weak {
+          color: #dc3545;
+        }
+
+        .password-strength.okay {
+          color: #ffc107;
+        }
+
+        .password-strength.strong {
+          color: #28a745;
+        }
+
+        .risk-acknowledgment {
+          margin-top: 12px;
+          padding: 12px;
+          background: #fff3cd;
+          border: 1px solid #ffc107;
+          border-radius: 4px;
+        }
+
+        .risk-acknowledgment label {
+          font-weight: normal;
+          margin: 0;
+          display: flex;
+          align-items: flex-start;
+          gap: 8px;
+        }
+
+        .risk-acknowledgment input[type="checkbox"] {
+          margin-top: 3px;
+        }
+
         .buttons {
           display: flex;
           gap: 10px;
@@ -581,6 +650,23 @@ export default function Home() {
 
         .password-hint {
           color: #adb5bd;
+        }
+
+        .password-strength.weak {
+          color: #ff6b6b;
+        }
+
+        .password-strength.okay {
+          color: #ffd93d;
+        }
+
+        .password-strength.strong {
+          color: #40d865;
+        }
+
+        .risk-acknowledgment {
+          background: #3a3a2a;
+          border-color: #ffd93d;
         }
 
         .divider::before {

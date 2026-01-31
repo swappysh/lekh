@@ -170,7 +170,7 @@ describe('Home Page', () => {
     const usernameInput = screen.getByPlaceholderText('your-name')
     await user.type(usernameInput, 'newuser')
     
-    const passwordInput = screen.getByPlaceholderText('Enter a secure password (min 12 chars)')
+    const passwordInput = screen.getByPlaceholderText('Enter a password')
     await user.type(passwordInput, 'SecurePassword123')
     
     await waitFor(() => {
@@ -203,7 +203,7 @@ describe('Home Page', () => {
     const usernameInput = screen.getByPlaceholderText('your-name')
     await user.type(usernameInput, 'erroruser')
     
-    const passwordInput = screen.getByPlaceholderText('Enter a secure password (min 12 chars)')
+    const passwordInput = screen.getByPlaceholderText('Enter a password')
     await user.type(passwordInput, 'SecurePassword123')
     
     await waitFor(() => {
@@ -234,14 +234,14 @@ describe('Home Page', () => {
     render(<Home />)
 
     // Should start with private flow
-    expect(screen.getByPlaceholderText('Enter a secure password (min 12 chars)')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Enter a password')).toBeInTheDocument()
 
     // Click the secondary action to switch to public flow
     const publicButton = screen.getByText('Create a shared writing space →')
     await user.click(publicButton)
 
     // Password field should be hidden in public flow
-    expect(screen.queryByPlaceholderText('Enter a secure password (min 12 chars)')).not.toBeInTheDocument()
+    expect(screen.queryByPlaceholderText('Enter a password')).not.toBeInTheDocument()
     expect(screen.getByText('Create a shared writing space')).toBeInTheDocument()
   })
 
