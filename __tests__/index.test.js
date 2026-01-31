@@ -24,18 +24,17 @@ describe('Home Page', () => {
   test('renders home page with title and form', () => {
     render(<Home />)
     
-    expect(screen.getByText('Create Your Writing URL')).toBeInTheDocument()
-    expect(screen.getByText('Create a personalized URL where you can write and save your content.')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText('your-username')).toBeInTheDocument()
+    expect(screen.getByText('Your private writing space')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('your-name')).toBeInTheDocument()
     expect(screen.getByText('Generate Random')).toBeInTheDocument()
-    expect(screen.getByText('Create URL')).toBeInTheDocument()
+    expect(screen.getByText('Create my space')).toBeInTheDocument()
   })
 
   test('updates username input when typing', async () => {
     const user = userEvent.setup()
     render(<Home />)
     
-    const input = screen.getByPlaceholderText('your-username')
+    const input = screen.getByPlaceholderText('your-name')
     await user.type(input, 'testuser')
     
     expect(input.value).toBe('testuser')
@@ -51,7 +50,7 @@ describe('Home Page', () => {
     const user = userEvent.setup()
     render(<Home />)
     
-    const input = screen.getByPlaceholderText('your-username')
+    const input = screen.getByPlaceholderText('your-name')
     await user.type(input, 'available')
     
     await waitFor(() => {
@@ -69,7 +68,7 @@ describe('Home Page', () => {
     const user = userEvent.setup()
     render(<Home />)
     
-    const input = screen.getByPlaceholderText('your-username')
+    const input = screen.getByPlaceholderText('your-name')
     await user.type(input, 'taken')
     
     await waitFor(() => {
@@ -90,7 +89,7 @@ describe('Home Page', () => {
     await user.click(generateButton)
 
     await waitFor(() => {
-      const input = screen.getByPlaceholderText('your-username')
+      const input = screen.getByPlaceholderText('your-name')
       expect(input.value).toBe('test-username')
     })
   })
@@ -108,7 +107,7 @@ describe('Home Page', () => {
     await user.click(generateButton)
 
     await waitFor(() => {
-      const input = screen.getByPlaceholderText('your-username')
+      const input = screen.getByPlaceholderText('your-name')
       // Should fall back to user-generated username
       expect(input.value).toMatch(/^user-\d{4}-\w{3}$/)
     })
@@ -129,7 +128,7 @@ describe('Home Page', () => {
     await user.click(generateButton)
 
     await waitFor(() => {
-      const input = screen.getByPlaceholderText('your-username')
+      const input = screen.getByPlaceholderText('your-name')
       expect(input.value).toBe('retry-success')
     })
   })
@@ -144,11 +143,11 @@ describe('Home Page', () => {
     const user = userEvent.setup()
     render(<Home />)
     
-    const input = screen.getByPlaceholderText('your-username')
+    const input = screen.getByPlaceholderText('your-name')
     await user.type(input, 'taken')
     
     await waitFor(() => {
-      const submitButton = screen.getByText('Create URL')
+      const submitButton = screen.getByText('Create my space')
       expect(submitButton).toBeDisabled()
     })
   })
@@ -168,17 +167,17 @@ describe('Home Page', () => {
     const user = userEvent.setup()
     render(<Home />)
     
-    const usernameInput = screen.getByPlaceholderText('your-username')
+    const usernameInput = screen.getByPlaceholderText('your-name')
     await user.type(usernameInput, 'newuser')
     
-    const passwordInput = screen.getByPlaceholderText('Enter a secure password (min 12 chars)')
+    const passwordInput = screen.getByPlaceholderText('Enter a password')
     await user.type(passwordInput, 'SecurePassword123')
     
     await waitFor(() => {
       expect(screen.getByText('✅ Available')).toBeInTheDocument()
     })
     
-    const submitButton = screen.getByText('Create URL')
+    const submitButton = screen.getByText('Create my space')
     await user.click(submitButton)
     
     await waitFor(() => {
@@ -201,17 +200,17 @@ describe('Home Page', () => {
     const user = userEvent.setup()
     render(<Home />)
     
-    const usernameInput = screen.getByPlaceholderText('your-username')
+    const usernameInput = screen.getByPlaceholderText('your-name')
     await user.type(usernameInput, 'erroruser')
     
-    const passwordInput = screen.getByPlaceholderText('Enter a secure password (min 12 chars)')
+    const passwordInput = screen.getByPlaceholderText('Enter a password')
     await user.type(passwordInput, 'SecurePassword123')
     
     await waitFor(() => {
       expect(screen.getByText('✅ Available')).toBeInTheDocument()
     })
     
-    const submitButton = screen.getByText('Create URL')
+    const submitButton = screen.getByText('Create my space')
     await user.click(submitButton)
     
     await waitFor(() => {
@@ -223,23 +222,27 @@ describe('Home Page', () => {
     const user = userEvent.setup()
     render(<Home />)
     
-    const input = screen.getByPlaceholderText('your-username')
+    const input = screen.getByPlaceholderText('your-name')
     
     // The input has pattern validation, so invalid characters should be handled by the browser
     expect(input).toHaveAttribute('pattern', '[a-zA-Z0-9_\\-]+')
     expect(input).toHaveAttribute('title', 'Only letters, numbers, hyphens, and underscores allowed')
   })
 
-  test('hides password field when public page selected', async () => {
+  test('shows public flow when secondary action clicked', async () => {
     const user = userEvent.setup()
     render(<Home />)
 
-    expect(screen.getByPlaceholderText('Enter a secure password (min 12 chars)')).toBeInTheDocument()
+    // Should start with private flow
+    expect(screen.getByPlaceholderText('Enter a password')).toBeInTheDocument()
 
-    const publicCheckbox = screen.getByLabelText('Public page')
-    await user.click(publicCheckbox)
+    // Click the secondary action to switch to public flow
+    const publicButton = screen.getByText('Create a shared writing space →')
+    await user.click(publicButton)
 
-    expect(screen.queryByPlaceholderText('Enter a secure password (min 12 chars)')).not.toBeInTheDocument()
+    // Password field should be hidden in public flow
+    expect(screen.queryByPlaceholderText('Enter a password')).not.toBeInTheDocument()
+    expect(screen.getByText('Create a shared writing space')).toBeInTheDocument()
   })
 
   test('allows creating public page without password', async () => {
@@ -256,17 +259,18 @@ describe('Home Page', () => {
     const user = userEvent.setup()
     render(<Home />)
 
-    const publicCheckbox = screen.getByLabelText('Public page')
-    await user.click(publicCheckbox)
+    // Switch to public flow
+    const publicButton = screen.getByText('Create a shared writing space →')
+    await user.click(publicButton)
 
-    const usernameInput = screen.getByPlaceholderText('your-username')
+    const usernameInput = screen.getByPlaceholderText('your-name')
     await user.type(usernameInput, 'publicuser')
 
     await waitFor(() => {
       expect(screen.getByText('✅ Available')).toBeInTheDocument()
     })
 
-    const submitButton = screen.getByText('Create URL')
+    const submitButton = screen.getByText('Create shared space')
     await user.click(submitButton)
 
     await waitFor(() => {

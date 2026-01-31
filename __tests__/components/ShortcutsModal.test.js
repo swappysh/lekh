@@ -22,7 +22,7 @@ describe('ShortcutsModal Component', () => {
       />
     )
     
-    expect(screen.queryByText('Keyboard Shortcuts')).not.toBeInTheDocument()
+    expect(screen.queryByText('Help')).not.toBeInTheDocument()
   })
 
   test('renders modal when isOpen is true', () => {
@@ -34,6 +34,7 @@ describe('ShortcutsModal Component', () => {
       />
     )
     
+    expect(screen.getByText('Help')).toBeInTheDocument()
     expect(screen.getByText('Keyboard Shortcuts')).toBeInTheDocument()
   })
 
@@ -75,7 +76,7 @@ describe('ShortcutsModal Component', () => {
       />
     )
     
-    const overlay = screen.getByText('Keyboard Shortcuts').closest('div').parentElement
+    const overlay = screen.getByText('Help').closest('div').parentElement
     await user.click(overlay)
     
     expect(mockOnClose).toHaveBeenCalledTimes(1)
@@ -91,7 +92,7 @@ describe('ShortcutsModal Component', () => {
       />
     )
     
-    const modalContent = screen.getByText('Keyboard Shortcuts').closest('div')
+    const modalContent = screen.getByText('Help').closest('div')
     await user.click(modalContent)
     
     expect(mockOnClose).not.toHaveBeenCalled()
@@ -106,12 +107,8 @@ describe('ShortcutsModal Component', () => {
       />
     )
     
-    expect(screen.getByText('Keyboard Shortcuts')).toBeInTheDocument()
+    expect(screen.getByText('Help')).toBeInTheDocument()
     expect(screen.getByText('Press Esc to close')).toBeInTheDocument()
-    
-    // Should not have any shortcut items
-    const list = screen.getByRole('list')
-    expect(list).toBeEmptyDOMElement()
   })
 
   test('renders shortcuts with proper key-description structure', () => {
@@ -127,11 +124,9 @@ describe('ShortcutsModal Component', () => {
       />
     )
     
-    const listItem = screen.getByRole('listitem')
     const strongElement = screen.getByText('Ctrl + Z')
-    
-    expect(listItem).toContainElement(strongElement)
-    expect(listItem).toHaveTextContent('Ctrl + Z: Undo last action')
+    expect(strongElement).toBeInTheDocument()
+    expect(screen.getByText(/Undo last action/)).toBeInTheDocument()
   })
 
   test('has correct modal styling and positioning', () => {
@@ -143,8 +138,8 @@ describe('ShortcutsModal Component', () => {
       />
     )
     
-    const overlay = screen.getByText('Keyboard Shortcuts').closest('div').parentElement
-    const modalContent = screen.getByText('Keyboard Shortcuts').closest('div')
+    const overlay = screen.getByText('Help').closest('div').parentElement
+    const modalContent = screen.getByText('Help').closest('div')
     
     // Check overlay styles
     expect(overlay).toHaveStyle({
@@ -170,8 +165,6 @@ describe('ShortcutsModal Component', () => {
   })
 
   test('prevents event propagation when clicking modal content', () => {
-    const mockStopPropagation = jest.fn()
-    
     render(
       <ShortcutsModal 
         isOpen={true} 
@@ -180,18 +173,12 @@ describe('ShortcutsModal Component', () => {
       />
     )
     
-    const modalContent = screen.getByText('Keyboard Shortcuts').closest('div')
-    
-    // Create a mock event with stopPropagation
-    const mockEvent = {
-      stopPropagation: mockStopPropagation
-    }
+    const modalContent = screen.getByText('Help').closest('div')
     
     // Trigger the onClick handler directly
     fireEvent.click(modalContent)
     
     // The component should call stopPropagation to prevent closing when clicking inside
-    // We can't directly test the stopPropagation call, but we can test that onClose wasn't called
     expect(mockOnClose).not.toHaveBeenCalled()
   })
 
@@ -211,8 +198,45 @@ describe('ShortcutsModal Component', () => {
     
     expect(screen.getByText(/Copy text/)).toBeInTheDocument()
     expect(screen.getByText(/Cancel operation/)).toBeInTheDocument()
+  })
+
+  test('renders navigation section with back to home link', () => {
+    render(
+      <ShortcutsModal 
+        isOpen={true} 
+        onClose={mockOnClose} 
+        shortcuts={mockShortcuts} 
+      />
+    )
     
-    const listItems = screen.getAllByRole('listitem')
-    expect(listItems).toHaveLength(2)
+    expect(screen.getByText('Navigation')).toBeInTheDocument()
+    expect(screen.getByText('Back to home')).toBeInTheDocument()
+  })
+
+  test('renders view all entries link when username is provided', () => {
+    render(
+      <ShortcutsModal 
+        isOpen={true} 
+        onClose={mockOnClose} 
+        shortcuts={mockShortcuts}
+        username="testuser"
+      />
+    )
+    
+    const allEntriesLink = screen.getByText('View all entries →')
+    expect(allEntriesLink).toBeInTheDocument()
+    expect(allEntriesLink).toHaveAttribute('href', '/testuser/all')
+  })
+
+  test('does not render view all entries link when username is not provided', () => {
+    render(
+      <ShortcutsModal 
+        isOpen={true} 
+        onClose={mockOnClose} 
+        shortcuts={mockShortcuts} 
+      />
+    )
+    
+    expect(screen.queryByText('View all entries →')).not.toBeInTheDocument()
   })
 })

@@ -412,13 +412,61 @@ describe('User Writing Page', () => {
 
     render(<UserPage />)
 
+    // Should not show the "Public Page" label by default
     await waitFor(() => {
-      expect(screen.getByText('Public Page')).toBeInTheDocument()
+      expect(screen.queryByText('Public Page')).not.toBeInTheDocument()
     })
 
     // Should show collaborative editor instead of historical entries
     await waitFor(() => {
       expect(screen.getByPlaceholderText('Start writing...')).toBeInTheDocument()
+    })
+  })
+
+  test('renders header with all entries link', async () => {
+    render(<UserPage />)
+
+    await waitFor(() => {
+      const allEntriesLink = screen.getByText('all entries')
+      expect(allEntriesLink).toBeInTheDocument()
+      expect(allEntriesLink).toHaveAttribute('href', '/testuser/all')
+    })
+  })
+
+  test('shows collaboration hint only when others are active', async () => {
+    supabase.from.mockImplementation((table) => {
+      if (table === 'users') {
+        return {
+          select: jest.fn(() => ({
+            eq: jest.fn(() => Promise.resolve({
+              data: [{ 
+                username: 'testuser', 
+                public_key: 'test-key',
+                is_public: true,
+                encrypted_private_key: 'encrypted',
+                salt: 'salt'
+              }]
+            }))
+          }))
+        }
+      }
+    })
+
+    const channel = {
+      on: jest.fn().mockReturnThis(),
+      subscribe: jest.fn((callback) => {
+        callback('SUBSCRIBED')
+        return channel
+      })
+    }
+    supabase.channel = jest.fn(() => channel)
+    supabase.removeChannel = jest.fn()
+
+    render(<UserPage />)
+
+    // Should not show collaboration hint when no active editors
+    await waitFor(() => {
+      expect(screen.queryByText(/other.*writing/i)).not.toBeInTheDocument()
     })
   })
 })

@@ -5,7 +5,8 @@ const CollaborativeEditor = forwardRef(function CollaborativeEditor({
   onContentChange, 
   onCursorChange,
   activeEditors = [],
-  isCollaborative = false 
+  isCollaborative = false,
+  showActiveIndicator = true
 }, ref) {
   const internalRef = useRef(null)
   const editorRef = ref || internalRef
@@ -112,7 +113,7 @@ const CollaborativeEditor = forwardRef(function CollaborativeEditor({
       ))}
 
       {/* Active editors indicator */}
-      {isCollaborative && activeEditors.length > 0 && (
+      {isCollaborative && showActiveIndicator && activeEditors.length > 0 && (
         <div className="active-editors-indicator">
           <span className="active-count">{activeEditors.length}</span> other editor{activeEditors.length !== 1 ? 's' : ''} online
         </div>

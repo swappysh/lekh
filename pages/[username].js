@@ -291,8 +291,16 @@ export default function UserPage() {
 
   return (
     <div className="container">
-      <h1>{username}</h1>
-      {isPublic && <div className="public-label">Public Page</div>}
+      <div className="header">
+        <h1>{username}</h1>
+        <span className="header-separator">·</span>
+        <a href={`/${username}/all`} className="header-link">all entries</a>
+      </div>
+      {isPublic && activeEditors.length > 0 && (
+        <div className="collaboration-hint">
+          {activeEditors.length} other{activeEditors.length !== 1 ? 's' : ''} writing
+        </div>
+      )}
       {isPublic ? (
         <CollaborativeEditor 
           content={collaborativeContent}
@@ -300,6 +308,7 @@ export default function UserPage() {
           onCursorChange={handleCursorChange}
           activeEditors={activeEditors}
           isCollaborative={true}
+          showActiveIndicator={false}
           ref={editorRef}
         />
       ) : (
@@ -309,6 +318,7 @@ export default function UserPage() {
         isOpen={showShortcuts}
         onClose={() => setShowShortcuts(false)}
         shortcuts={shortcuts}
+        username={username}
       />
       <button
         className="help-button"
@@ -353,6 +363,45 @@ export default function UserPage() {
           width: 70vw;
           margin: 0 auto;
         }
+        .header {
+          display: flex;
+          align-items: baseline;
+          gap: 12px;
+          margin-bottom: 10px;
+        }
+        .header h1 {
+          margin: 0;
+        }
+        .header-separator {
+          color: #999;
+        }
+        .header-link {
+          font-size: 16px;
+          color: #666;
+          text-decoration: none;
+        }
+        .header-link:hover {
+          text-decoration: underline;
+        }
+        @media (prefers-color-scheme: dark) {
+          .header-separator {
+            color: #666;
+          }
+          .header-link {
+            color: #999;
+          }
+        }
+        .collaboration-hint {
+          font-size: 14px;
+          color: #666;
+          margin-bottom: 10px;
+          font-weight: normal;
+        }
+        @media (prefers-color-scheme: dark) {
+          .collaboration-hint {
+            color: #999;
+          }
+        }
         .help-button {
           position: fixed;
           bottom: 20px;
@@ -384,10 +433,6 @@ export default function UserPage() {
           .help-button:hover {
             background: #A8C7FA;
           }
-        }
-        .public-label {
-          font-weight: bold;
-          margin-bottom: 10px;
         }
       `}</style>
     </div>

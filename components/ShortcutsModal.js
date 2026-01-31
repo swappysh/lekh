@@ -1,4 +1,4 @@
-export const ShortcutsModal = ({ isOpen, onClose, shortcuts }) => {
+export const ShortcutsModal = ({ isOpen, onClose, shortcuts, username }) => {
   if (!isOpen) return null
 
   return (
@@ -26,15 +26,51 @@ export const ShortcutsModal = ({ isOpen, onClose, shortcuts }) => {
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <h2>Keyboard Shortcuts</h2>
-        <ul>
-          {shortcuts.map((s) => (
-            <li key={s.description}>
-              <strong>{s.keys}</strong>: {s.description}
+        <h2 style={{ marginTop: 0 }}>Help</h2>
+        
+        <div style={{ marginBottom: '20px' }}>
+          <h3 style={{ fontSize: '14px', marginBottom: '10px', color: '#aaa' }}>Navigation</h3>
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+            {username && (
+              <li style={{ marginBottom: '8px' }}>
+                <a 
+                  href={`/${username}/all`}
+                  style={{ color: '#8AB4F8', textDecoration: 'none' }}
+                >
+                  View all entries →
+                </a>
+              </li>
+            )}
+            <li>
+              <a 
+                href="/"
+                style={{ color: '#8AB4F8', textDecoration: 'none' }}
+              >
+                Back to home
+              </a>
             </li>
-          ))}
-        </ul>
-        <p>Press Esc to close</p>
+          </ul>
+        </div>
+
+        <div>
+          <h3 style={{ fontSize: '14px', marginBottom: '10px', color: '#aaa' }}>Keyboard Shortcuts</h3>
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+            {shortcuts.map((s) => (
+              <li key={s.description} style={{ marginBottom: '8px' }}>
+                <strong style={{ 
+                  background: '#555', 
+                  padding: '2px 6px', 
+                  borderRadius: '4px',
+                  fontSize: '12px',
+                  marginRight: '8px'
+                }}>{s.keys}</strong>
+                {s.description}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <p style={{ marginTop: '20px', marginBottom: 0, fontSize: '12px', color: '#888' }}>Press Esc to close</p>
       </div>
     </div>
   )

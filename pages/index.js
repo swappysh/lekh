@@ -10,7 +10,8 @@ export default function Home() {
   const [message, setMessage] = useState('')
   const [isChecking, setIsChecking] = useState(false)
   const [isAvailable, setIsAvailable] = useState(null)
-  const [isPublic, setIsPublic] = useState(false)
+  const [showPublicFlow, setShowPublicFlow] = useState(false)
+  const [acknowledgedRisk, setAcknowledgedRisk] = useState(false)
 
   // Check username availability with debounce
   useEffect(() => {
@@ -39,19 +40,31 @@ export default function Home() {
     return () => clearTimeout(timeoutId)
   }, [username])
 
-  const validatePassword = (pwd) => {
-    return pwd.length >= 12 && 
-           /[A-Z]/.test(pwd) && 
-           /[a-z]/.test(pwd) && 
-           /[0-9]/.test(pwd)
+  const getPasswordStrength = (pwd) => {
+    if (!pwd) return null
+    
+    const hasLength = pwd.length >= 8
+    const hasUpper = /[A-Z]/.test(pwd)
+    const hasLower = /[a-z]/.test(pwd)
+    const hasNumber = /[0-9]/.test(pwd)
+    const hasSpecial = /[^A-Za-z0-9]/.test(pwd)
+    
+    const score = [hasLength, hasUpper, hasLower, hasNumber, hasSpecial].filter(Boolean).length
+    
+    if (score <= 2) return 'weak'
+    if (score <= 3) return 'okay'
+    return 'strong'
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    const isPublic = showPublicFlow
+    
     if (!username.trim() || (!isPublic && !password.trim()) || !isAvailable) return
 
-    if (!isPublic && !validatePassword(password)) {
-      setMessage('Error: Password must be at least 12 characters with uppercase, lowercase, and numbers')
+    const passwordStrength = getPasswordStrength(password)
+    if (!isPublic && passwordStrength === 'weak' && !acknowledgedRisk) {
+      setMessage('Error: Please acknowledge the risk of using a weak password')
       return
     }
 
@@ -88,8 +101,9 @@ export default function Home() {
         }, 2000)
         setUsername('')
         setPassword('')
-        setIsPublic(false)
+        setShowPublicFlow(false)
         setIsAvailable(null)
+        setAcknowledgedRisk(false)
       }
     } catch (err) {
       setMessage('Error creating URL: ' + err.message)
@@ -137,116 +151,195 @@ export default function Home() {
 
   return (
     <div className="container">
-      <h1>Create Your Writing URL</h1>
-      <p>Create a personalized URL where you can write and save your content.</p>
-      <div className="page-types">
-        <div className="page-type">
-          <h3>🔒 Private Pages</h3>
-          <p>Password-protected writing with encrypted storage. Each session creates a separate document.</p>
-        </div>
-        <div className="page-type">
-          <h3>🌍 Public Pages</h3>
-          <p>Collaborative writing with real-time editing. Multiple people can write together simultaneously with automatic conflict resolution.</p>
-        </div>
-      </div>
+      {!showPublicFlow ? (
+        <>
+          <h1>Your private writing space</h1>
+          <p>A distraction-free place to write. End-to-end encrypted. No account needed.</p>
 
-      <form onSubmit={handleSubmit}>
-        <div className="input-group">
-          <label>
-            <input
-              type="checkbox"
-              checked={isPublic}
-              onChange={(e) => setIsPublic(e.target.checked)}
-            />{' '}
-            Public page
-          </label>
-        </div>
-        <div className="input-group">
-          <label>Choose your URL:</label>
-          <div className="url-preview">
-            https://lekh.space/
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="your-username"
-              pattern="[a-zA-Z0-9_\-]+"
-              title="Only letters, numbers, hyphens, and underscores allowed"
-              required
-            />
-          </div>
-          {username && (
-            <div className="availability-status">
-              {isChecking ? (
-                <span className="checking">⏳ Checking...</span>
-              ) : isAvailable === true ? (
-                <span className="available">✅ Available</span>
-              ) : isAvailable === false ? (
-                <span className="unavailable">❌ Already taken</span>
-              ) : null}
+          <form onSubmit={handleSubmit}>
+            <div className="input-group">
+              <label>Choose your URL:</label>
+              <div className="url-preview">
+                https://lekh.space/
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="your-name"
+                  pattern="[a-zA-Z0-9_\-]+"
+                  title="Only letters, numbers, hyphens, and underscores allowed"
+                  required
+                />
+              </div>
+              {username && (
+                <div className="availability-status">
+                  {isChecking ? (
+                    <span className="checking">⏳ Checking...</span>
+                  ) : isAvailable === true ? (
+                    <span className="available">✅ Available</span>
+                  ) : isAvailable === false ? (
+                    <span className="unavailable">❌ Already taken</span>
+                  ) : null}
+                </div>
+              )}
+            </div>
+
+            <div className="input-group">
+              <label>Set your password:</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value)
+                  setAcknowledgedRisk(false) // Reset when password changes
+                }}
+                placeholder="Enter a password"
+                required
+              />
+              {password && (
+                <div className={`password-strength ${getPasswordStrength(password)}`}>
+                  {getPasswordStrength(password) === 'weak' && '⚠️ Weak password'}
+                  {getPasswordStrength(password) === 'okay' && '✓ Okay password'}
+                  {getPasswordStrength(password) === 'strong' && '✓ Strong password'}
+                </div>
+              )}
+              <div className="password-hint">
+                If you forget this password, your writing is lost forever. No password reset available.
+              </div>
+              {password && getPasswordStrength(password) === 'weak' && (
+                <div className="risk-acknowledgment">
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={acknowledgedRisk}
+                      onChange={(e) => setAcknowledgedRisk(e.target.checked)}
+                    />
+                    {' '}I understand the risk of using a weak password
+                  </label>
+                </div>
+              )}
+            </div>
+
+            <div className="buttons">
+              <button type="button" onClick={generateRandomUsername}>
+                Generate Random
+              </button>
+              <button
+                type="submit"
+                disabled={
+                  isSubmitting ||
+                  !isAvailable ||
+                  isChecking ||
+                  !password.trim() ||
+                  (getPasswordStrength(password) === 'weak' && !acknowledgedRisk)
+                }
+              >
+                {isSubmitting ? 'Creating...' : 'Create my space'}
+              </button>
+            </div>
+          </form>
+
+          {message && (
+            <div className={`message ${message.startsWith('Error') ? 'error' : 'success'}`}>
+              {message}
             </div>
           )}
-        </div>
 
-        {!isPublic && (
-          <div className="input-group">
-            <label>Set your password:</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter a secure password (min 12 chars)"
-              required
-              minLength="12"
-              pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{12,}$"
-              title="Password must be at least 12 characters with uppercase, lowercase, and numbers"
-            />
-            <div className="password-hint">
-              Password must be at least 12 characters with uppercase, lowercase, and numbers. Required to encrypt/decrypt your content.
-            </div>
+          <div className="divider">
+            <span>or</span>
           </div>
-        )}
 
-        <div className="buttons">
-          <button type="button" onClick={generateRandomUsername}>
-            Generate Random
+          <button className="secondary-action" onClick={() => setShowPublicFlow(true)}>
+            Create a shared writing space →
           </button>
-          <button
-            type="submit"
-            disabled={
-              isSubmitting ||
-              !isAvailable ||
-              isChecking ||
-              (!isPublic && (!password.trim() || !validatePassword(password)))
-            }
-          >
-            {isSubmitting ? 'Creating...' : 'Create URL'}
-          </button>
-        </div>
-      </form>
 
-      {message && (
-        <div className={`message ${message.startsWith('Error') ? 'error' : 'success'}`}>
-          {message}
-        </div>
+          <section className="help">
+            <h2>What is this?</h2>
+            <p>
+              A minimal writing space. Your words are private—only you can decrypt them. 
+              No account needed, just remember your password.
+            </p>
+            <p>
+              View everything you've written by visiting lekh.space/yourname/all.
+            </p>
+            <p>
+              Questions? Raise an issue at{' '}
+              <a href="https://github.com/swappysh/lekh">github.com/swappysh/lekh</a>.
+            </p>
+          </section>
+        </>
+      ) : (
+        <>
+          <h1>Create a shared writing space</h1>
+          <p>Anyone with the link can write here. No password needed.</p>
+
+          <form onSubmit={handleSubmit}>
+            <div className="input-group">
+              <label>Choose your URL:</label>
+              <div className="url-preview">
+                https://lekh.space/
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="your-name"
+                  pattern="[a-zA-Z0-9_\-]+"
+                  title="Only letters, numbers, hyphens, and underscores allowed"
+                  required
+                />
+              </div>
+              {username && (
+                <div className="availability-status">
+                  {isChecking ? (
+                    <span className="checking">⏳ Checking...</span>
+                  ) : isAvailable === true ? (
+                    <span className="available">✅ Available</span>
+                  ) : isAvailable === false ? (
+                    <span className="unavailable">❌ Already taken</span>
+                  ) : null}
+                </div>
+              )}
+            </div>
+
+            <div className="buttons">
+              <button type="button" onClick={generateRandomUsername}>
+                Generate Random
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting || !isAvailable || isChecking}
+              >
+                {isSubmitting ? 'Creating...' : 'Create shared space'}
+              </button>
+            </div>
+          </form>
+
+          {message && (
+            <div className={`message ${message.startsWith('Error') ? 'error' : 'success'}`}>
+              {message}
+            </div>
+          )}
+
+          <button className="back-link" onClick={() => {
+            setShowPublicFlow(false)
+            setUsername('')
+            setPassword('')
+            setMessage('')
+            setIsAvailable(null)
+            setIsChecking(false)
+          }}>
+            ← Back to private space
+          </button>
+
+          <section className="help">
+            <h2>Collaborative writing</h2>
+            <p>
+              Multiple people can write simultaneously with real-time updates.
+              Perfect for group notes, shared journals, or writing together.
+            </p>
+          </section>
+        </>
       )}
-
-      <section className="help">
-        <h2>What is this?</h2>
-        <p>
-          This is a place to write without interruptions. Write-only philosophy: once you write something, you can't edit it.
-          No authentication—just open your link anywhere and start writing.
-        </p>
-        <p>
-          All writes are public and encrypted. You can also write to someone else by visiting their URL.
-          Reading isn't the focus, but you can view everything you've written by
-          visiting https://lekh.space/username/all.
-        </p>
-        <p>
-          Have feedback or found a bug? Raise an issue at{' '}
-          <a href="https://github.com/swappysh/lekh">github.com/swappysh/lekh</a>.
-        </p>
-      </section>
 
       <style jsx global>{`
         body {
@@ -285,30 +378,63 @@ export default function Home() {
           margin: 0 auto;
         }
 
-        .page-types {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 20px;
-          margin: 30px 0;
+        .divider {
+          margin: 40px 0 30px 0;
+          text-align: center;
+          position: relative;
         }
 
-        .page-type {
-          padding: 20px;
-          border: 2px solid #ddd;
-          border-radius: 8px;
-          background: #f9f9f9;
+        .divider::before {
+          content: '';
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 50%;
+          height: 1px;
+          background: #ddd;
         }
 
-        .page-type h3 {
-          margin: 0 0 10px 0;
-          font-size: 18px;
-        }
-
-        .page-type p {
-          margin: 0;
+        .divider span {
+          background: #FAFAF7;
+          padding: 0 20px;
+          position: relative;
+          color: #999;
           font-size: 14px;
-          line-height: 1.4;
+        }
+
+        .secondary-action {
+          width: 100%;
+          padding: 16px 24px;
+          border: 1px solid #ccc;
+          border-radius: 4px;
+          background: white;
+          cursor: pointer;
+          font-family: monospace;
+          font-size: 16px;
+          text-align: center;
           color: #666;
+          transition: all 0.2s;
+        }
+
+        .secondary-action:hover {
+          background: #f5f5f5;
+          color: #333;
+        }
+
+        .back-link {
+          margin-top: 20px;
+          padding: 8px 0;
+          background: none;
+          border: none;
+          color: #666;
+          cursor: pointer;
+          font-family: monospace;
+          font-size: 14px;
+          text-decoration: underline;
+        }
+
+        .back-link:hover {
+          color: #333;
         }
 
         .input-group {
@@ -380,6 +506,44 @@ export default function Home() {
           margin-top: 8px;
           font-size: 14px;
           color: #6c757d;
+        }
+
+        .password-strength {
+          margin-top: 8px;
+          font-size: 14px;
+          font-weight: bold;
+        }
+
+        .password-strength.weak {
+          color: #dc3545;
+        }
+
+        .password-strength.okay {
+          color: #ffc107;
+        }
+
+        .password-strength.strong {
+          color: #28a745;
+        }
+
+        .risk-acknowledgment {
+          margin-top: 12px;
+          padding: 12px;
+          background: #fff3cd;
+          border: 1px solid #ffc107;
+          border-radius: 4px;
+        }
+
+        .risk-acknowledgment label {
+          font-weight: normal;
+          margin: 0;
+          display: flex;
+          align-items: flex-start;
+          gap: 8px;
+        }
+
+        .risk-acknowledgment input[type="checkbox"] {
+          margin-top: 3px;
         }
 
         .buttons {
@@ -486,19 +650,54 @@ export default function Home() {
             box-shadow: 0 0 0 2px rgba(138, 180, 248, 0.1);
           }
 
-          .password-hint {
-            color: #adb5bd;
-          }
-
-          .page-type {
-            background: #2a2a2a;
-            border-color: #555;
-          }
-
-          .page-type p {
-            color: #ccc;
-          }
+        .password-hint {
+          color: #adb5bd;
         }
+
+        .password-strength.weak {
+          color: #ff6b6b;
+        }
+
+        .password-strength.okay {
+          color: #ffd93d;
+        }
+
+        .password-strength.strong {
+          color: #40d865;
+        }
+
+        .risk-acknowledgment {
+          background: #3a3a2a;
+          border-color: #ffd93d;
+        }
+
+        .divider::before {
+          background: #555;
+        }
+
+        .divider span {
+          background: #0B0B0C;
+        }
+
+        .secondary-action {
+          background: #333;
+          border-color: #555;
+          color: #999;
+        }
+
+        .secondary-action:hover {
+          background: #444;
+          color: #ededed;
+        }
+
+        .back-link {
+          color: #999;
+        }
+
+        .back-link:hover {
+          color: #ededed;
+        }
+      }
       `}</style>
     </div>
   )
