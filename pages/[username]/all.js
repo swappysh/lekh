@@ -74,7 +74,8 @@ export default function AllEntriesPage() {
         setEntries(decryptedEntries)
         setDecryptionAttempted(true)
       } else {
-        setShowPasswordModal(true)
+        // For private pages, show inline password form (not modal)
+        // Form will display when !decryptionAttempted && encryptedEntries.length > 0
       }
     } else {
       setEntries([])
@@ -196,14 +197,38 @@ export default function AllEntriesPage() {
 
   return (
     <div className="container">
-      <div className="header">
-        <h1>{username} - All Entries</h1>
-        <p><a href={`/${username}`}>← Back to write</a></p>
+      <div className="page-header">
+        <span className="header-username">{username}</span>
+        <span className="header-separator"> / </span>
+        <span className="header-section">all entries</span>
       </div>
 
       {!decryptionAttempted && encryptedEntries.length > 0 ? (
-        <div className="no-entries">
-          <p>Enter password to decrypt and view entries</p>
+        <div className="password-prompt">
+          <p className="prompt-title">Enter password to decrypt entries</p>
+          <form onSubmit={(e) => {
+            e.preventDefault()
+            const formData = new FormData(e.target)
+            const password = formData.get('password')
+            if (password && password.trim()) {
+              handlePasswordSubmit(password)
+            }
+          }}>
+            <div className="prompt-group">
+              <label>Password:</label>
+              <input
+                type="password"
+                name="password"
+                placeholder="••••••••"
+                autoFocus
+                required
+              />
+            </div>
+            <button type="submit" className="unlock-button">
+              [Unlock →]
+            </button>
+          </form>
+          <p className="warning-text">⚠️ Forgot? Your entries are lost forever.</p>
         </div>
       ) : entries.length === 0 ? (
         <div className="no-entries">
@@ -267,10 +292,78 @@ export default function AllEntriesPage() {
 
       <style jsx>{`
         .container {
-          padding: 20px;
+          padding: 40px 20px;
           font-family: monospace;
-          width: 70vw;
+          max-width: 800px;
           margin: 0 auto;
+        }
+        .page-header {
+          font-size: 16px;
+          margin-bottom: 40px;
+          color: #666;
+        }
+        .header-username {
+          color: #111111;
+          font-weight: bold;
+        }
+        .header-separator {
+          color: #999;
+        }
+        .header-section {
+          color: #666;
+        }
+        .password-prompt {
+          max-width: 400px;
+          margin: 100px auto;
+          text-align: center;
+        }
+        .prompt-title {
+          font-size: 18px;
+          margin-bottom: 30px;
+          color: #111111;
+        }
+        .prompt-group {
+          margin-bottom: 20px;
+          text-align: left;
+        }
+        .prompt-group label {
+          display: block;
+          margin-bottom: 8px;
+          font-weight: bold;
+        }
+        .prompt-group input {
+          width: 100%;
+          padding: 12px;
+          border: 1px solid #ccc;
+          border-radius: 4px;
+          font-family: monospace;
+          font-size: 16px;
+          box-sizing: border-box;
+        }
+        .prompt-group input:focus {
+          outline: none;
+          border-color: #0B57D0;
+          box-shadow: 0 0 0 2px rgba(11, 87, 208, 0.1);
+        }
+        .unlock-button {
+          width: 100%;
+          padding: 12px 24px;
+          background: #111111;
+          color: white;
+          border: none;
+          border-radius: 4px;
+          font-family: monospace;
+          font-size: 16px;
+          cursor: pointer;
+          margin-bottom: 20px;
+        }
+        .unlock-button:hover {
+          background: #333;
+        }
+        .warning-text {
+          font-size: 14px;
+          color: #dc3545;
+          margin: 0;
         }
         .header {
           margin-bottom: 30px;
@@ -315,6 +408,34 @@ export default function AllEntriesPage() {
           }
           .entry-date {
             color: #999;
+          }
+          .page-header {
+            color: #999;
+          }
+          .header-username {
+            color: #EDEDED;
+          }
+          .prompt-title {
+            color: #EDEDED;
+          }
+          .prompt-group input {
+            background: #333;
+            border-color: #555;
+            color: white;
+          }
+          .prompt-group input:focus {
+            border-color: #8AB4F8;
+            box-shadow: 0 0 0 2px rgba(138, 180, 248, 0.1);
+          }
+          .unlock-button {
+            background: white;
+            color: #0B0B0C;
+          }
+          .unlock-button:hover {
+            background: #EDEDED;
+          }
+          .warning-text {
+            color: #ff6b6b;
           }
         }
       `}</style>

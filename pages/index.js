@@ -153,24 +153,23 @@ export default function Home() {
     <div className="container">
       {!showPublicFlow ? (
         <>
-          <h1>Your private writing space</h1>
-          <p>A distraction-free place to write. End-to-end encrypted. No account needed.</p>
+          <h1>lekh.space/[username]</h1>
+          <p>&gt; Your words, encrypted. Once saved, permanent.</p>
+          <p>&gt; Forget your password = lost forever.</p>
 
           <form onSubmit={handleSubmit}>
             <div className="input-group">
-              <label>Choose your URL:</label>
-              <div className="url-preview">
-                https://lekh.space/
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="your-name"
-                  pattern="[a-zA-Z0-9_\-]+"
-                  title="Only letters, numbers, hyphens, and underscores allowed"
-                  required
-                />
-              </div>
+              <label>lekh.space/</label>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="[username]"
+                pattern="[a-zA-Z0-9_\-]+"
+                title="Only letters, numbers, hyphens, and underscores allowed"
+                required
+                className="username-input"
+              />
               {username && (
                 <div className="availability-status">
                   {isChecking ? (
@@ -185,7 +184,7 @@ export default function Home() {
             </div>
 
             <div className="input-group">
-              <label>Set your password:</label>
+              <label>password:</label>
               <input
                 type="password"
                 value={password}
@@ -193,7 +192,7 @@ export default function Home() {
                   setPassword(e.target.value)
                   setAcknowledgedRisk(false) // Reset when password changes
                 }}
-                placeholder="Enter a password"
+                placeholder="[••••••••]"
                 required
               />
               {password && (
@@ -221,9 +220,6 @@ export default function Home() {
             </div>
 
             <div className="buttons">
-              <button type="button" onClick={generateRandomUsername}>
-                Generate Random
-              </button>
               <button
                 type="submit"
                 disabled={
@@ -233,8 +229,9 @@ export default function Home() {
                   !password.trim() ||
                   (getPasswordStrength(password) === 'weak' && !acknowledgedRisk)
                 }
+                className="create-button"
               >
-                {isSubmitting ? 'Creating...' : 'Create my space'}
+                {isSubmitting ? 'creating...' : '[create →]'}
               </button>
             </div>
           </form>
@@ -473,6 +470,24 @@ export default function Home() {
           overflow: hidden;
         }
 
+        .username-input {
+          width: 100%;
+          padding: 12px;
+          border: 1px solid #ccc;
+          border-radius: 4px;
+          font-family: monospace;
+          font-size: 16px;
+          background: white;
+          color: inherit;
+          box-sizing: border-box;
+        }
+
+        .username-input:focus {
+          outline: none;
+          border-color: #0B57D0;
+          box-shadow: 0 0 0 2px rgba(11, 87, 208, 0.1);
+        }
+
         .url-preview input {
           border: none;
           padding: 12px;
@@ -482,6 +497,26 @@ export default function Home() {
           flex: 1;
           outline: none;
           color: inherit;
+        }
+
+        .create-button {
+          background: #111111 !important;
+          color: white !important;
+          border: none !important;
+          padding: 12px 24px;
+          border-radius: 4px;
+          cursor: pointer;
+          font-family: monospace;
+          font-size: 16px;
+        }
+
+        .create-button:hover:not(:disabled) {
+          background: #333 !important;
+        }
+
+        .create-button:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
         }
 
         input[type="password"] {
@@ -648,6 +683,26 @@ export default function Home() {
           input[type="password"]:focus {
             border-color: #8AB4F8;
             box-shadow: 0 0 0 2px rgba(138, 180, 248, 0.1);
+          }
+
+          .username-input {
+            background: #333;
+            border-color: #555;
+            color: white;
+          }
+
+          .username-input:focus {
+            border-color: #8AB4F8;
+            box-shadow: 0 0 0 2px rgba(138, 180, 248, 0.1);
+          }
+
+          .create-button {
+            background: white !important;
+            color: #0B0B0C !important;
+          }
+
+          .create-button:hover:not(:disabled) {
+            background: #EDEDED !important;
           }
 
         .password-hint {
