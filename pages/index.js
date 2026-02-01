@@ -267,15 +267,21 @@ export default function Home() {
           <section className="help">
             <h2>What is this?</h2>
             <p>
-              A minimal writing space. Your words are private—only you can decrypt them. 
-              No account needed, just remember your password.
+              A private space for your writing—journals, notes, thoughts.
             </p>
             <p>
-              View everything you've written by visiting lekh.space/yourname/all.
+              Everything is encrypted end-to-end. Only you can read it. Not us,
+              not anyone else. Ever.
             </p>
             <p>
-              Questions? Raise an issue at{' '}
-              <a href="https://github.com/swappysh/lekh">github.com/swappysh/lekh</a>.
+              No email required. Just pick a username and password.
+            </p>
+            <p>
+              View all your entries at lekh.space/yourname/all
+            </p>
+            <p>
+              Questions? Open an issue on{' '}
+              <a href="https://github.com/swappysh/lekh">GitHub</a>.
             </p>
           </section>
         </>
