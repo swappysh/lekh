@@ -314,6 +314,10 @@ export default function UserPage() {
       ) : (
         <Editor content={content} setContent={setContent} ref={editorRef} />
       )}
+      <div className="stats">
+        <span className="word-count">{content.trim() ? content.trim().split(/\s+/).length : 0} words</span>
+        <span className="char-count">{content.length} characters</span>
+      </div>
       <ShortcutsModal
         isOpen={showShortcuts}
         onClose={() => setShowShortcuts(false)}
@@ -400,6 +404,20 @@ export default function UserPage() {
         @media (prefers-color-scheme: dark) {
           .collaboration-hint {
             color: #999;
+          }
+        }
+        .stats {
+          position: fixed;
+          bottom: 20px;
+          left: 20px;
+          font-size: 12px;
+          color: #999;
+          display: flex;
+          gap: 20px;
+        }
+        @media (prefers-color-scheme: dark) {
+          .stats {
+            color: #666;
           }
         }
         .help-button {

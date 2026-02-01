@@ -75,7 +75,8 @@ describe('All Entries Page', () => {
               data: [{ 
                 username: 'testuser',
                 salt: 'mock-salt',
-                encrypted_private_key: 'mock-encrypted-private-key'
+                encrypted_private_key: 'mock-encrypted-private-key',
+                is_public: false
               }], 
               error: null 
             }))
@@ -104,21 +105,21 @@ describe('All Entries Page', () => {
     render(<AllEntriesPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('testuser - All Entries')).toBeInTheDocument()
-      expect(screen.getByText('← Back to write')).toBeInTheDocument()
+      expect(screen.getByText('testuser')).toBeInTheDocument()
+      expect(screen.getByText('all entries')).toBeInTheDocument()
     })
 
-    // Should show password modal initially
+    // Should show password prompt initially
     await waitFor(() => {
-      expect(screen.getByText('Enter Password to Decrypt Entries')).toBeInTheDocument()
+      expect(screen.getByText('Enter password to decrypt entries')).toBeInTheDocument()
     })
 
     // Enter password and submit
-    const passwordInput = screen.getByPlaceholderText('Enter password to decrypt entries...')
+    const passwordInput = screen.getByPlaceholderText('••••••••')
     await user.type(passwordInput, 'correctpassword')
     
-    const decryptButton = screen.getByText('Decrypt')
-    await user.click(decryptButton)
+    const submitButton = screen.getByText('[Unlock →]')
+    await user.click(submitButton)
 
     // Check that all entries are displayed after decryption
     await waitFor(() => {
@@ -166,7 +167,7 @@ describe('All Entries Page', () => {
     render(<AllEntriesPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('testuser - All Entries')).toBeInTheDocument()
+      expect(screen.getByText('testuser')).toBeInTheDocument()
       expect(screen.getByText('No entries found for testuser')).toBeInTheDocument()
     })
   })
@@ -176,15 +177,15 @@ describe('All Entries Page', () => {
     render(<AllEntriesPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('Enter Password to Decrypt Entries')).toBeInTheDocument()
+      expect(screen.getByText('Enter password to decrypt entries')).toBeInTheDocument()
     })
 
     // Enter password and decrypt
-    const passwordInput = screen.getByPlaceholderText('Enter password to decrypt entries...')
+    const passwordInput = screen.getByPlaceholderText('••••••••')
     await user.type(passwordInput, 'correctpassword')
     
-    const decryptButton = screen.getByText('Decrypt')
-    await user.click(decryptButton)
+    const submitButton = screen.getByText('[Unlock →]')
+    await user.click(submitButton)
 
     await waitFor(() => {
       // Check that timestamps are formatted and displayed
@@ -220,12 +221,12 @@ describe('All Entries Page', () => {
     })
   })
 
-  test('back link has correct href', async () => {
+  test('back link has been removed in new design', async () => {
     render(<AllEntriesPage />)
 
     await waitFor(() => {
-      const backLink = screen.getByText('← Back to write')
-      expect(backLink.closest('a')).toHaveAttribute('href', '/testuser')
+      const backLink = screen.queryByText('← Back to write')
+      expect(backLink).not.toBeInTheDocument()
     })
   })
 
@@ -255,12 +256,13 @@ describe('All Entries Page', () => {
     render(<AllEntriesPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('anotheruser - All Entries')).toBeInTheDocument()
+      expect(screen.getByText('anotheruser')).toBeInTheDocument()
       expect(screen.getByText('No entries found for anotheruser')).toBeInTheDocument()
     })
 
-    const backLink = screen.getByText('← Back to write')
-    expect(backLink.closest('a')).toHaveAttribute('href', '/anotheruser')
+    // Back link removed in new design
+    const backLink = screen.queryByText('← Back to write')
+    expect(backLink).not.toBeInTheDocument()
   })
 
   test('preserves whitespace and line breaks in entry content', async () => {
@@ -303,15 +305,15 @@ describe('All Entries Page', () => {
     render(<AllEntriesPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('testuser - All Entries')).toBeInTheDocument()
+      expect(screen.getByText('testuser')).toBeInTheDocument()
     })
 
     // Enter password to decrypt
-    const passwordInput = screen.getByPlaceholderText('Enter password to decrypt entries...')
+    const passwordInput = screen.getByPlaceholderText('••••••••')
     await user.type(passwordInput, 'correctpassword')
     
-    const decryptButton = screen.getByText('Decrypt')
-    await user.click(decryptButton)
+    const submitButton = screen.getByText('[Unlock →]')
+    await user.click(submitButton)
 
     await waitFor(() => {
       const contentElement = screen.getByText(/Line 1/)
@@ -342,7 +344,7 @@ describe('All Entries Page', () => {
     render(<AllEntriesPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('testuser - All Entries')).toBeInTheDocument()
+      expect(screen.getByText('testuser')).toBeInTheDocument()
     })
 
     await waitFor(() => {
@@ -362,7 +364,7 @@ describe('All Entries Page', () => {
     render(<AllEntriesPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('testuser - All Entries')).toBeInTheDocument()
+      expect(screen.getByText('testuser')).toBeInTheDocument()
     })
 
     // Check that dark mode CSS variables are applied
@@ -374,15 +376,15 @@ describe('All Entries Page', () => {
     render(<AllEntriesPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('testuser - All Entries')).toBeInTheDocument()
+      expect(screen.getByText('testuser')).toBeInTheDocument()
     })
 
     // Enter password and decrypt
-    const passwordInput = screen.getByPlaceholderText('Enter password to decrypt entries...')
+    const passwordInput = screen.getByPlaceholderText('••••••••')
     await user.type(passwordInput, 'correctpassword')
     
-    const decryptButton = screen.getByText('Decrypt')
-    await user.click(decryptButton)
+    const submitButton = screen.getByText('[Unlock →]')
+    await user.click(submitButton)
 
     await waitFor(() => {
       // Check that timestamps are formatted and displayed
@@ -396,15 +398,15 @@ describe('All Entries Page', () => {
     render(<AllEntriesPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('testuser - All Entries')).toBeInTheDocument()
+      expect(screen.getByText('testuser')).toBeInTheDocument()
     })
 
     // Enter password to decrypt entries
-    const passwordInput = screen.getByPlaceholderText('Enter password to decrypt entries...')
+    const passwordInput = screen.getByPlaceholderText('••••••••')
     await user.type(passwordInput, 'correctpassword')
     
-    const decryptButton = screen.getByText('Decrypt')
-    await user.click(decryptButton)
+    const submitButton = screen.getByText('[Unlock →]')
+    await user.click(submitButton)
 
     await waitFor(() => {
       const entryElements = document.querySelectorAll('.entry')

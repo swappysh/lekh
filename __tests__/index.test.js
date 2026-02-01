@@ -24,17 +24,16 @@ describe('Home Page', () => {
   test('renders home page with title and form', () => {
     render(<Home />)
     
-    expect(screen.getByText('Your private writing space')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText('your-name')).toBeInTheDocument()
-    expect(screen.getByText('Generate Random')).toBeInTheDocument()
-    expect(screen.getByText('Create my space')).toBeInTheDocument()
+    expect(screen.getByText('lekh.space/[username]')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('[username]')).toBeInTheDocument()
+    expect(screen.getByText('[create →]')).toBeInTheDocument()
   })
 
   test('updates username input when typing', async () => {
     const user = userEvent.setup()
     render(<Home />)
     
-    const input = screen.getByPlaceholderText('your-name')
+    const input = screen.getByPlaceholderText('[username]')
     await user.type(input, 'testuser')
     
     expect(input.value).toBe('testuser')
@@ -50,7 +49,7 @@ describe('Home Page', () => {
     const user = userEvent.setup()
     render(<Home />)
     
-    const input = screen.getByPlaceholderText('your-name')
+    const input = screen.getByPlaceholderText('[username]')
     await user.type(input, 'available')
     
     await waitFor(() => {
@@ -68,7 +67,7 @@ describe('Home Page', () => {
     const user = userEvent.setup()
     render(<Home />)
     
-    const input = screen.getByPlaceholderText('your-name')
+    const input = screen.getByPlaceholderText('[username]')
     await user.type(input, 'taken')
     
     await waitFor(() => {
@@ -77,60 +76,24 @@ describe('Home Page', () => {
   })
 
   test('generates random username when button clicked', async () => {
-    global.fetch.mockResolvedValueOnce({
-      ok: true,
-      json: () => Promise.resolve({ username: 'test-username' })
-    })
-
-    const user = userEvent.setup()
+    // Generate Random button has been removed in new design
     render(<Home />)
-
-    const generateButton = screen.getByText('Generate Random')
-    await user.click(generateButton)
-
-    await waitFor(() => {
-      const input = screen.getByPlaceholderText('your-name')
-      expect(input.value).toBe('test-username')
-    })
+    const generateButton = screen.queryByText('Generate Random')
+    expect(generateButton).not.toBeInTheDocument()
   })
 
   test('handles API errors when generating username', async () => {
-    global.fetch.mockResolvedValueOnce({
-      ok: false,
-      json: () => Promise.resolve({ error: 'API error' })
-    })
-
-    const user = userEvent.setup()
+    // Generate Random button has been removed in new design
     render(<Home />)
-
-    const generateButton = screen.getByText('Generate Random')
-    await user.click(generateButton)
-
-    await waitFor(() => {
-      const input = screen.getByPlaceholderText('your-name')
-      // Should fall back to user-generated username
-      expect(input.value).toMatch(/^user-\d{4}-\w{3}$/)
-    })
+    const generateButton = screen.queryByText('Generate Random')
+    expect(generateButton).not.toBeInTheDocument()
   })
 
   test('retries on network errors when generating username', async () => {
-    global.fetch
-      .mockRejectedValueOnce(new TypeError('Network error'))
-      .mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ username: 'retry-success' })
-      })
-
-    const user = userEvent.setup()
+    // Generate Random button has been removed in new design
     render(<Home />)
-
-    const generateButton = screen.getByText('Generate Random')
-    await user.click(generateButton)
-
-    await waitFor(() => {
-      const input = screen.getByPlaceholderText('your-name')
-      expect(input.value).toBe('retry-success')
-    })
+    const generateButton = screen.queryByText('Generate Random')
+    expect(generateButton).not.toBeInTheDocument()
   })
 
   test('disables submit button when username is unavailable', async () => {
@@ -143,11 +106,11 @@ describe('Home Page', () => {
     const user = userEvent.setup()
     render(<Home />)
     
-    const input = screen.getByPlaceholderText('your-name')
+    const input = screen.getByPlaceholderText('[username]')
     await user.type(input, 'taken')
     
     await waitFor(() => {
-      const submitButton = screen.getByText('Create my space')
+      const submitButton = screen.getByText('[create →]')
       expect(submitButton).toBeDisabled()
     })
   })
@@ -167,17 +130,17 @@ describe('Home Page', () => {
     const user = userEvent.setup()
     render(<Home />)
     
-    const usernameInput = screen.getByPlaceholderText('your-name')
+    const usernameInput = screen.getByPlaceholderText('[username]')
     await user.type(usernameInput, 'newuser')
     
-    const passwordInput = screen.getByPlaceholderText('Enter a password')
+    const passwordInput = screen.getByPlaceholderText('[••••••••]')
     await user.type(passwordInput, 'SecurePassword123')
     
     await waitFor(() => {
       expect(screen.getByText('✅ Available')).toBeInTheDocument()
     })
     
-    const submitButton = screen.getByText('Create my space')
+    const submitButton = screen.getByText('[create →]')
     await user.click(submitButton)
     
     await waitFor(() => {
@@ -200,17 +163,17 @@ describe('Home Page', () => {
     const user = userEvent.setup()
     render(<Home />)
     
-    const usernameInput = screen.getByPlaceholderText('your-name')
+    const usernameInput = screen.getByPlaceholderText('[username]')
     await user.type(usernameInput, 'erroruser')
     
-    const passwordInput = screen.getByPlaceholderText('Enter a password')
+    const passwordInput = screen.getByPlaceholderText('[••••••••]')
     await user.type(passwordInput, 'SecurePassword123')
     
     await waitFor(() => {
       expect(screen.getByText('✅ Available')).toBeInTheDocument()
     })
     
-    const submitButton = screen.getByText('Create my space')
+    const submitButton = screen.getByText('[create →]')
     await user.click(submitButton)
     
     await waitFor(() => {
@@ -222,7 +185,7 @@ describe('Home Page', () => {
     const user = userEvent.setup()
     render(<Home />)
     
-    const input = screen.getByPlaceholderText('your-name')
+    const input = screen.getByPlaceholderText('[username]')
     
     // The input has pattern validation, so invalid characters should be handled by the browser
     expect(input).toHaveAttribute('pattern', '[a-zA-Z0-9_\\-]+')
@@ -234,14 +197,14 @@ describe('Home Page', () => {
     render(<Home />)
 
     // Should start with private flow
-    expect(screen.getByPlaceholderText('Enter a password')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('[••••••••]')).toBeInTheDocument()
 
     // Click the secondary action to switch to public flow
     const publicButton = screen.getByText('Create a shared writing space →')
     await user.click(publicButton)
 
     // Password field should be hidden in public flow
-    expect(screen.queryByPlaceholderText('Enter a password')).not.toBeInTheDocument()
+    expect(screen.queryByPlaceholderText('[••••••••]')).not.toBeInTheDocument()
     expect(screen.getByText('Create a shared writing space')).toBeInTheDocument()
   })
 

@@ -153,24 +153,37 @@ export default function Home() {
     <div className="container">
       {!showPublicFlow ? (
         <>
-          <h1>Your private writing space</h1>
-          <p>A distraction-free place to write. End-to-end encrypted. No account needed.</p>
+          <h1>lekh.space/[username]</h1>
+          <p>&gt; Your words, encrypted. Once saved, permanent.</p>
+          <p>&gt; Forget your password = lost forever.</p>
+
+          <div className="demo-cta">
+            <button
+              type="button"
+              className="demo-button"
+              onClick={() => window.location.href = '/demo'}
+            >
+              See example space →
+            </button>
+          </div>
+
+          <div className="divider">
+            <span>or create your own</span>
+          </div>
 
           <form onSubmit={handleSubmit}>
             <div className="input-group">
-              <label>Choose your URL:</label>
-              <div className="url-preview">
-                https://lekh.space/
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="your-name"
-                  pattern="[a-zA-Z0-9_\-]+"
-                  title="Only letters, numbers, hyphens, and underscores allowed"
-                  required
-                />
-              </div>
+              <label>lekh.space/</label>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="[username]"
+                pattern="[a-zA-Z0-9_\-]+"
+                title="Only letters, numbers, hyphens, and underscores allowed"
+                required
+                className="username-input"
+              />
               {username && (
                 <div className="availability-status">
                   {isChecking ? (
@@ -185,7 +198,7 @@ export default function Home() {
             </div>
 
             <div className="input-group">
-              <label>Set your password:</label>
+              <label>password:</label>
               <input
                 type="password"
                 value={password}
@@ -193,7 +206,7 @@ export default function Home() {
                   setPassword(e.target.value)
                   setAcknowledgedRisk(false) // Reset when password changes
                 }}
-                placeholder="Enter a password"
+                placeholder="[••••••••]"
                 required
               />
               {password && (
@@ -221,9 +234,6 @@ export default function Home() {
             </div>
 
             <div className="buttons">
-              <button type="button" onClick={generateRandomUsername}>
-                Generate Random
-              </button>
               <button
                 type="submit"
                 disabled={
@@ -233,8 +243,9 @@ export default function Home() {
                   !password.trim() ||
                   (getPasswordStrength(password) === 'weak' && !acknowledgedRisk)
                 }
+                className="create-button"
               >
-                {isSubmitting ? 'Creating...' : 'Create my space'}
+                {isSubmitting ? 'creating...' : '[create →]'}
               </button>
             </div>
           </form>
@@ -256,15 +267,21 @@ export default function Home() {
           <section className="help">
             <h2>What is this?</h2>
             <p>
-              A minimal writing space. Your words are private—only you can decrypt them. 
-              No account needed, just remember your password.
+              A private space for your writing—journals, notes, thoughts.
             </p>
             <p>
-              View everything you've written by visiting lekh.space/yourname/all.
+              Everything is encrypted end-to-end. Only you can read it. Not us,
+              not anyone else. Ever.
             </p>
             <p>
-              Questions? Raise an issue at{' '}
-              <a href="https://github.com/swappysh/lekh">github.com/swappysh/lekh</a>.
+              No email required. Just pick a username and password.
+            </p>
+            <p>
+              View all your entries at lekh.space/yourname/all
+            </p>
+            <p>
+              Questions? Open an issue on{' '}
+              <a href="https://github.com/swappysh/lekh">GitHub</a>.
             </p>
           </section>
         </>
@@ -378,8 +395,39 @@ export default function Home() {
           margin: 0 auto;
         }
 
+        .demo-cta {
+          margin: 32px 0 24px 0;
+        }
+
+        .demo-button {
+          width: 100%;
+          padding: 16px 24px;
+          border: 2px solid #0B57D0;
+          border-radius: 4px;
+          background: #0B57D0;
+          color: white;
+          cursor: pointer;
+          font-family: monospace;
+          font-size: 16px;
+          font-weight: bold;
+          text-align: center;
+          transition: all 0.2s;
+          min-height: 48px;
+        }
+
+        .demo-button:hover {
+          background: #0842a0;
+          border-color: #0842a0;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 8px rgba(11, 87, 208, 0.3);
+        }
+
+        .demo-button:active {
+          transform: translateY(0);
+        }
+
         .divider {
-          margin: 40px 0 30px 0;
+          margin: 48px 0 36px 0;
           text-align: center;
           position: relative;
         }
@@ -407,7 +455,7 @@ export default function Home() {
           padding: 16px 24px;
           border: 1px solid #ccc;
           border-radius: 4px;
-          background: white;
+          background: transparent;
           cursor: pointer;
           font-family: monospace;
           font-size: 16px;
@@ -419,6 +467,7 @@ export default function Home() {
         .secondary-action:hover {
           background: #f5f5f5;
           color: #333;
+          border-color: #999;
         }
 
         .back-link {
@@ -438,7 +487,7 @@ export default function Home() {
         }
 
         .input-group {
-          margin: 20px 0;
+          margin: 24px 0;
         }
 
         .availability-status {
@@ -471,6 +520,29 @@ export default function Home() {
           border: 1px solid #ccc;
           border-radius: 4px;
           overflow: hidden;
+          min-height: 48px;
+        }
+
+        .username-input {
+          width: 100%;
+          padding: 14px 12px;
+          border: 1px solid #ccc;
+          border-radius: 4px;
+          font-family: monospace;
+          font-size: 16px;
+          background: white;
+          color: inherit;
+          box-sizing: border-box;
+          min-height: 48px;
+        }
+
+        .username-input:focus {
+          outline: none;
+          border-color: #0B57D0;
+          border-width: 2px;
+          padding: 13px 11px;
+          box-shadow: 0 0 0 2px rgba(11, 87, 208, 0.1);
+          transition: all 0.2s;
         }
 
         .url-preview input {
@@ -484,9 +556,38 @@ export default function Home() {
           color: inherit;
         }
 
+        .create-button {
+          background: #111111 !important;
+          color: white !important;
+          border: none !important;
+          padding: 14px 32px;
+          border-radius: 4px;
+          cursor: pointer;
+          font-family: monospace;
+          font-size: 18px;
+          font-weight: bold;
+          min-height: 48px;
+          transition: all 0.2s;
+        }
+
+        .create-button:hover:not(:disabled) {
+          background: #000000 !important;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .create-button:active:not(:disabled) {
+          transform: translateY(0);
+        }
+
+        .create-button:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
         input[type="password"] {
           width: 100%;
-          padding: 12px;
+          padding: 14px 12px;
           border: 1px solid #ccc;
           border-radius: 4px;
           font-family: monospace;
@@ -494,18 +595,23 @@ export default function Home() {
           background: white;
           color: inherit;
           box-sizing: border-box;
+          min-height: 48px;
         }
 
         input[type="password"]:focus {
           outline: none;
           border-color: #0B57D0;
+          border-width: 2px;
+          padding: 13px 11px;
           box-shadow: 0 0 0 2px rgba(11, 87, 208, 0.1);
+          transition: all 0.2s;
         }
 
         .password-hint {
           margin-top: 8px;
-          font-size: 14px;
-          color: #6c757d;
+          font-size: 13px;
+          color: #dc3545;
+          line-height: 1.4;
         }
 
         .password-strength {
@@ -598,6 +704,8 @@ export default function Home() {
 
         .help p {
           margin: 0 0 10px 0;
+          color: #555;
+          line-height: 1.6;
         }
 
         @media (prefers-color-scheme: dark) {
@@ -640,18 +748,48 @@ export default function Home() {
           }
 
           input[type="password"] {
-            background: #333;
-            border-color: #555;
+            background: #1a1a1a;
+            border-color: #444;
             color: white;
           }
 
           input[type="password"]:focus {
             border-color: #8AB4F8;
+            border-width: 2px;
+            padding: 13px 11px;
             box-shadow: 0 0 0 2px rgba(138, 180, 248, 0.1);
           }
 
+          .username-input {
+            background: #1a1a1a;
+            border-color: #444;
+            color: white;
+          }
+
+          .username-input:focus {
+            border-color: #8AB4F8;
+            border-width: 2px;
+            padding: 13px 11px;
+            box-shadow: 0 0 0 2px rgba(138, 180, 248, 0.1);
+          }
+
+          .create-button {
+            background: #000000 !important;
+            color: #ffffff !important;
+            border: 2px solid #ffffff !important;
+          }
+
+          .create-button:hover:not(:disabled) {
+            background: #222222 !important;
+            border-color: #ffffff !important;
+          }
+
+          .help p {
+            color: #cccccc;
+          }
+
         .password-hint {
-          color: #adb5bd;
+          color: #ff8a80;
         }
 
         .password-strength.weak {
@@ -679,16 +817,17 @@ export default function Home() {
           background: #0B0B0C;
         }
 
-        .secondary-action {
-          background: #333;
-          border-color: #555;
-          color: #999;
-        }
+          .secondary-action {
+            background: transparent;
+            border-color: #555;
+            color: #999;
+          }
 
-        .secondary-action:hover {
-          background: #444;
-          color: #ededed;
-        }
+          .secondary-action:hover {
+            background: #222;
+            color: #ededed;
+            border-color: #777;
+          }
 
         .back-link {
           color: #999;
@@ -696,6 +835,18 @@ export default function Home() {
 
         .back-link:hover {
           color: #ededed;
+        }
+
+        .demo-button {
+          background: #8AB4F8;
+          border-color: #8AB4F8;
+          color: #0B0B0C;
+        }
+
+        .demo-button:hover {
+          background: #a8c7fa;
+          border-color: #a8c7fa;
+          box-shadow: 0 4px 8px rgba(138, 180, 248, 0.3);
         }
       }
       `}</style>
