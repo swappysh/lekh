@@ -157,6 +157,20 @@ export default function Home() {
           <p>&gt; Your words, encrypted. Once saved, permanent.</p>
           <p>&gt; Forget your password = lost forever.</p>
 
+          <div className="demo-cta">
+            <button
+              type="button"
+              className="demo-button"
+              onClick={() => window.location.href = '/demo'}
+            >
+              See example space →
+            </button>
+          </div>
+
+          <div className="divider">
+            <span>or create your own</span>
+          </div>
+
           <form onSubmit={handleSubmit}>
             <div className="input-group">
               <label>lekh.space/</label>
@@ -373,6 +387,37 @@ export default function Home() {
           font-family: monospace;
           max-width: 600px;
           margin: 0 auto;
+        }
+
+        .demo-cta {
+          margin: 32px 0 24px 0;
+        }
+
+        .demo-button {
+          width: 100%;
+          padding: 16px 24px;
+          border: 2px solid #0B57D0;
+          border-radius: 4px;
+          background: #0B57D0;
+          color: white;
+          cursor: pointer;
+          font-family: monospace;
+          font-size: 16px;
+          font-weight: bold;
+          text-align: center;
+          transition: all 0.2s;
+          min-height: 48px;
+        }
+
+        .demo-button:hover {
+          background: #0842a0;
+          border-color: #0842a0;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 8px rgba(11, 87, 208, 0.3);
+        }
+
+        .demo-button:active {
+          transform: translateY(0);
         }
 
         .divider {
@@ -784,6 +829,18 @@ export default function Home() {
 
         .back-link:hover {
           color: #ededed;
+        }
+
+        .demo-button {
+          background: #8AB4F8;
+          border-color: #8AB4F8;
+          color: #0B0B0C;
+        }
+
+        .demo-button:hover {
+          background: #a8c7fa;
+          border-color: #a8c7fa;
+          box-shadow: 0 4px 8px rgba(138, 180, 248, 0.3);
         }
       }
       `}</style>
