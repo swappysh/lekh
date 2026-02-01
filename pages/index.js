@@ -376,7 +376,7 @@ export default function Home() {
         }
 
         .divider {
-          margin: 40px 0 30px 0;
+          margin: 48px 0 36px 0;
           text-align: center;
           position: relative;
         }
@@ -436,7 +436,7 @@ export default function Home() {
         }
 
         .input-group {
-          margin: 20px 0;
+          margin: 24px 0;
         }
 
         .availability-status {
@@ -469,11 +469,12 @@ export default function Home() {
           border: 1px solid #ccc;
           border-radius: 4px;
           overflow: hidden;
+          min-height: 48px;
         }
 
         .username-input {
           width: 100%;
-          padding: 12px;
+          padding: 14px 12px;
           border: 1px solid #ccc;
           border-radius: 4px;
           font-family: monospace;
@@ -481,12 +482,16 @@ export default function Home() {
           background: white;
           color: inherit;
           box-sizing: border-box;
+          min-height: 48px;
         }
 
         .username-input:focus {
           outline: none;
           border-color: #0B57D0;
+          border-width: 2px;
+          padding: 13px 11px;
           box-shadow: 0 0 0 2px rgba(11, 87, 208, 0.1);
+          transition: all 0.2s;
         }
 
         .url-preview input {
@@ -504,15 +509,24 @@ export default function Home() {
           background: #111111 !important;
           color: white !important;
           border: none !important;
-          padding: 12px 24px;
+          padding: 14px 32px;
           border-radius: 4px;
           cursor: pointer;
           font-family: monospace;
-          font-size: 16px;
+          font-size: 18px;
+          font-weight: bold;
+          min-height: 48px;
+          transition: all 0.2s;
         }
 
         .create-button:hover:not(:disabled) {
-          background: #333 !important;
+          background: #000000 !important;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .create-button:active:not(:disabled) {
+          transform: translateY(0);
         }
 
         .create-button:disabled {
@@ -522,7 +536,7 @@ export default function Home() {
 
         input[type="password"] {
           width: 100%;
-          padding: 12px;
+          padding: 14px 12px;
           border: 1px solid #ccc;
           border-radius: 4px;
           font-family: monospace;
@@ -530,12 +544,16 @@ export default function Home() {
           background: white;
           color: inherit;
           box-sizing: border-box;
+          min-height: 48px;
         }
 
         input[type="password"]:focus {
           outline: none;
           border-color: #0B57D0;
+          border-width: 2px;
+          padding: 13px 11px;
           box-shadow: 0 0 0 2px rgba(11, 87, 208, 0.1);
+          transition: all 0.2s;
         }
 
         .password-hint {
@@ -635,6 +653,8 @@ export default function Home() {
 
         .help p {
           margin: 0 0 10px 0;
+          color: #555;
+          line-height: 1.6;
         }
 
         @media (prefers-color-scheme: dark) {
@@ -677,24 +697,28 @@ export default function Home() {
           }
 
           input[type="password"] {
-            background: #333;
-            border-color: #555;
+            background: #1a1a1a;
+            border-color: #444;
             color: white;
           }
 
           input[type="password"]:focus {
             border-color: #8AB4F8;
+            border-width: 2px;
+            padding: 13px 11px;
             box-shadow: 0 0 0 2px rgba(138, 180, 248, 0.1);
           }
 
           .username-input {
-            background: #333;
-            border-color: #555;
+            background: #1a1a1a;
+            border-color: #444;
             color: white;
           }
 
           .username-input:focus {
             border-color: #8AB4F8;
+            border-width: 2px;
+            padding: 13px 11px;
             box-shadow: 0 0 0 2px rgba(138, 180, 248, 0.1);
           }
 
@@ -706,6 +730,11 @@ export default function Home() {
 
           .create-button:hover:not(:disabled) {
             background: #222222 !important;
+            border-color: #ffffff !important;
+          }
+
+          .help p {
+            color: #cccccc;
           }
 
         .password-hint {
