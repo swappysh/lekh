@@ -404,7 +404,7 @@ export default function Home() {
           padding: 16px 24px;
           border: 1px solid #ccc;
           border-radius: 4px;
-          background: white;
+          background: transparent;
           cursor: pointer;
           font-family: monospace;
           font-size: 16px;
@@ -416,6 +416,7 @@ export default function Home() {
         .secondary-action:hover {
           background: #f5f5f5;
           color: #333;
+          border-color: #999;
         }
 
         .back-link {
@@ -539,8 +540,9 @@ export default function Home() {
 
         .password-hint {
           margin-top: 8px;
-          font-size: 14px;
-          color: #6c757d;
+          font-size: 13px;
+          color: #dc3545;
+          line-height: 1.4;
         }
 
         .password-strength {
@@ -697,16 +699,17 @@ export default function Home() {
           }
 
           .create-button {
-            background: white !important;
-            color: #0B0B0C !important;
+            background: #000000 !important;
+            color: #ffffff !important;
+            border: 2px solid #ffffff !important;
           }
 
           .create-button:hover:not(:disabled) {
-            background: #EDEDED !important;
+            background: #222222 !important;
           }
 
         .password-hint {
-          color: #adb5bd;
+          color: #ff8a80;
         }
 
         .password-strength.weak {
@@ -734,16 +737,17 @@ export default function Home() {
           background: #0B0B0C;
         }
 
-        .secondary-action {
-          background: #333;
-          border-color: #555;
-          color: #999;
-        }
+          .secondary-action {
+            background: transparent;
+            border-color: #555;
+            color: #999;
+          }
 
-        .secondary-action:hover {
-          background: #444;
-          color: #ededed;
-        }
+          .secondary-action:hover {
+            background: #222;
+            color: #ededed;
+            border-color: #777;
+          }
 
         .back-link {
           color: #999;
