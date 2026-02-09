@@ -36,7 +36,10 @@ A minimal writing website where users can write and save content. Simple, clean,
    ```
    NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
    ```
+
+   `SUPABASE_SERVICE_ROLE_KEY` is used by server routes (`/api/create-user`, `/api/private-append`) to perform protected writes.
 
 5. Run the development server:
    ```bash

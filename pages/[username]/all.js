@@ -1,6 +1,5 @@
 import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
-import PasswordModal from '../../components/PasswordModal'
 import { PublicKeyEncryption } from '../../lib/publicKeyEncryption'
 import { supabase } from '../../lib/supabase'
 
@@ -10,17 +9,18 @@ export default function AllEntriesPage() {
   const [entries, setEntries] = useState([])
   const [loading, setLoading] = useState(true)
   const [userExists, setUserExists] = useState(null)
-  const [showPasswordModal, setShowPasswordModal] = useState(false)
   const [userSalt, setUserSalt] = useState(null)
   const [encryptedPrivateKey, setEncryptedPrivateKey] = useState(null)
   const [encryptedEntries, setEncryptedEntries] = useState([])
   const [decryptionAttempted, setDecryptionAttempted] = useState(false)
-  const [isPublic, setIsPublic] = useState(false)
 
   const loadAllEntries = async () => {
     if (!username) return
 
     setLoading(true)
+    setEntries([])
+    setEncryptedEntries([])
+    setDecryptionAttempted(false)
 
     // Check if user exists and get encryption data
     const { data: userData } = await supabase
@@ -37,47 +37,38 @@ export default function AllEntriesPage() {
     setUserExists(true)
     setUserSalt(userData[0].salt)
     setEncryptedPrivateKey(userData[0].encrypted_private_key)
-    setIsPublic(userData[0].is_public)
 
-    // Fetch all documents for this user
+    if (userData[0].is_public) {
+      const { data: snapshots } = await supabase
+        .from('public_snapshots')
+        .select('username, snapshot_minute, content, version')
+        .eq('username', username)
+        .order('snapshot_minute', { ascending: false })
+
+      setEntries(
+        (snapshots || []).map((snapshot) => ({
+          id: `${snapshot.username}-${snapshot.snapshot_minute}`,
+          content: snapshot.content,
+          snapshot_minute: snapshot.snapshot_minute,
+          version: snapshot.version,
+        }))
+      )
+      setEncryptedEntries([])
+      setDecryptionAttempted(true)
+      setLoading(false)
+      return
+    }
+
     const { data: documents } = await supabase
       .from('documents')
-      .select('id, username, encrypted_content, encrypted_data_key, created_at, updated_at')
+      .select('id, username, encrypted_content, encrypted_data_key, created_at, client_snapshot_id')
       .eq('username', username)
-      .order('updated_at', { ascending: false })
+      .order('created_at', { ascending: false })
 
     if (documents && documents.length > 0) {
       setEncryptedEntries(documents)
-      if (userData[0].is_public) {
-        const decryptedEntries = []
-        for (const entry of documents) {
-          try {
-            const decryptedContent = await PublicKeyEncryption.decrypt(
-              entry.encrypted_content,
-              entry.encrypted_data_key,
-              username,
-              userData[0].encrypted_private_key,
-              userData[0].salt
-            )
-            decryptedEntries.push({
-              ...entry,
-              content: decryptedContent
-            })
-          } catch (error) {
-            console.error('Failed to decrypt entry:', entry.id, error)
-            decryptedEntries.push({
-              ...entry,
-              content: '[Decryption failed - invalid password or corrupted data]'
-            })
-          }
-        }
-        setEntries(decryptedEntries)
-        setDecryptionAttempted(true)
-      } else {
-        // For private pages, show inline password form (not modal)
-        // Form will display when !decryptionAttempted && encryptedEntries.length > 0
-      }
     } else {
+      setEncryptedEntries([])
       setEntries([])
     }
     setLoading(false)
@@ -114,7 +105,6 @@ export default function AllEntriesPage() {
       }
 
       setEntries(decryptedEntries)
-      setShowPasswordModal(false)
       setDecryptionAttempted(true)
     } catch (error) {
       console.error('Decryption process failed:', error)
@@ -240,7 +230,7 @@ export default function AllEntriesPage() {
             <div key={entry.id} className="entry">
               <div className="entry-header">
                 <span className="entry-date">
-                  {new Date(entry.updated_at).toLocaleString()}
+                  {new Date(entry.created_at || entry.snapshot_minute).toLocaleString()}
                 </span>
               </div>
               <div className="entry-content">
@@ -249,15 +239,6 @@ export default function AllEntriesPage() {
             </div>
           ))}
         </div>
-      )}
-
-      {!isPublic && (
-        <PasswordModal
-          isOpen={showPasswordModal}
-          onSubmit={handlePasswordSubmit}
-          onClose={() => setShowPasswordModal(false)}
-          title="Enter Password to Decrypt Entries"
-        />
       )}
 
       <style jsx global>{`

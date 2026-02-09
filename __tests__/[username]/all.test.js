@@ -215,9 +215,9 @@ describe('All Entries Page', () => {
     render(<AllEntriesPage />)
 
     await waitFor(() => {
-      expect(mockSelect).toHaveBeenCalledWith('id, username, encrypted_content, encrypted_data_key, created_at, updated_at')
+      expect(mockSelect).toHaveBeenCalledWith('id, username, encrypted_content, encrypted_data_key, created_at, client_snapshot_id')
       expect(mockEq).toHaveBeenCalledWith('username', 'testuser')
-      expect(mockOrder).toHaveBeenCalledWith('updated_at', { ascending: false })
+      expect(mockOrder).toHaveBeenCalledWith('created_at', { ascending: false })
     })
   })
 

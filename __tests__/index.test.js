@@ -121,10 +121,13 @@ describe('Home Page', () => {
         return {
           select: jest.fn(() => ({
             eq: jest.fn(() => Promise.resolve({ data: [], error: null }))
-          })),
-          upsert: jest.fn(() => Promise.resolve({ data: {}, error: null }))
+          }))
         }
       }
+    })
+    global.fetch.mockResolvedValue({
+      ok: true,
+      json: jest.fn(() => Promise.resolve({ username: 'newuser' }))
     })
     
     const user = userEvent.setup()
@@ -144,7 +147,19 @@ describe('Home Page', () => {
     await user.click(submitButton)
     
     await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith('/api/create-user', expect.objectContaining({
+        method: 'POST'
+      }))
       expect(screen.getByText(/URL created: https:\/\/lekh\.space\/newuser/)).toBeInTheDocument()
+    })
+
+    const requestBody = JSON.parse(global.fetch.mock.calls[0][1].body)
+    expect(requestBody).toMatchObject({
+      username: 'newuser',
+      publicKey: 'mock-public-key',
+      encryptedPrivateKey: 'mock-encrypted-private-key',
+      salt: 'mock-salt',
+      isPublic: false
     })
   })
 
@@ -154,10 +169,13 @@ describe('Home Page', () => {
         return {
           select: jest.fn(() => ({
             eq: jest.fn(() => Promise.resolve({ data: [], error: null }))
-          })),
-          upsert: jest.fn(() => Promise.resolve({ data: null, error: { message: 'Database error' } }))
+          }))
         }
       }
+    })
+    global.fetch.mockResolvedValue({
+      ok: false,
+      json: jest.fn(() => Promise.resolve({ error: 'Database error' }))
     })
     
     const user = userEvent.setup()
@@ -209,14 +227,16 @@ describe('Home Page', () => {
   })
 
   test('allows creating public page without password', async () => {
-    const mockUpsert = jest.fn(() => Promise.resolve({ data: {}, error: null }))
     supabase.from.mockImplementation((table) => {
       if (table === 'users') {
         return {
-          select: jest.fn(() => ({ eq: jest.fn(() => Promise.resolve({ data: [], error: null })) })),
-          upsert: mockUpsert
+          select: jest.fn(() => ({ eq: jest.fn(() => Promise.resolve({ data: [], error: null })) }))
         }
       }
+    })
+    global.fetch.mockResolvedValue({
+      ok: true,
+      json: jest.fn(() => Promise.resolve({ username: 'publicuser' }))
     })
 
     const user = userEvent.setup()
@@ -238,14 +258,16 @@ describe('Home Page', () => {
 
     await waitFor(() => {
       expect(PublicKeyEncryption.generateAuthorKeys).toHaveBeenCalledWith('publicuser', expect.any(Uint8Array))
-      expect(mockUpsert).toHaveBeenCalledWith({
-        username: 'publicuser',
-        public_key: 'mock-public-key',
-        encrypted_private_key: 'mock-encrypted-private-key',
-        salt: 'mock-salt',
-        is_public: true
-      })
+      expect(global.fetch).toHaveBeenCalledWith('/api/create-user', expect.objectContaining({
+        method: 'POST'
+      }))
       expect(screen.getByText(/URL created: https:\/\/lekh\.space\/publicuser/)).toBeInTheDocument()
+    })
+
+    const requestBody = JSON.parse(global.fetch.mock.calls[0][1].body)
+    expect(requestBody).toMatchObject({
+      username: 'publicuser',
+      isPublic: true
     })
   })
 })

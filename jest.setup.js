@@ -65,6 +65,15 @@ Object.defineProperty(global, 'crypto', {
   configurable: true
 })
 
+if (!global.fetch) {
+  global.fetch = jest.fn(() =>
+    Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve({}),
+    })
+  )
+}
+
 // Mock Supabase
 jest.mock('./lib/supabase', () => ({
   supabase: {

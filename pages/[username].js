@@ -2,7 +2,6 @@ import { useRouter } from 'next/router'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Editor from '../components/Editor'
 import CollaborativeEditor from '../components/CollaborativeEditor'
-import PasswordModal from '../components/PasswordModal'
 import { ShortcutsModal } from '../components/ShortcutsModal'
 import { PublicKeyEncryption } from '../lib/publicKeyEncryption'
 import { CollaborativeDocument } from '../lib/collaborativeDocument'
@@ -12,24 +11,27 @@ export default function UserPage() {
   const router = useRouter()
   const { username } = router.query
   const [content, setContent] = useState('')
-  const [documentId, setDocumentId] = useState('')
   const [showShortcuts, setShowShortcuts] = useState(false)
   const [userExists, setUserExists] = useState(null)
   const [publicKey, setPublicKey] = useState(null)
   const editorRef = useRef(null)
+  const contentRef = useRef('')
+  const publicKeyRef = useRef(null)
+  const lastSavedContentRef = useRef('')
+  const isSavingRef = useRef(false)
   const [isMac, setIsMac] = useState(false)
   const [isPublic, setIsPublic] = useState(false)
   const [collaborativeDoc, setCollaborativeDoc] = useState(null)
   const [activeEditors, setActiveEditors] = useState([])
   const [collaborativeContent, setCollaborativeContent] = useState('')
 
-  // Generate unique document ID for each user session
   useEffect(() => {
-    if (username) {
-      const docId = crypto.randomUUID()
-      setDocumentId(docId)
-    }
-  }, [username])
+    contentRef.current = content
+  }, [content])
+
+  useEffect(() => {
+    publicKeyRef.current = publicKey
+  }, [publicKey])
 
   // Platform detection
   useEffect(() => {
@@ -84,33 +86,63 @@ export default function UserPage() {
     }
   }
 
-  const saveContent = async () => {
-    if (!documentId || !userExists || !publicKey) return
-
-    // Don't save empty content
-    if (!content || content.trim() === '') return
-
-    try {
-      // Encrypt content using public key encryption (hybrid encryption)
-      const { encryptedContent, encryptedDataKey } = await PublicKeyEncryption.encrypt(content, publicKey)
-
-      const { data, error } = await supabase
-        .from('documents')
-        .upsert({
-          id: documentId,
-          username,
-          encrypted_content: encryptedContent,
-          encrypted_data_key: encryptedDataKey,
-          updated_at: new Date()
-        })
-
-      if (error) {
-        console.error('Failed to save document:', error)
-      }
-    } catch (error) {
-      console.error('Failed to encrypt content:', error)
+  const appendPrivateSnapshot = useCallback(async () => {
+    if (!username || !userExists || isPublic || isSavingRef.current) {
+      return
     }
-  }
+
+    const nextContent = contentRef.current
+    const nextPublicKey = publicKeyRef.current
+
+    if (!nextPublicKey || !nextContent || nextContent.trim() === '') {
+      return
+    }
+
+    if (nextContent === lastSavedContentRef.current) {
+      return
+    }
+
+    isSavingRef.current = true
+    try {
+      const { encryptedContent, encryptedDataKey } = await PublicKeyEncryption.encrypt(
+        nextContent,
+        nextPublicKey
+      )
+
+      const response = await fetch('/api/private-append', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username,
+          clientSnapshotId: `${Date.now()}-${crypto.randomUUID()}`,
+          encryptedContent,
+          encryptedDataKey,
+        }),
+      })
+
+      if (!response.ok) {
+        let errorMessage = 'Failed to append private snapshot'
+        try {
+          const payload = await response.json()
+          if (payload?.error) {
+            errorMessage = payload.error
+          }
+        } catch {
+          // Ignore JSON parsing errors and keep default message.
+        }
+        console.error(errorMessage)
+        return
+      }
+
+      lastSavedContentRef.current = nextContent
+    } catch (error) {
+      console.error('Failed to append private snapshot:', error)
+    } finally {
+      isSavingRef.current = false
+    }
+  }, [username, userExists, isPublic])
 
 
   const shortcuts = useMemo(() => [
@@ -194,16 +226,43 @@ export default function UserPage() {
   }
 
   useEffect(() => {
-    if (!userExists || isPublic) return
+    if (!userExists || isPublic) {
+      return
+    }
 
-    const saveTimeout = setTimeout(() => {
-      if (content !== undefined) {
-        saveContent()
+    const intervalId = setInterval(() => {
+      void appendPrivateSnapshot()
+    }, 20000)
+
+    return () => {
+      clearInterval(intervalId)
+    }
+  }, [userExists, isPublic, appendPrivateSnapshot])
+
+  useEffect(() => {
+    if (!userExists || isPublic) {
+      return
+    }
+
+    const handleBeforeUnload = () => {
+      void appendPrivateSnapshot()
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        void appendPrivateSnapshot()
       }
-    }, 1000)
+    }
 
-    return () => clearTimeout(saveTimeout)
-  }, [content, userExists, isPublic])
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      void appendPrivateSnapshot()
+    }
+  }, [userExists, isPublic, appendPrivateSnapshot])
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -289,6 +348,8 @@ export default function UserPage() {
     )
   }
 
+  const visibleContent = isPublic ? collaborativeContent : content
+
   return (
     <div className="container">
       <div className="header">
@@ -315,8 +376,10 @@ export default function UserPage() {
         <Editor content={content} setContent={setContent} ref={editorRef} />
       )}
       <div className="stats">
-        <span className="word-count">{content.trim() ? content.trim().split(/\s+/).length : 0} words</span>
-        <span className="char-count">{content.length} characters</span>
+        <span className="word-count">
+          {visibleContent.trim() ? visibleContent.trim().split(/\s+/).length : 0} words
+        </span>
+        <span className="char-count">{visibleContent.length} characters</span>
       </div>
       <ShortcutsModal
         isOpen={showShortcuts}
