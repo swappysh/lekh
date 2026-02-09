@@ -281,6 +281,46 @@ describe('User Writing Page', () => {
     expect(firstPayload.encryptedDataKey).toBe(secondPayload.encryptedDataKey)
   })
 
+  test('reuses clientSnapshotId across autosaves in the same session', async () => {
+    const user = userEvent.setup()
+    render(<UserPage />)
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Start writing...')).toBeInTheDocument()
+    })
+
+    const editor = screen.getByPlaceholderText('Start writing...')
+    await user.type(editor, 'First draft')
+
+    await waitFor(() => {
+      expect(PublicKeyEncryption.encrypt).toHaveBeenCalledWith('First draft', 'mock-public-key')
+    })
+
+    fireEvent(window, new Event('beforeunload'))
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(1)
+    })
+
+    await user.clear(editor)
+    await user.type(editor, 'Second draft')
+
+    await waitFor(() => {
+      expect(PublicKeyEncryption.encrypt).toHaveBeenCalledWith('Second draft', 'mock-public-key')
+    })
+
+    fireEvent(window, new Event('beforeunload'))
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(2)
+    })
+
+    const firstPayload = JSON.parse(global.fetch.mock.calls[0][1].body)
+    const secondPayload = JSON.parse(global.fetch.mock.calls[1][1].body)
+
+    expect(firstPayload.clientSnapshotId).toBe(secondPayload.clientSnapshotId)
+  })
+
   test('handles platform detection for Mac shortcuts', async () => {
     const mockNavigator = {
       userAgentData: { platform: 'macOS' },

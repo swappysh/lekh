@@ -19,6 +19,7 @@ export default function UserPage() {
   const publicKeyRef = useRef(null)
   const lastSavedContentRef = useRef('')
   const pendingSnapshotRef = useRef(null)
+  const sessionSnapshotIdRef = useRef('')
   const isSavingRef = useRef(false)
   const [isMac, setIsMac] = useState(false)
   const [isPublic, setIsPublic] = useState(false)
@@ -37,6 +38,7 @@ export default function UserPage() {
   useEffect(() => {
     pendingSnapshotRef.current = null
     lastSavedContentRef.current = ''
+    sessionSnapshotIdRef.current = username ? crypto.randomUUID() : ''
     isSavingRef.current = false
   }, [username])
 
@@ -115,9 +117,13 @@ export default function UserPage() {
     let pendingSnapshot = pendingSnapshotRef.current
 
     if (!pendingSnapshot || pendingSnapshot.content !== nextContent) {
+      const sessionSnapshotId =
+        sessionSnapshotIdRef.current || crypto.randomUUID()
+      sessionSnapshotIdRef.current = sessionSnapshotId
+
       pendingSnapshot = {
         content: nextContent,
-        clientSnapshotId: `${Date.now()}-${crypto.randomUUID()}`,
+        clientSnapshotId: sessionSnapshotId,
         encryptedContent: null,
         encryptedDataKey: null,
         encryptionPromise: null,

@@ -85,19 +85,20 @@ CREATE INDEX IF NOT EXISTS idx_active_editors_last_seen
 CREATE INDEX IF NOT EXISTS idx_public_snapshots_username_minute
   ON public_snapshots(username, snapshot_minute DESC);
 
--- Append-only enforcement for private entries
-CREATE OR REPLACE FUNCTION prevent_documents_update_delete()
+-- Private entries are non-deletable; updates are allowed for in-session autosave
+CREATE OR REPLACE FUNCTION prevent_documents_delete()
 RETURNS TRIGGER AS $$
 BEGIN
-  RAISE EXCEPTION 'documents rows are append-only (% not allowed)', TG_OP;
+  RAISE EXCEPTION 'documents rows cannot be deleted';
 END;
 $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS documents_prevent_update_delete ON documents;
-CREATE TRIGGER documents_prevent_update_delete
-  BEFORE UPDATE OR DELETE ON documents
+DROP TRIGGER IF EXISTS documents_prevent_delete ON documents;
+CREATE TRIGGER documents_prevent_delete
+  BEFORE DELETE ON documents
   FOR EACH ROW
-  EXECUTE FUNCTION prevent_documents_update_delete();
+  EXECUTE FUNCTION prevent_documents_delete();
 
 CREATE OR REPLACE FUNCTION prevent_invalid_documents_insert()
 RETURNS TRIGGER AS $$

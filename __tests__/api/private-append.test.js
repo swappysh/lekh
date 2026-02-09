@@ -24,7 +24,6 @@ describe('/api/private-append', () => {
       json: jest.fn(() => res)
     }
     jest.clearAllMocks()
-    global.crypto.randomUUID = jest.fn(() => 'server-uuid-1')
   })
 
   test('rejects non-POST methods', async () => {
@@ -53,7 +52,7 @@ describe('/api/private-append', () => {
     getSupabaseAdmin.mockReturnValue({
       from: jest.fn(() => ({
         select: mockSelect,
-        insert: jest.fn()
+        upsert: jest.fn()
       }))
     })
 
@@ -73,7 +72,7 @@ describe('/api/private-append', () => {
     getSupabaseAdmin.mockReturnValue({
       from: jest.fn(() => ({
         select: mockSelect,
-        insert: jest.fn()
+        upsert: jest.fn()
       }))
     })
 
@@ -83,19 +82,19 @@ describe('/api/private-append', () => {
     expect(res.json).toHaveBeenCalledWith({ error: 'Private append is not allowed for public users' })
   })
 
-  test('appends private snapshot for valid private user', async () => {
+  test('saves private snapshot for valid private user', async () => {
     const mockMaybeSingle = jest.fn(() =>
       Promise.resolve({ data: { username: 'testuser', is_public: false }, error: null })
     )
     const mockEq = jest.fn(() => ({ maybeSingle: mockMaybeSingle }))
     const mockSelect = jest.fn(() => ({ eq: mockEq }))
-    const mockInsert = jest.fn(() => Promise.resolve({ error: null }))
+    const mockUpsert = jest.fn(() => Promise.resolve({ error: null }))
     const mockFrom = jest.fn((table) => {
       if (table === 'users') {
         return { select: mockSelect }
       }
       if (table === 'documents') {
-        return { insert: mockInsert }
+        return { upsert: mockUpsert }
       }
       return {}
     })
@@ -106,30 +105,33 @@ describe('/api/private-append', () => {
 
     await handler(req, res)
 
-    expect(mockInsert).toHaveBeenCalledWith({
-      id: 'server-uuid-1',
+    expect(mockUpsert).toHaveBeenCalledWith({
+      id: 'testuser:snapshot-1',
       username: 'testuser',
       encrypted_content: 'encrypted-content',
       encrypted_data_key: 'encrypted-data-key',
-      client_snapshot_id: 'snapshot-1'
+      client_snapshot_id: 'snapshot-1',
+      updated_at: expect.any(String),
+    }, {
+      onConflict: 'username,client_snapshot_id',
     })
-    expect(res.status).toHaveBeenCalledWith(201)
+    expect(res.status).toHaveBeenCalledWith(200)
     expect(res.json).toHaveBeenCalledWith({ ok: true })
   })
 
-  test('treats duplicate snapshot as success', async () => {
+  test('returns server error when snapshot save fails', async () => {
     const mockMaybeSingle = jest.fn(() =>
       Promise.resolve({ data: { username: 'testuser', is_public: false }, error: null })
     )
     const mockEq = jest.fn(() => ({ maybeSingle: mockMaybeSingle }))
     const mockSelect = jest.fn(() => ({ eq: mockEq }))
-    const mockInsert = jest.fn(() => Promise.resolve({ error: { code: '23505' } }))
+    const mockUpsert = jest.fn(() => Promise.resolve({ error: { message: 'db failed' } }))
     const mockFrom = jest.fn((table) => {
       if (table === 'users') {
         return { select: mockSelect }
       }
       if (table === 'documents') {
-        return { insert: mockInsert }
+        return { upsert: mockUpsert }
       }
       return {}
     })
@@ -140,7 +142,7 @@ describe('/api/private-append', () => {
 
     await handler(req, res)
 
-    expect(res.status).toHaveBeenCalledWith(200)
-    expect(res.json).toHaveBeenCalledWith({ ok: true, duplicate: true })
+    expect(res.status).toHaveBeenCalledWith(500)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Failed to save private snapshot' })
   })
 })

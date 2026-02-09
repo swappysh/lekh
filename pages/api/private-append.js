@@ -57,24 +57,24 @@ export default async function handler(req, res) {
       return res.status(403).json({ error: 'Private append is not allowed for public users' })
     }
 
-    const { error: insertError } = await supabaseAdmin
+    const { error: upsertError } = await supabaseAdmin
       .from('documents')
-      .insert({
-        id: crypto.randomUUID(),
+      .upsert({
+        id: `${username}:${clientSnapshotId}`,
         username,
         encrypted_content: encryptedContent,
         encrypted_data_key: encryptedDataKey,
         client_snapshot_id: clientSnapshotId,
+        updated_at: new Date().toISOString(),
+      }, {
+        onConflict: 'username,client_snapshot_id',
       })
 
-    if (insertError) {
-      if (insertError.code === '23505') {
-        return res.status(200).json({ ok: true, duplicate: true })
-      }
-      return res.status(500).json({ error: 'Failed to append private snapshot' })
+    if (upsertError) {
+      return res.status(500).json({ error: 'Failed to save private snapshot' })
     }
 
-    return res.status(201).json({ ok: true })
+    return res.status(200).json({ ok: true })
   } catch (error) {
     return res.status(500).json({ error: 'Internal server error' })
   }
