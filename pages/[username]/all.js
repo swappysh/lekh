@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react'
 import { PublicKeyEncryption } from '../../lib/publicKeyEncryption'
 import { supabase } from '../../lib/supabase'
 
+const getPrivateEntryTimestamp = (entry) => entry.updated_at || entry.created_at || null
+
 export default function AllEntriesPage() {
   const router = useRouter()
   const { username } = router.query
@@ -61,12 +63,17 @@ export default function AllEntriesPage() {
 
     const { data: documents } = await supabase
       .from('documents')
-      .select('id, username, encrypted_content, encrypted_data_key, created_at, client_snapshot_id')
+      .select('id, username, encrypted_content, encrypted_data_key, created_at, updated_at, client_snapshot_id')
       .eq('username', username)
       .order('created_at', { ascending: false })
 
     if (documents && documents.length > 0) {
-      setEncryptedEntries(documents)
+      const sortedDocuments = [...documents].sort((a, b) => {
+        const timeA = new Date(getPrivateEntryTimestamp(a) || 0).getTime()
+        const timeB = new Date(getPrivateEntryTimestamp(b) || 0).getTime()
+        return timeB - timeA
+      })
+      setEncryptedEntries(sortedDocuments)
     } else {
       setEncryptedEntries([])
       setEntries([])
@@ -230,7 +237,7 @@ export default function AllEntriesPage() {
             <div key={entry.id} className="entry">
               <div className="entry-header">
                 <span className="entry-date">
-                  {new Date(entry.created_at || entry.snapshot_minute).toLocaleString()}
+                  {new Date(entry.snapshot_minute || getPrivateEntryTimestamp(entry)).toLocaleString()}
                 </span>
               </div>
               <div className="entry-content">

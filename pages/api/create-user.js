@@ -13,6 +13,24 @@ function parseBody(req) {
   return req.body
 }
 
+function parseIsPublic(value) {
+  if (value === true || value === false) {
+    return value
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase()
+    if (normalized === 'true') {
+      return true
+    }
+    if (normalized === 'false') {
+      return false
+    }
+  }
+
+  return null
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
@@ -27,7 +45,7 @@ export default async function handler(req, res) {
   const publicKey = String(body.publicKey || '')
   const encryptedPrivateKey = String(body.encryptedPrivateKey || '')
   const salt = String(body.salt || '')
-  const isPublic = Boolean(body.isPublic)
+  const isPublic = parseIsPublic(body.isPublic)
 
   if (!username || !USERNAME_REGEX.test(username)) {
     return res.status(400).json({ error: 'Invalid username' })
@@ -35,6 +53,10 @@ export default async function handler(req, res) {
 
   if (!publicKey || !encryptedPrivateKey || !salt) {
     return res.status(400).json({ error: 'Missing required fields' })
+  }
+
+  if (isPublic === null) {
+    return res.status(400).json({ error: 'Invalid isPublic value' })
   }
 
   try {

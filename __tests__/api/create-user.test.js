@@ -45,6 +45,39 @@ describe('/api/create-user', () => {
     expect(res.json).toHaveBeenCalledWith({ error: 'Invalid username' })
   })
 
+  test('accepts string boolean value for isPublic', async () => {
+    req.body.isPublic = 'false'
+
+    const mockMaybeSingle = jest.fn(() => Promise.resolve({ data: null, error: null }))
+    const mockEq = jest.fn(() => ({ maybeSingle: mockMaybeSingle }))
+    const mockSelect = jest.fn(() => ({ eq: mockEq }))
+    const mockInsert = jest.fn(() => Promise.resolve({ error: null }))
+    const mockFrom = jest.fn(() => ({
+      select: mockSelect,
+      insert: mockInsert
+    }))
+
+    getSupabaseAdmin.mockReturnValue({
+      from: mockFrom
+    })
+
+    await handler(req, res)
+
+    expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({
+      is_public: false
+    }))
+    expect(res.status).toHaveBeenCalledWith(201)
+  })
+
+  test('rejects invalid isPublic values', async () => {
+    req.body.isPublic = 'not-a-boolean'
+
+    await handler(req, res)
+
+    expect(res.status).toHaveBeenCalledWith(400)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Invalid isPublic value' })
+  })
+
   test('returns conflict when username is already taken', async () => {
     const mockMaybeSingle = jest.fn(() => Promise.resolve({ data: { username: 'newuser' }, error: null }))
     const mockEq = jest.fn(() => ({ maybeSingle: mockMaybeSingle }))
