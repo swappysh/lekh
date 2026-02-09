@@ -281,7 +281,6 @@ export default function UserPage() {
     })
   }, [username, userExists, isPublic])
 
-
   const shortcuts = useMemo(() => [
     {
       keys: isMac ? 'Ctrl + Option + D' : 'Ctrl + Alt + D',
@@ -313,28 +312,26 @@ export default function UserPage() {
     }
   }, [collaborativeDoc])
 
-
-
   // Initialize collaborative document for public pages
   const initCollaborativeDocument = async () => {
     try {
       const doc = new CollaborativeDocument(username)
       await doc.init()
-      
+
       doc.setOnContentChange((newContent) => {
         setCollaborativeContent(newContent)
       })
-      
+
       doc.setOnActiveEditorsChange((editors) => {
         setActiveEditors(editors)
       })
-      
+
       setCollaborativeDoc(doc)
       setCollaborativeContent(doc.getContent())
 
       // Set up periodic connection health checks
       const healthCheckInterval = setInterval(() => {
-        if (doc && !doc.isConnected) {
+        if (!doc.isConnected) {
           console.log('Connection lost, attempting to reconnect...')
           doc.checkConnectionHealth()
         }
@@ -342,7 +339,6 @@ export default function UserPage() {
 
       // Store interval ID for cleanup
       doc.healthCheckInterval = healthCheckInterval
-
     } catch (error) {
       console.error('Failed to initialize collaborative document:', error)
     }
