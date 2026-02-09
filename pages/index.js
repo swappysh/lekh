@@ -81,7 +81,6 @@ export default function Home() {
     try {
       const saltBytes = crypto.getRandomValues(new Uint8Array(16))
       
-      // Generate author keypair and encrypt private key with password
       const effectivePassword = isPublic ? username.trim() : password
       const { publicKey, encryptedPrivateKey, salt } = await PublicKeyEncryption.generateAuthorKeys(
         effectivePassword,
@@ -141,23 +140,19 @@ export default function Home() {
           throw new Error(error)
         }
 
-        // API already ensures uniqueness, so we can trust the result
         setUsername(candidate)
         setIsAvailable(true)
         setAvailabilityError(false)
         return
       } catch (err) {
-        // Network/parsing errors - retry
         if (err instanceof TypeError || err.name === 'NetworkError' || err.message === 'API request failed') {
           attempts++
           continue
         }
-        // Other errors - break and use fallback
         break
       }
     }
 
-    // Fallback with more uniqueness
     const fallback = `user-${Date.now().toString().slice(-4)}-${Math.random().toString(36).substr(2, 3)}`
     setUsername(fallback)
     setIsAvailable(true)

@@ -102,7 +102,7 @@ export default function UserPage() {
     const nextContent = contentRef.current
     const nextPublicKey = publicKeyRef.current
 
-    if (!nextPublicKey || !nextContent || nextContent.trim() === '') {
+    if (!nextPublicKey || nextContent.trim() === '') {
       pendingSnapshotRef.current = null
       return null
     }
@@ -179,15 +179,8 @@ export default function UserPage() {
     })
 
     if (!response.ok) {
-      let errorMessage = 'Failed to append private snapshot'
-      try {
-        const payload = await response.json()
-        if (payload?.error) {
-          errorMessage = payload.error
-        }
-      } catch {
-        // Ignore JSON parsing errors and keep default message.
-      }
+      const payload = await response.json().catch(() => null)
+      const errorMessage = payload?.error || 'Failed to append private snapshot'
       console.error(errorMessage)
       return false
     }
@@ -274,15 +267,8 @@ export default function UserPage() {
         return
       }
 
-      let errorMessage = 'Failed to flush private snapshot'
-      try {
-        const payload = await response.json()
-        if (payload?.error) {
-          errorMessage = payload.error
-        }
-      } catch {
-        // Ignore JSON parsing errors and keep default message.
-      }
+      const payload = await response.json().catch(() => null)
+      const errorMessage = payload?.error || 'Failed to flush private snapshot'
       console.error(errorMessage)
     }).catch((error) => {
       console.error('Failed to flush private snapshot:', error)
