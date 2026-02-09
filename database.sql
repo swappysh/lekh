@@ -69,9 +69,30 @@ ALTER TABLE collaborative_documents ADD COLUMN IF NOT EXISTS updated_at TIMESTAM
 CREATE INDEX IF NOT EXISTS idx_documents_username_created_at
   ON documents(username, created_at DESC);
 
+-- De-duplicate historical private session rows before enforcing upsert key
+WITH ranked_documents AS (
+  SELECT
+    id,
+    ROW_NUMBER() OVER (
+      PARTITION BY username, client_snapshot_id
+      ORDER BY
+        COALESCE(updated_at, created_at) DESC NULLS LAST,
+        created_at DESC NULLS LAST,
+        id DESC
+    ) AS rank
+  FROM documents
+  WHERE client_snapshot_id IS NOT NULL
+)
+DELETE FROM documents
+WHERE id IN (
+  SELECT id
+  FROM ranked_documents
+  WHERE rank > 1
+);
+
+DROP INDEX IF EXISTS idx_documents_username_client_snapshot_unique;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_documents_username_client_snapshot_unique
-  ON documents(username, client_snapshot_id)
-  WHERE client_snapshot_id IS NOT NULL;
+  ON documents(username, client_snapshot_id);
 
 CREATE INDEX IF NOT EXISTS idx_document_operations_username_version
   ON document_operations(username, version);
