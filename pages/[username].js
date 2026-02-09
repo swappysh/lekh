@@ -18,6 +18,7 @@ export default function UserPage() {
   const contentRef = useRef('')
   const publicKeyRef = useRef(null)
   const lastSavedContentRef = useRef('')
+  const pendingSnapshotRef = useRef(null)
   const isSavingRef = useRef(false)
   const [isMac, setIsMac] = useState(false)
   const [isPublic, setIsPublic] = useState(false)
@@ -32,6 +33,12 @@ export default function UserPage() {
   useEffect(() => {
     publicKeyRef.current = publicKey
   }, [publicKey])
+
+  useEffect(() => {
+    pendingSnapshotRef.current = null
+    lastSavedContentRef.current = ''
+    isSavingRef.current = false
+  }, [username])
 
   // Platform detection
   useEffect(() => {
@@ -86,63 +93,200 @@ export default function UserPage() {
     }
   }
 
-  const appendPrivateSnapshot = useCallback(async ({ keepalive = false } = {}) => {
-    if (!username || !userExists || isPublic || isSavingRef.current) {
-      return
+  const preparePendingPrivateSnapshot = useCallback(async () => {
+    if (!username || !userExists || isPublic) {
+      pendingSnapshotRef.current = null
+      return null
     }
 
     const nextContent = contentRef.current
     const nextPublicKey = publicKeyRef.current
 
     if (!nextPublicKey || !nextContent || nextContent.trim() === '') {
-      return
+      pendingSnapshotRef.current = null
+      return null
     }
 
     if (nextContent === lastSavedContentRef.current) {
-      return
+      pendingSnapshotRef.current = null
+      return null
+    }
+
+    let pendingSnapshot = pendingSnapshotRef.current
+
+    if (!pendingSnapshot || pendingSnapshot.content !== nextContent) {
+      pendingSnapshot = {
+        content: nextContent,
+        clientSnapshotId: `${Date.now()}-${crypto.randomUUID()}`,
+        encryptedContent: null,
+        encryptedDataKey: null,
+        encryptionPromise: null,
+      }
+      pendingSnapshotRef.current = pendingSnapshot
+    }
+
+    if (pendingSnapshot.encryptedContent && pendingSnapshot.encryptedDataKey) {
+      return pendingSnapshot
+    }
+
+    if (!pendingSnapshot.encryptionPromise) {
+      pendingSnapshot.encryptionPromise = PublicKeyEncryption.encrypt(nextContent, nextPublicKey)
+        .then(({ encryptedContent, encryptedDataKey }) => {
+          if (pendingSnapshotRef.current === pendingSnapshot) {
+            pendingSnapshot.encryptedContent = encryptedContent
+            pendingSnapshot.encryptedDataKey = encryptedDataKey
+          }
+        })
+        .catch((error) => {
+          if (pendingSnapshotRef.current === pendingSnapshot) {
+            pendingSnapshotRef.current = null
+          }
+          console.error('Failed to encrypt private snapshot:', error)
+        })
+        .finally(() => {
+          if (pendingSnapshotRef.current === pendingSnapshot) {
+            pendingSnapshot.encryptionPromise = null
+          }
+        })
+    }
+
+    await pendingSnapshot.encryptionPromise
+
+    if (
+      pendingSnapshotRef.current === pendingSnapshot &&
+      pendingSnapshot.encryptedContent &&
+      pendingSnapshot.encryptedDataKey
+    ) {
+      return pendingSnapshot
+    }
+
+    return null
+  }, [username, userExists, isPublic])
+
+  const sendPendingPrivateSnapshot = useCallback(async (pendingSnapshot, { keepalive = false } = {}) => {
+    const response = await fetch('/api/private-append', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      keepalive,
+      body: JSON.stringify({
+        username,
+        clientSnapshotId: pendingSnapshot.clientSnapshotId,
+        encryptedContent: pendingSnapshot.encryptedContent,
+        encryptedDataKey: pendingSnapshot.encryptedDataKey,
+      }),
+    })
+
+    if (!response.ok) {
+      let errorMessage = 'Failed to append private snapshot'
+      try {
+        const payload = await response.json()
+        if (payload?.error) {
+          errorMessage = payload.error
+        }
+      } catch {
+        // Ignore JSON parsing errors and keep default message.
+      }
+      console.error(errorMessage)
+      return false
+    }
+
+    lastSavedContentRef.current = pendingSnapshot.content
+    if (
+      pendingSnapshotRef.current &&
+      pendingSnapshotRef.current.clientSnapshotId === pendingSnapshot.clientSnapshotId
+    ) {
+      pendingSnapshotRef.current = null
+    }
+    return true
+  }, [username])
+
+  const appendPrivateSnapshot = useCallback(async ({ keepalive = false } = {}) => {
+    if (!username || !userExists || isPublic || isSavingRef.current) {
+      return false
     }
 
     isSavingRef.current = true
     try {
-      const { encryptedContent, encryptedDataKey } = await PublicKeyEncryption.encrypt(
-        nextContent,
-        nextPublicKey
-      )
-
-      const response = await fetch('/api/private-append', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        keepalive,
-        body: JSON.stringify({
-          username,
-          clientSnapshotId: `${Date.now()}-${crypto.randomUUID()}`,
-          encryptedContent,
-          encryptedDataKey,
-        }),
-      })
-
-      if (!response.ok) {
-        let errorMessage = 'Failed to append private snapshot'
-        try {
-          const payload = await response.json()
-          if (payload?.error) {
-            errorMessage = payload.error
-          }
-        } catch {
-          // Ignore JSON parsing errors and keep default message.
-        }
-        console.error(errorMessage)
-        return
+      const pendingSnapshot = await preparePendingPrivateSnapshot()
+      if (!pendingSnapshot) {
+        return false
       }
 
-      lastSavedContentRef.current = nextContent
+      return await sendPendingPrivateSnapshot(pendingSnapshot, { keepalive })
     } catch (error) {
       console.error('Failed to append private snapshot:', error)
+      return false
     } finally {
       isSavingRef.current = false
     }
+  }, [username, userExists, isPublic, preparePendingPrivateSnapshot, sendPendingPrivateSnapshot])
+
+  const flushPreparedSnapshot = useCallback(() => {
+    if (!username || !userExists || isPublic) {
+      return
+    }
+
+    const pendingSnapshot = pendingSnapshotRef.current
+    if (
+      !pendingSnapshot ||
+      pendingSnapshot.content !== contentRef.current ||
+      !pendingSnapshot.encryptedContent ||
+      !pendingSnapshot.encryptedDataKey
+    ) {
+      return
+    }
+
+    const requestBody = JSON.stringify({
+      username,
+      clientSnapshotId: pendingSnapshot.clientSnapshotId,
+      encryptedContent: pendingSnapshot.encryptedContent,
+      encryptedDataKey: pendingSnapshot.encryptedDataKey,
+    })
+
+    if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
+      const queued = navigator.sendBeacon(
+        '/api/private-append',
+        new Blob([requestBody], { type: 'application/json' })
+      )
+      if (queued) {
+        return
+      }
+    }
+
+    void fetch('/api/private-append', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      keepalive: true,
+      body: requestBody,
+    }).then(async (response) => {
+      if (response.ok) {
+        lastSavedContentRef.current = pendingSnapshot.content
+        if (
+          pendingSnapshotRef.current &&
+          pendingSnapshotRef.current.clientSnapshotId === pendingSnapshot.clientSnapshotId
+        ) {
+          pendingSnapshotRef.current = null
+        }
+        return
+      }
+
+      let errorMessage = 'Failed to flush private snapshot'
+      try {
+        const payload = await response.json()
+        if (payload?.error) {
+          errorMessage = payload.error
+        }
+      } catch {
+        // Ignore JSON parsing errors and keep default message.
+      }
+      console.error(errorMessage)
+    }).catch((error) => {
+      console.error('Failed to flush private snapshot:', error)
+    })
   }, [username, userExists, isPublic])
 
 
@@ -228,6 +372,21 @@ export default function UserPage() {
 
   useEffect(() => {
     if (!userExists || isPublic) {
+      pendingSnapshotRef.current = null
+      return
+    }
+
+    const timeoutId = setTimeout(() => {
+      void preparePendingPrivateSnapshot()
+    }, 300)
+
+    return () => {
+      clearTimeout(timeoutId)
+    }
+  }, [content, userExists, isPublic, preparePendingPrivateSnapshot])
+
+  useEffect(() => {
+    if (!userExists || isPublic) {
       return
     }
 
@@ -246,11 +405,12 @@ export default function UserPage() {
     }
 
     const handleBeforeUnload = () => {
-      void appendPrivateSnapshot({ keepalive: true })
+      flushPreparedSnapshot()
     }
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
+        flushPreparedSnapshot()
         void appendPrivateSnapshot({ keepalive: true })
       }
     }
@@ -261,9 +421,9 @@ export default function UserPage() {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
-      void appendPrivateSnapshot({ keepalive: true })
+      flushPreparedSnapshot()
     }
-  }, [userExists, isPublic, appendPrivateSnapshot])
+  }, [userExists, isPublic, appendPrivateSnapshot, flushPreparedSnapshot])
 
   // Keyboard shortcuts
   useEffect(() => {

@@ -31,6 +31,11 @@ describe('User Writing Page', () => {
     jest.clearAllMocks()
     mockRouter.query = { username: 'testuser' }
     global.crypto.randomUUID = jest.fn(() => 'test-uuid-12345')
+    Object.defineProperty(window.navigator, 'sendBeacon', {
+      value: jest.fn(() => false),
+      writable: true,
+      configurable: true
+    })
     global.fetch = jest.fn(() => Promise.resolve({
       ok: true,
       json: () => Promise.resolve({ ok: true })
@@ -102,10 +107,13 @@ describe('User Writing Page', () => {
     const editor = screen.getByPlaceholderText('Start writing...')
     await user.type(editor, 'Test content')
 
+    await waitFor(() => {
+      expect(PublicKeyEncryption.encrypt).toHaveBeenCalledWith('Test content', 'mock-public-key')
+    })
+
     fireEvent(window, new Event('beforeunload'))
 
     await waitFor(() => {
-      expect(PublicKeyEncryption.encrypt).toHaveBeenCalledWith('Test content', 'mock-public-key')
       expect(global.fetch).toHaveBeenCalledWith('/api/private-append', expect.objectContaining({
         method: 'POST'
       }))
@@ -118,6 +126,30 @@ describe('User Writing Page', () => {
       encryptedDataKey: 'mock-encrypted-data-key'
     })
     expect(payload.clientSnapshotId).toContain('test-uuid-12345')
+  })
+
+  test('flushes prepared snapshot on unload without re-encrypting', async () => {
+    const user = userEvent.setup()
+    render(<UserPage />)
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Start writing...')).toBeInTheDocument()
+    })
+
+    const editor = screen.getByPlaceholderText('Start writing...')
+    await user.type(editor, 'Prepared content')
+
+    await waitFor(() => {
+      expect(PublicKeyEncryption.encrypt).toHaveBeenCalledWith('Prepared content', 'mock-public-key')
+    })
+
+    PublicKeyEncryption.encrypt.mockClear()
+    fireEvent(window, new Event('beforeunload'))
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(1)
+    })
+    expect(PublicKeyEncryption.encrypt).not.toHaveBeenCalled()
   })
 
   test('toggles shortcuts modal with help button click', async () => {
@@ -205,7 +237,18 @@ describe('User Writing Page', () => {
     jest.restoreAllMocks()
   })
 
-  test('does not append duplicate snapshots when content is unchanged', async () => {
+  test('reuses clientSnapshotId when retrying same unsaved content', async () => {
+    global.fetch = jest
+      .fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        json: () => Promise.resolve({ error: 'Temporary failure' })
+      })
+      .mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ ok: true })
+      })
+
     const user = userEvent.setup()
     render(<UserPage />)
 
@@ -214,7 +257,11 @@ describe('User Writing Page', () => {
     })
 
     const editor = screen.getByPlaceholderText('Start writing...')
-    await user.type(editor, 'Same content')
+    await user.type(editor, 'Retry content')
+
+    await waitFor(() => {
+      expect(PublicKeyEncryption.encrypt).toHaveBeenCalledWith('Retry content', 'mock-public-key')
+    })
 
     fireEvent(window, new Event('beforeunload'))
     await waitFor(() => {
@@ -222,9 +269,16 @@ describe('User Writing Page', () => {
     })
 
     fireEvent(window, new Event('beforeunload'))
-    await new Promise((resolve) => setTimeout(resolve, 0))
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(2)
+    })
 
-    expect(global.fetch).toHaveBeenCalledTimes(1)
+    const firstPayload = JSON.parse(global.fetch.mock.calls[0][1].body)
+    const secondPayload = JSON.parse(global.fetch.mock.calls[1][1].body)
+
+    expect(firstPayload.clientSnapshotId).toBe(secondPayload.clientSnapshotId)
+    expect(firstPayload.encryptedContent).toBe(secondPayload.encryptedContent)
+    expect(firstPayload.encryptedDataKey).toBe(secondPayload.encryptedDataKey)
   })
 
   test('handles platform detection for Mac shortcuts', async () => {
@@ -321,9 +375,12 @@ describe('User Writing Page', () => {
     await user.clear(editor)
     await user.type(editor, 'Real content')
 
-    fireEvent(window, new Event('beforeunload'))
     await waitFor(() => {
       expect(PublicKeyEncryption.encrypt).toHaveBeenCalledWith('Real content', 'mock-public-key')
+    })
+
+    fireEvent(window, new Event('beforeunload'))
+    await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledTimes(1)
     })
   }, 10000)
