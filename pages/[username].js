@@ -86,7 +86,7 @@ export default function UserPage() {
     }
   }
 
-  const appendPrivateSnapshot = useCallback(async () => {
+  const appendPrivateSnapshot = useCallback(async ({ keepalive = false } = {}) => {
     if (!username || !userExists || isPublic || isSavingRef.current) {
       return
     }
@@ -114,6 +114,7 @@ export default function UserPage() {
         headers: {
           'Content-Type': 'application/json',
         },
+        keepalive,
         body: JSON.stringify({
           username,
           clientSnapshotId: `${Date.now()}-${crypto.randomUUID()}`,
@@ -245,12 +246,12 @@ export default function UserPage() {
     }
 
     const handleBeforeUnload = () => {
-      void appendPrivateSnapshot()
+      void appendPrivateSnapshot({ keepalive: true })
     }
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
-        void appendPrivateSnapshot()
+        void appendPrivateSnapshot({ keepalive: true })
       }
     }
 
@@ -260,7 +261,7 @@ export default function UserPage() {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
-      void appendPrivateSnapshot()
+      void appendPrivateSnapshot({ keepalive: true })
     }
   }, [userExists, isPublic, appendPrivateSnapshot])
 
