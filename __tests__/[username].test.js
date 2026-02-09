@@ -1,7 +1,8 @@
-import { fireEvent, render, screen, waitFor, act } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { supabase } from '../lib/supabase'
 import UserPage from '../pages/[username]'
+import { PublicKeyEncryption } from '../lib/publicKeyEncryption'
 
 // Mock PublicKeyEncryption
 jest.mock('../lib/publicKeyEncryption', () => ({
@@ -28,7 +29,17 @@ jest.mock('next/router', () => ({
 describe('User Writing Page', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    mockRouter.query = { username: 'testuser' }
     global.crypto.randomUUID = jest.fn(() => 'test-uuid-12345')
+    Object.defineProperty(window.navigator, 'sendBeacon', {
+      value: jest.fn(() => false),
+      writable: true,
+      configurable: true
+    })
+    global.fetch = jest.fn(() => Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve({ ok: true })
+    }))
 
     // Mock successful user existence check by default
     supabase.from.mockImplementation((table) => {
@@ -37,11 +48,6 @@ describe('User Writing Page', () => {
           select: jest.fn(() => ({
             eq: jest.fn(() => Promise.resolve({ data: [{ username: 'testuser', public_key: 'mock-public-key' }], error: null }))
           }))
-        }
-      }
-      if (table === 'documents') {
-        return {
-          upsert: jest.fn(() => Promise.resolve({ data: {}, error: null }))
         }
       }
     })
@@ -90,23 +96,7 @@ describe('User Writing Page', () => {
     expect(editor.value).toBe('Hello, world!')
   })
 
-  test('auto-saves content after typing with debounce', async () => {
-    const mockUpsert = jest.fn(() => Promise.resolve({ data: {}, error: null }))
-    supabase.from.mockImplementation((table) => {
-      if (table === 'users') {
-        return {
-          select: jest.fn(() => ({
-            eq: jest.fn(() => Promise.resolve({ data: [{ username: 'testuser', public_key: 'mock-public-key' }], error: null }))
-          }))
-        }
-      }
-      if (table === 'documents') {
-        return {
-          upsert: mockUpsert
-        }
-      }
-    })
-
+  test('appends private snapshot through API on flush event', async () => {
     const user = userEvent.setup()
     render(<UserPage />)
 
@@ -117,16 +107,49 @@ describe('User Writing Page', () => {
     const editor = screen.getByPlaceholderText('Start writing...')
     await user.type(editor, 'Test content')
 
-    // Wait for the debounced save (1000ms timeout)
     await waitFor(() => {
-      expect(mockUpsert).toHaveBeenCalledWith({
-        id: 'test-uuid-12345',
+      expect(PublicKeyEncryption.encrypt).toHaveBeenCalledWith('Test content', 'mock-public-key')
+    })
+
+    fireEvent(window, new Event('beforeunload'))
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith('/api/private-append', expect.objectContaining({
+        method: 'POST'
+      }))
+    })
+
+    const payload = JSON.parse(global.fetch.mock.calls[0][1].body)
+    expect(payload).toMatchObject({
         username: 'testuser',
-        encrypted_content: 'mock-encrypted-content',
-        encrypted_data_key: 'mock-encrypted-data-key',
-        updated_at: expect.any(Date)
-      })
-    }, { timeout: 2000 })
+      encryptedContent: 'mock-encrypted-content',
+      encryptedDataKey: 'mock-encrypted-data-key'
+    })
+    expect(payload.clientSnapshotId).toContain('test-uuid-12345')
+  })
+
+  test('flushes prepared snapshot on unload without re-encrypting', async () => {
+    const user = userEvent.setup()
+    render(<UserPage />)
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Start writing...')).toBeInTheDocument()
+    })
+
+    const editor = screen.getByPlaceholderText('Start writing...')
+    await user.type(editor, 'Prepared content')
+
+    await waitFor(() => {
+      expect(PublicKeyEncryption.encrypt).toHaveBeenCalledWith('Prepared content', 'mock-public-key')
+    })
+
+    PublicKeyEncryption.encrypt.mockClear()
+    fireEvent(window, new Event('beforeunload'))
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(1)
+    })
+    expect(PublicKeyEncryption.encrypt).not.toHaveBeenCalled()
   })
 
   test('toggles shortcuts modal with help button click', async () => {
@@ -214,31 +237,88 @@ describe('User Writing Page', () => {
     jest.restoreAllMocks()
   })
 
-  test('generates unique document ID for each user session', async () => {
-    const mockUUID1 = 'uuid-1'
-    const mockUUID2 = 'uuid-2'
-
-    global.crypto.randomUUID = jest
+  test('reuses clientSnapshotId when retrying same unsaved content', async () => {
+    global.fetch = jest
       .fn()
-      .mockReturnValueOnce(mockUUID1)
-      .mockReturnValueOnce(mockUUID2)
+      .mockResolvedValueOnce({
+        ok: false,
+        json: () => Promise.resolve({ error: 'Temporary failure' })
+      })
+      .mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ ok: true })
+      })
 
-    // First render
-    const { unmount } = render(<UserPage />)
-
-    await waitFor(() => {
-      expect(global.crypto.randomUUID).toHaveBeenCalledTimes(1)
-    })
-
-    unmount()
-
-    // Second render with different user
-    mockRouter.query.username = 'different-user'
+    const user = userEvent.setup()
     render(<UserPage />)
 
     await waitFor(() => {
-      expect(global.crypto.randomUUID).toHaveBeenCalledTimes(2)
+      expect(screen.getByPlaceholderText('Start writing...')).toBeInTheDocument()
     })
+
+    const editor = screen.getByPlaceholderText('Start writing...')
+    await user.type(editor, 'Retry content')
+
+    await waitFor(() => {
+      expect(PublicKeyEncryption.encrypt).toHaveBeenCalledWith('Retry content', 'mock-public-key')
+    })
+
+    fireEvent(window, new Event('beforeunload'))
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(1)
+    })
+
+    fireEvent(window, new Event('beforeunload'))
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(2)
+    })
+
+    const firstPayload = JSON.parse(global.fetch.mock.calls[0][1].body)
+    const secondPayload = JSON.parse(global.fetch.mock.calls[1][1].body)
+
+    expect(firstPayload.clientSnapshotId).toBe(secondPayload.clientSnapshotId)
+    expect(firstPayload.encryptedContent).toBe(secondPayload.encryptedContent)
+    expect(firstPayload.encryptedDataKey).toBe(secondPayload.encryptedDataKey)
+  })
+
+  test('reuses clientSnapshotId across autosaves in the same session', async () => {
+    const user = userEvent.setup()
+    render(<UserPage />)
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Start writing...')).toBeInTheDocument()
+    })
+
+    const editor = screen.getByPlaceholderText('Start writing...')
+    await user.type(editor, 'First draft')
+
+    await waitFor(() => {
+      expect(PublicKeyEncryption.encrypt).toHaveBeenCalledWith('First draft', 'mock-public-key')
+    })
+
+    fireEvent(window, new Event('beforeunload'))
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(1)
+    })
+
+    await user.clear(editor)
+    await user.type(editor, 'Second draft')
+
+    await waitFor(() => {
+      expect(PublicKeyEncryption.encrypt).toHaveBeenCalledWith('Second draft', 'mock-public-key')
+    })
+
+    fireEvent(window, new Event('beforeunload'))
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(2)
+    })
+
+    const firstPayload = JSON.parse(global.fetch.mock.calls[0][1].body)
+    const secondPayload = JSON.parse(global.fetch.mock.calls[1][1].body)
+
+    expect(firstPayload.clientSnapshotId).toBe(secondPayload.clientSnapshotId)
   })
 
   test('handles platform detection for Mac shortcuts', async () => {
@@ -271,18 +351,12 @@ describe('User Writing Page', () => {
   })
 
   test('does not save content when user does not exist', async () => {
-    const mockUpsert = jest.fn()
     supabase.from.mockImplementation((table) => {
       if (table === 'users') {
         return {
           select: jest.fn(() => ({
             eq: jest.fn(() => Promise.resolve({ data: [], error: null }))
           }))
-        }
-      }
-      if (table === 'documents') {
-        return {
-          upsert: mockUpsert
         }
       }
     })
@@ -293,9 +367,8 @@ describe('User Writing Page', () => {
       expect(screen.getByText('User Not Found')).toBeInTheDocument()
     })
 
-    // Wait to ensure no save attempt is made
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    expect(mockUpsert).not.toHaveBeenCalled()
+    fireEvent(window, new Event('beforeunload'))
+    expect(global.fetch).not.toHaveBeenCalled()
   })
 
   test('renders help button in bottom right corner', async () => {
@@ -314,18 +387,12 @@ describe('User Writing Page', () => {
     // Reset router state
     mockRouter.query.username = 'testuser'
 
-    const mockUpsert = jest.fn(() => Promise.resolve({ data: {}, error: null }))
     supabase.from.mockImplementation((table) => {
       if (table === 'users') {
         return {
           select: jest.fn(() => ({
             eq: jest.fn(() => Promise.resolve({ data: [{ username: 'testuser', public_key: 'mock-public-key' }], error: null }))
           }))
-        }
-      }
-      if (table === 'documents') {
-        return {
-          upsert: mockUpsert
         }
       }
     })
@@ -341,21 +408,21 @@ describe('User Writing Page', () => {
 
     // Test whitespace-only content
     await user.type(editor, '   ')
-    await new Promise(resolve => setTimeout(resolve, 1200))
-    expect(mockUpsert).not.toHaveBeenCalled()
+    fireEvent(window, new Event('beforeunload'))
+    expect(global.fetch).not.toHaveBeenCalled()
 
     // Test that actual content still gets saved
     await user.clear(editor)
     await user.type(editor, 'Real content')
+
     await waitFor(() => {
-      expect(mockUpsert).toHaveBeenCalledWith({
-        id: 'test-uuid-12345',
-        username: 'testuser',
-        encrypted_content: 'mock-encrypted-content',
-        encrypted_data_key: 'mock-encrypted-data-key',
-        updated_at: expect.any(Date)
-      })
-    }, { timeout: 2000 })
+      expect(PublicKeyEncryption.encrypt).toHaveBeenCalledWith('Real content', 'mock-public-key')
+    })
+
+    fireEvent(window, new Event('beforeunload'))
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(1)
+    })
   }, 10000)
 
   test('renders public page with collaborative editor', async () => {

@@ -2,7 +2,6 @@ import { useRouter } from 'next/router'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Editor from '../components/Editor'
 import CollaborativeEditor from '../components/CollaborativeEditor'
-import PasswordModal from '../components/PasswordModal'
 import { ShortcutsModal } from '../components/ShortcutsModal'
 import { PublicKeyEncryption } from '../lib/publicKeyEncryption'
 import { CollaborativeDocument } from '../lib/collaborativeDocument'
@@ -12,23 +11,35 @@ export default function UserPage() {
   const router = useRouter()
   const { username } = router.query
   const [content, setContent] = useState('')
-  const [documentId, setDocumentId] = useState('')
   const [showShortcuts, setShowShortcuts] = useState(false)
   const [userExists, setUserExists] = useState(null)
   const [publicKey, setPublicKey] = useState(null)
   const editorRef = useRef(null)
+  const contentRef = useRef('')
+  const publicKeyRef = useRef(null)
+  const lastSavedContentRef = useRef('')
+  const pendingSnapshotRef = useRef(null)
+  const sessionSnapshotIdRef = useRef('')
+  const isSavingRef = useRef(false)
   const [isMac, setIsMac] = useState(false)
   const [isPublic, setIsPublic] = useState(false)
   const [collaborativeDoc, setCollaborativeDoc] = useState(null)
   const [activeEditors, setActiveEditors] = useState([])
   const [collaborativeContent, setCollaborativeContent] = useState('')
 
-  // Generate unique document ID for each user session
   useEffect(() => {
-    if (username) {
-      const docId = crypto.randomUUID()
-      setDocumentId(docId)
-    }
+    contentRef.current = content
+  }, [content])
+
+  useEffect(() => {
+    publicKeyRef.current = publicKey
+  }, [publicKey])
+
+  useEffect(() => {
+    pendingSnapshotRef.current = null
+    lastSavedContentRef.current = ''
+    sessionSnapshotIdRef.current = username ? crypto.randomUUID() : ''
+    isSavingRef.current = false
   }, [username])
 
   // Platform detection
@@ -84,34 +95,191 @@ export default function UserPage() {
     }
   }
 
-  const saveContent = async () => {
-    if (!documentId || !userExists || !publicKey) return
-
-    // Don't save empty content
-    if (!content || content.trim() === '') return
-
-    try {
-      // Encrypt content using public key encryption (hybrid encryption)
-      const { encryptedContent, encryptedDataKey } = await PublicKeyEncryption.encrypt(content, publicKey)
-
-      const { data, error } = await supabase
-        .from('documents')
-        .upsert({
-          id: documentId,
-          username,
-          encrypted_content: encryptedContent,
-          encrypted_data_key: encryptedDataKey,
-          updated_at: new Date()
-        })
-
-      if (error) {
-        console.error('Failed to save document:', error)
-      }
-    } catch (error) {
-      console.error('Failed to encrypt content:', error)
+  const preparePendingPrivateSnapshot = useCallback(async () => {
+    if (!username || !userExists || isPublic) {
+      pendingSnapshotRef.current = null
+      return null
     }
-  }
 
+    const nextContent = contentRef.current
+    const nextPublicKey = publicKeyRef.current
+
+    if (!nextPublicKey || nextContent.trim() === '') {
+      pendingSnapshotRef.current = null
+      return null
+    }
+
+    if (nextContent === lastSavedContentRef.current) {
+      pendingSnapshotRef.current = null
+      return null
+    }
+
+    let pendingSnapshot = pendingSnapshotRef.current
+
+    if (!pendingSnapshot || pendingSnapshot.content !== nextContent) {
+      const sessionSnapshotId =
+        sessionSnapshotIdRef.current || crypto.randomUUID()
+      sessionSnapshotIdRef.current = sessionSnapshotId
+
+      pendingSnapshot = {
+        content: nextContent,
+        clientSnapshotId: sessionSnapshotId,
+        encryptedContent: null,
+        encryptedDataKey: null,
+        encryptionPromise: null,
+      }
+      pendingSnapshotRef.current = pendingSnapshot
+    }
+
+    if (pendingSnapshot.encryptedContent && pendingSnapshot.encryptedDataKey) {
+      return pendingSnapshot
+    }
+
+    if (!pendingSnapshot.encryptionPromise) {
+      pendingSnapshot.encryptionPromise = PublicKeyEncryption.encrypt(nextContent, nextPublicKey)
+        .then(({ encryptedContent, encryptedDataKey }) => {
+          if (pendingSnapshotRef.current === pendingSnapshot) {
+            pendingSnapshot.encryptedContent = encryptedContent
+            pendingSnapshot.encryptedDataKey = encryptedDataKey
+          }
+        })
+        .catch((error) => {
+          if (pendingSnapshotRef.current === pendingSnapshot) {
+            pendingSnapshotRef.current = null
+          }
+          console.error('Failed to encrypt private snapshot:', error)
+        })
+        .finally(() => {
+          if (pendingSnapshotRef.current === pendingSnapshot) {
+            pendingSnapshot.encryptionPromise = null
+          }
+        })
+    }
+
+    await pendingSnapshot.encryptionPromise
+
+    if (
+      pendingSnapshotRef.current === pendingSnapshot &&
+      pendingSnapshot.encryptedContent &&
+      pendingSnapshot.encryptedDataKey
+    ) {
+      return pendingSnapshot
+    }
+
+    return null
+  }, [username, userExists, isPublic])
+
+  const sendPendingPrivateSnapshot = useCallback(async (pendingSnapshot, { keepalive = false } = {}) => {
+    const response = await fetch('/api/private-append', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      keepalive,
+      body: JSON.stringify({
+        username,
+        clientSnapshotId: pendingSnapshot.clientSnapshotId,
+        encryptedContent: pendingSnapshot.encryptedContent,
+        encryptedDataKey: pendingSnapshot.encryptedDataKey,
+      }),
+    })
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => null)
+      const errorMessage = payload?.error || 'Failed to append private snapshot'
+      console.error(errorMessage)
+      return false
+    }
+
+    lastSavedContentRef.current = pendingSnapshot.content
+    if (
+      pendingSnapshotRef.current &&
+      pendingSnapshotRef.current.clientSnapshotId === pendingSnapshot.clientSnapshotId
+    ) {
+      pendingSnapshotRef.current = null
+    }
+    return true
+  }, [username])
+
+  const appendPrivateSnapshot = useCallback(async ({ keepalive = false } = {}) => {
+    if (!username || !userExists || isPublic || isSavingRef.current) {
+      return false
+    }
+
+    isSavingRef.current = true
+    try {
+      const pendingSnapshot = await preparePendingPrivateSnapshot()
+      if (!pendingSnapshot) {
+        return false
+      }
+
+      return await sendPendingPrivateSnapshot(pendingSnapshot, { keepalive })
+    } catch (error) {
+      console.error('Failed to append private snapshot:', error)
+      return false
+    } finally {
+      isSavingRef.current = false
+    }
+  }, [username, userExists, isPublic, preparePendingPrivateSnapshot, sendPendingPrivateSnapshot])
+
+  const flushPreparedSnapshot = useCallback(() => {
+    if (!username || !userExists || isPublic) {
+      return
+    }
+
+    const pendingSnapshot = pendingSnapshotRef.current
+    if (
+      !pendingSnapshot ||
+      pendingSnapshot.content !== contentRef.current ||
+      !pendingSnapshot.encryptedContent ||
+      !pendingSnapshot.encryptedDataKey
+    ) {
+      return
+    }
+
+    const requestBody = JSON.stringify({
+      username,
+      clientSnapshotId: pendingSnapshot.clientSnapshotId,
+      encryptedContent: pendingSnapshot.encryptedContent,
+      encryptedDataKey: pendingSnapshot.encryptedDataKey,
+    })
+
+    if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
+      const queued = navigator.sendBeacon(
+        '/api/private-append',
+        new Blob([requestBody], { type: 'application/json' })
+      )
+      if (queued) {
+        return
+      }
+    }
+
+    void fetch('/api/private-append', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      keepalive: true,
+      body: requestBody,
+    }).then(async (response) => {
+      if (response.ok) {
+        lastSavedContentRef.current = pendingSnapshot.content
+        if (
+          pendingSnapshotRef.current &&
+          pendingSnapshotRef.current.clientSnapshotId === pendingSnapshot.clientSnapshotId
+        ) {
+          pendingSnapshotRef.current = null
+        }
+        return
+      }
+
+      const payload = await response.json().catch(() => null)
+      const errorMessage = payload?.error || 'Failed to flush private snapshot'
+      console.error(errorMessage)
+    }).catch((error) => {
+      console.error('Failed to flush private snapshot:', error)
+    })
+  }, [username, userExists, isPublic])
 
   const shortcuts = useMemo(() => [
     {
@@ -144,28 +312,26 @@ export default function UserPage() {
     }
   }, [collaborativeDoc])
 
-
-
   // Initialize collaborative document for public pages
   const initCollaborativeDocument = async () => {
     try {
       const doc = new CollaborativeDocument(username)
       await doc.init()
-      
+
       doc.setOnContentChange((newContent) => {
         setCollaborativeContent(newContent)
       })
-      
+
       doc.setOnActiveEditorsChange((editors) => {
         setActiveEditors(editors)
       })
-      
+
       setCollaborativeDoc(doc)
       setCollaborativeContent(doc.getContent())
 
       // Set up periodic connection health checks
       const healthCheckInterval = setInterval(() => {
-        if (doc && !doc.isConnected) {
+        if (!doc.isConnected) {
           console.log('Connection lost, attempting to reconnect...')
           doc.checkConnectionHealth()
         }
@@ -173,7 +339,6 @@ export default function UserPage() {
 
       // Store interval ID for cleanup
       doc.healthCheckInterval = healthCheckInterval
-
     } catch (error) {
       console.error('Failed to initialize collaborative document:', error)
     }
@@ -194,16 +359,59 @@ export default function UserPage() {
   }
 
   useEffect(() => {
-    if (!userExists || isPublic) return
+    if (!userExists || isPublic) {
+      pendingSnapshotRef.current = null
+      return
+    }
 
-    const saveTimeout = setTimeout(() => {
-      if (content !== undefined) {
-        saveContent()
+    const timeoutId = setTimeout(() => {
+      void preparePendingPrivateSnapshot()
+    }, 300)
+
+    return () => {
+      clearTimeout(timeoutId)
+    }
+  }, [content, userExists, isPublic, preparePendingPrivateSnapshot])
+
+  useEffect(() => {
+    if (!userExists || isPublic) {
+      return
+    }
+
+    const intervalId = setInterval(() => {
+      void appendPrivateSnapshot()
+    }, 20000)
+
+    return () => {
+      clearInterval(intervalId)
+    }
+  }, [userExists, isPublic, appendPrivateSnapshot])
+
+  useEffect(() => {
+    if (!userExists || isPublic) {
+      return
+    }
+
+    const handleBeforeUnload = () => {
+      flushPreparedSnapshot()
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        flushPreparedSnapshot()
+        void appendPrivateSnapshot({ keepalive: true })
       }
-    }, 1000)
+    }
 
-    return () => clearTimeout(saveTimeout)
-  }, [content, userExists, isPublic])
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      flushPreparedSnapshot()
+    }
+  }, [userExists, isPublic, appendPrivateSnapshot, flushPreparedSnapshot])
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -289,6 +497,8 @@ export default function UserPage() {
     )
   }
 
+  const visibleContent = isPublic ? collaborativeContent : content
+
   return (
     <div className="container">
       <div className="header">
@@ -315,8 +525,10 @@ export default function UserPage() {
         <Editor content={content} setContent={setContent} ref={editorRef} />
       )}
       <div className="stats">
-        <span className="word-count">{content.trim() ? content.trim().split(/\s+/).length : 0} words</span>
-        <span className="char-count">{content.length} characters</span>
+        <span className="word-count">
+          {visibleContent.trim() ? visibleContent.trim().split(/\s+/).length : 0} words
+        </span>
+        <span className="char-count">{visibleContent.length} characters</span>
       </div>
       <ShortcutsModal
         isOpen={showShortcuts}

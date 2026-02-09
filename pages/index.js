@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { generateSalt } from '../lib/encryption'
 import { PublicKeyEncryption } from '../lib/publicKeyEncryption'
 import { supabase } from '../lib/supabase'
 
@@ -10,6 +9,7 @@ export default function Home() {
   const [message, setMessage] = useState('')
   const [isChecking, setIsChecking] = useState(false)
   const [isAvailable, setIsAvailable] = useState(null)
+  const [availabilityError, setAvailabilityError] = useState(false)
   const [showPublicFlow, setShowPublicFlow] = useState(false)
   const [acknowledgedRisk, setAcknowledgedRisk] = useState(false)
 
@@ -17,6 +17,7 @@ export default function Home() {
   useEffect(() => {
     if (!username.trim()) {
       setIsAvailable(null)
+      setAvailabilityError(false)
       return
     }
 
@@ -28,10 +29,16 @@ export default function Home() {
           .select('username')
           .eq('username', username.trim())
 
-        // Available if empty array or error
-        setIsAvailable(!data || data.length === 0)
+        if (error) {
+          setIsAvailable(null)
+          setAvailabilityError(true)
+        } else {
+          setIsAvailable(!data || data.length === 0)
+          setAvailabilityError(false)
+        }
       } catch (err) {
-        setIsAvailable(true) // Available on error (likely doesn't exist)
+        setIsAvailable(null)
+        setAvailabilityError(true)
       }
       setIsChecking(false)
     }
@@ -74,35 +81,41 @@ export default function Home() {
     try {
       const saltBytes = crypto.getRandomValues(new Uint8Array(16))
       
-      // Generate author keypair and encrypt private key with password
       const effectivePassword = isPublic ? username.trim() : password
       const { publicKey, encryptedPrivateKey, salt } = await PublicKeyEncryption.generateAuthorKeys(
         effectivePassword,
         saltBytes
       )
-      
-      const { data, error } = await supabase
-        .from('users')
-        .upsert({
-          username: username.trim(),
-          public_key: publicKey,
-          encrypted_private_key: encryptedPrivateKey,
-          salt: salt,
-          is_public: isPublic
-        })
 
-      if (error) {
-        setMessage('Error: ' + error.message)
+      const response = await fetch('/api/create-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: username.trim(),
+          publicKey,
+          encryptedPrivateKey,
+          salt,
+          isPublic,
+        }),
+      })
+
+      const payload = await response.json()
+
+      if (!response.ok) {
+        setMessage(`Error: ${payload?.error || 'Failed to create URL'}`)
       } else {
-        setMessage(`URL created: https://lekh.space/${username.trim()}`)
-        // Redirect to the writing page after creation
+        const createdUsername = payload?.username || username.trim()
+        setMessage(`URL created: https://lekh.space/${createdUsername}`)
         setTimeout(() => {
-          window.location.href = `/${username.trim()}`
+          window.location.href = `/${createdUsername}`
         }, 2000)
         setUsername('')
         setPassword('')
         setShowPublicFlow(false)
         setIsAvailable(null)
+        setAvailabilityError(false)
         setAcknowledgedRisk(false)
       }
     } catch (err) {
@@ -127,25 +140,23 @@ export default function Home() {
           throw new Error(error)
         }
 
-        // API already ensures uniqueness, so we can trust the result
         setUsername(candidate)
         setIsAvailable(true)
+        setAvailabilityError(false)
         return
       } catch (err) {
-        // Network/parsing errors - retry
         if (err instanceof TypeError || err.name === 'NetworkError' || err.message === 'API request failed') {
           attempts++
           continue
         }
-        // Other errors - break and use fallback
         break
       }
     }
 
-    // Fallback with more uniqueness
     const fallback = `user-${Date.now().toString().slice(-4)}-${Math.random().toString(36).substr(2, 3)}`
     setUsername(fallback)
     setIsAvailable(true)
+    setAvailabilityError(false)
   }
 
 
@@ -188,6 +199,8 @@ export default function Home() {
                 <div className="availability-status">
                   {isChecking ? (
                     <span className="checking">⏳ Checking...</span>
+                  ) : availabilityError ? (
+                    <span className="checking">⚠️ Unable to verify availability</span>
                   ) : isAvailable === true ? (
                     <span className="available">✅ Available</span>
                   ) : isAvailable === false ? (
@@ -309,6 +322,8 @@ export default function Home() {
                 <div className="availability-status">
                   {isChecking ? (
                     <span className="checking">⏳ Checking...</span>
+                  ) : availabilityError ? (
+                    <span className="checking">⚠️ Unable to verify availability</span>
                   ) : isAvailable === true ? (
                     <span className="available">✅ Available</span>
                   ) : isAvailable === false ? (
@@ -343,6 +358,7 @@ export default function Home() {
             setPassword('')
             setMessage('')
             setIsAvailable(null)
+            setAvailabilityError(false)
             setIsChecking(false)
           }}>
             ← Back to private space

@@ -215,10 +215,78 @@ describe('All Entries Page', () => {
     render(<AllEntriesPage />)
 
     await waitFor(() => {
-      expect(mockSelect).toHaveBeenCalledWith('id, username, encrypted_content, encrypted_data_key, created_at, updated_at')
+      expect(mockSelect).toHaveBeenCalledWith('id, username, encrypted_content, encrypted_data_key, created_at, updated_at, client_snapshot_id')
       expect(mockEq).toHaveBeenCalledWith('username', 'testuser')
-      expect(mockOrder).toHaveBeenCalledWith('updated_at', { ascending: false })
+      expect(mockOrder).toHaveBeenCalledWith('created_at', { ascending: false })
     })
+  })
+
+  test('preserves legacy recency ordering using updated_at fallback', async () => {
+    const user = userEvent.setup()
+    const legacyAndNewEntries = [
+      {
+        id: 'legacy-entry',
+        username: 'testuser',
+        encrypted_content: 'encrypted-content-1',
+        encrypted_data_key: 'legacy-key',
+        created_at: '2023-01-01T00:00:00Z',
+        updated_at: '2023-01-10T00:00:00Z'
+      },
+      {
+        id: 'new-entry',
+        username: 'testuser',
+        encrypted_content: 'encrypted-content-3',
+        encrypted_data_key: 'new-key',
+        created_at: '2023-01-09T00:00:00Z',
+        updated_at: null
+      }
+    ]
+
+    supabase.from.mockImplementation((table) => {
+      if (table === 'users') {
+        return {
+          select: jest.fn(() => ({
+            eq: jest.fn(() => Promise.resolve({
+              data: [{
+                username: 'testuser',
+                salt: 'mock-salt',
+                encrypted_private_key: 'mock-encrypted-private-key',
+                is_public: false
+              }],
+              error: null
+            }))
+          }))
+        }
+      }
+      if (table === 'documents') {
+        return {
+          select: jest.fn(() => ({
+            eq: jest.fn(() => ({
+              order: jest.fn(() => Promise.resolve({ data: legacyAndNewEntries, error: null }))
+            }))
+          }))
+        }
+      }
+    })
+
+    render(<AllEntriesPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Enter password to decrypt entries')).toBeInTheDocument()
+    })
+
+    const passwordInput = screen.getByPlaceholderText('••••••••')
+    await user.type(passwordInput, 'correctpassword')
+    await user.click(screen.getByText('[Unlock →]'))
+
+    await waitFor(() => {
+      expect(screen.getByText('This is my first entry with some content.')).toBeInTheDocument()
+      expect(screen.getByText('Latest entry should appear first.')).toBeInTheDocument()
+    })
+
+    const contentNodes = Array.from(document.querySelectorAll('.entry-content'))
+    expect(contentNodes[0]).toHaveTextContent('This is my first entry with some content.')
+    expect(contentNodes[1]).toHaveTextContent('Latest entry should appear first.')
   })
 
   test('back link has been removed in new design', async () => {
