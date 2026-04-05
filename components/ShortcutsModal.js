@@ -33,18 +33,18 @@ export const ShortcutsModal = ({ isOpen, onClose, shortcuts, username }) => {
           <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
             {username && (
               <li style={{ marginBottom: '8px' }}>
-                <a 
+                <a
                   href={`/${username}/all`}
-                  style={{ color: '#8AB4F8', textDecoration: 'none' }}
+                  style={{ color: 'var(--color-accent)', textDecoration: 'none' }}
                 >
                   View all entries →
                 </a>
               </li>
             )}
             <li>
-              <a 
+              <a
                 href="/"
-                style={{ color: '#8AB4F8', textDecoration: 'none' }}
+                style={{ color: 'var(--color-accent)', textDecoration: 'none' }}
               >
                 Back to home
               </a>

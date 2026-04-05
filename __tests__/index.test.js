@@ -195,7 +195,7 @@ describe('Home Page', () => {
     await user.click(submitButton)
     
     await waitFor(() => {
-      expect(screen.getByText('Error: Database error')).toBeInTheDocument()
+      expect(screen.getByText('Error: Unable to create your space. Please try again.')).toBeInTheDocument()
     })
   })
 

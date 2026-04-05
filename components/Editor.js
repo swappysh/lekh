@@ -27,7 +27,7 @@ const Editor = forwardRef(function Editor({ content, setContent }, ref) {
           padding: 10px;
           font-size: 18px;
           line-height: 1.6;
-          font-family: monospace;
+          font-family: var(--font-mono);
           border: none;
           outline: none;
           resize: none;
