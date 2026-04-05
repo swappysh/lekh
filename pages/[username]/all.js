@@ -132,7 +132,7 @@ export default function AllEntriesPage() {
         <style jsx>{`
           .container {
             padding: 20px;
-            font-family: monospace;
+            font-family: var(--font-mono);
             width: 70vw;
             margin: 0 auto;
           }
@@ -153,19 +153,19 @@ export default function AllEntriesPage() {
         <p><a href="/">Create a new user URL</a></p>
         <style jsx global>{`
           body {
-            background: #FAFAF7;
-            color: #111111;
+            background: var(--color-bg);
+            color: var(--color-text);
             font-size: 18px;
             line-height: 1.6;
           }
           @media (prefers-color-scheme: dark) {
             body {
-              background: #0B0B0C;
-              color: #EDEDED;
+              background: var(--color-bg);
+              color: var(--color-text);
             }
           }
           a {
-            color: #0B57D0;
+            color: var(--color-accent);
             text-decoration: underline;
           }
           a:visited {
@@ -173,7 +173,7 @@ export default function AllEntriesPage() {
           }
           @media (prefers-color-scheme: dark) {
             a {
-              color: #8AB4F8;
+              color: var(--color-accent);
             }
             a:visited {
               color: #B39DDB;
@@ -183,7 +183,7 @@ export default function AllEntriesPage() {
         <style jsx>{`
           .container {
             padding: 20px;
-            font-family: monospace;
+            font-family: var(--font-mono);
             width: 70vw;
             margin: 0 auto;
           }
@@ -250,19 +250,19 @@ export default function AllEntriesPage() {
 
       <style jsx global>{`
         body {
-          background: #FAFAF7;
-          color: #111111;
+          background: var(--color-bg);
+          color: var(--color-text);
           font-size: 18px;
           line-height: 1.6;
         }
         @media (prefers-color-scheme: dark) {
           body {
-            background: #0B0B0C;
-            color: #EDEDED;
+            background: var(--color-bg);
+            color: var(--color-text);
           }
         }
         a {
-          color: #0B57D0;
+          color: var(--color-accent);
           text-decoration: underline;
         }
         a:visited {
@@ -270,7 +270,7 @@ export default function AllEntriesPage() {
         }
         @media (prefers-color-scheme: dark) {
           a {
-            color: #8AB4F8;
+            color: var(--color-accent);
           }
           a:visited {
             color: #B39DDB;
@@ -281,7 +281,7 @@ export default function AllEntriesPage() {
       <style jsx>{`
         .container {
           padding: 40px 20px;
-          font-family: monospace;
+          font-family: var(--font-mono);
           max-width: 800px;
           margin: 0 auto;
         }
@@ -291,7 +291,7 @@ export default function AllEntriesPage() {
           color: #666;
         }
         .header-username {
-          color: #111111;
+          color: var(--color-text);
           font-weight: bold;
         }
         .header-separator {
@@ -308,7 +308,7 @@ export default function AllEntriesPage() {
         .prompt-title {
           font-size: 18px;
           margin-bottom: 30px;
-          color: #111111;
+          color: var(--color-text);
         }
         .prompt-group {
           margin-bottom: 20px;
@@ -324,23 +324,23 @@ export default function AllEntriesPage() {
           padding: 12px;
           border: 1px solid #ccc;
           border-radius: 4px;
-          font-family: monospace;
+          font-family: var(--font-mono);
           font-size: 16px;
           box-sizing: border-box;
         }
         .prompt-group input:focus {
           outline: none;
-          border-color: #0B57D0;
+          border-color: var(--color-accent);
           box-shadow: 0 0 0 2px rgba(11, 87, 208, 0.1);
         }
         .unlock-button {
           width: 100%;
           padding: 12px 24px;
-          background: #111111;
+          background: var(--color-text);
           color: white;
           border: none;
           border-radius: 4px;
-          font-family: monospace;
+          font-family: var(--font-mono);
           font-size: 16px;
           cursor: pointer;
           margin-bottom: 20px;
@@ -412,15 +412,15 @@ export default function AllEntriesPage() {
             color: white;
           }
           .prompt-group input:focus {
-            border-color: #8AB4F8;
+            border-color: var(--color-accent);
             box-shadow: 0 0 0 2px rgba(138, 180, 248, 0.1);
           }
           .unlock-button {
             background: white;
-            color: #0B0B0C;
+            color: var(--color-bg);
           }
           .unlock-button:hover {
-            background: #EDEDED;
+            background: var(--color-text);
           }
           .warning-text {
             color: #ff6b6b;

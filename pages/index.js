@@ -395,19 +395,19 @@ export default function Home() {
 
       <style jsx global>{`
         body {
-          background: #FAFAF7;
-          color: #111111;
+          background: var(--color-bg);
+          color: var(--color-text);
           font-size: 18px;
           line-height: 1.6;
         }
         @media (prefers-color-scheme: dark) {
           body {
-            background: #0B0B0C;
-            color: #EDEDED;
+            background: var(--color-bg);
+            color: var(--color-text);
           }
         }
         a {
-          color: #0B57D0;
+          color: var(--color-accent);
           text-decoration: underline;
         }
         a:visited {
@@ -415,7 +415,7 @@ export default function Home() {
         }
         @media (prefers-color-scheme: dark) {
           a {
-            color: #8AB4F8;
+            color: var(--color-accent);
           }
           a:visited {
             color: #B39DDB;
@@ -425,7 +425,7 @@ export default function Home() {
       <style jsx>{`
         .container {
           padding: 20px;
-          font-family: monospace;
+          font-family: var(--font-mono);
           max-width: 600px;
           margin: 0 auto;
         }
@@ -437,12 +437,12 @@ export default function Home() {
         .demo-button {
           width: 100%;
           padding: 16px 24px;
-          border: 2px solid #0B57D0;
+          border: 2px solid var(--color-accent);
           border-radius: 4px;
-          background: #0B57D0;
+          background: var(--color-accent);
           color: white;
           cursor: pointer;
-          font-family: monospace;
+          font-family: var(--font-mono);
           font-size: 16px;
           font-weight: bold;
           text-align: center;
@@ -478,7 +478,7 @@ export default function Home() {
         }
 
         .divider span {
-          background: #FAFAF7;
+          background: var(--color-bg);
           padding: 0 20px;
           position: relative;
           color: #999;
@@ -492,7 +492,7 @@ export default function Home() {
           border-radius: 4px;
           background: transparent;
           cursor: pointer;
-          font-family: monospace;
+          font-family: var(--font-mono);
           font-size: 16px;
           text-align: center;
           color: #666;
@@ -512,7 +512,7 @@ export default function Home() {
           border: none;
           color: #666;
           cursor: pointer;
-          font-family: monospace;
+          font-family: var(--font-mono);
           font-size: 14px;
           text-decoration: underline;
         }
@@ -563,7 +563,7 @@ export default function Home() {
           padding: 14px 12px;
           border: 1px solid #ccc;
           border-radius: 4px;
-          font-family: monospace;
+          font-family: var(--font-mono);
           font-size: 16px;
           background: white;
           color: inherit;
@@ -573,7 +573,7 @@ export default function Home() {
 
         .username-input:focus {
           outline: none;
-          border-color: #0B57D0;
+          border-color: var(--color-accent);
           border-width: 2px;
           padding: 13px 11px;
           box-shadow: 0 0 0 2px rgba(11, 87, 208, 0.1);
@@ -583,7 +583,7 @@ export default function Home() {
         .url-preview input {
           border: none;
           padding: 12px;
-          font-family: monospace;
+          font-family: var(--font-mono);
           font-size: 16px;
           background: transparent;
           flex: 1;
@@ -592,13 +592,13 @@ export default function Home() {
         }
 
         .create-button {
-          background: #111111 !important;
+          background: var(--color-text) !important;
           color: white !important;
           border: none !important;
           padding: 14px 32px;
           border-radius: 4px;
           cursor: pointer;
-          font-family: monospace;
+          font-family: var(--font-mono);
           font-size: 18px;
           font-weight: bold;
           min-height: 48px;
@@ -625,7 +625,7 @@ export default function Home() {
           padding: 14px 12px;
           border: 1px solid #ccc;
           border-radius: 4px;
-          font-family: monospace;
+          font-family: var(--font-mono);
           font-size: 16px;
           background: white;
           color: inherit;
@@ -635,7 +635,7 @@ export default function Home() {
 
         input[type="password"]:focus {
           outline: none;
-          border-color: #0B57D0;
+          border-color: var(--color-accent);
           border-width: 2px;
           padding: 13px 11px;
           box-shadow: 0 0 0 2px rgba(11, 87, 208, 0.1);
@@ -699,7 +699,7 @@ export default function Home() {
           border-radius: 4px;
           background: white;
           cursor: pointer;
-          font-family: monospace;
+          font-family: var(--font-mono);
         }
 
         button:hover:not(:disabled) {
@@ -789,7 +789,7 @@ export default function Home() {
           }
 
           input[type="password"]:focus {
-            border-color: #8AB4F8;
+            border-color: var(--color-accent);
             border-width: 2px;
             padding: 13px 11px;
             box-shadow: 0 0 0 2px rgba(138, 180, 248, 0.1);
@@ -802,7 +802,7 @@ export default function Home() {
           }
 
           .username-input:focus {
-            border-color: #8AB4F8;
+            border-color: var(--color-accent);
             border-width: 2px;
             padding: 13px 11px;
             box-shadow: 0 0 0 2px rgba(138, 180, 248, 0.1);
@@ -849,7 +849,7 @@ export default function Home() {
         }
 
         .divider span {
-          background: #0B0B0C;
+          background: var(--color-bg);
         }
 
           .secondary-action {
@@ -873,9 +873,9 @@ export default function Home() {
         }
 
         .demo-button {
-          background: #8AB4F8;
-          border-color: #8AB4F8;
-          color: #0B0B0C;
+          background: var(--color-accent);
+          border-color: var(--color-accent);
+          color: var(--color-bg);
         }
 
         .demo-button:hover {

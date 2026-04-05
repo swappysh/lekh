@@ -88,22 +88,22 @@ export default function DemoPage() {
 
       <style jsx global>{`
         body {
-          background: #FAFAF7;
-          color: #111111;
+          background: var(--color-bg);
+          color: var(--color-text);
           font-size: 18px;
           line-height: 1.6;
         }
         @media (prefers-color-scheme: dark) {
           body {
-            background: #0B0B0C;
-            color: #EDEDED;
+            background: var(--color-bg);
+            color: var(--color-text);
           }
         }
       `}</style>
       <style jsx>{`
         .page-container {
           padding: 20px;
-          font-family: monospace;
+          font-family: var(--font-mono);
           max-width: 800px;
           margin: 0 auto;
         }
@@ -141,12 +141,12 @@ export default function DemoPage() {
 
         .create-account-link {
           padding: 10px 20px;
-          background: #0B57D0;
+          background: var(--color-accent);
           color: white;
           border: none;
           border-radius: 4px;
           cursor: pointer;
-          font-family: monospace;
+          font-family: var(--font-mono);
           font-size: 14px;
           font-weight: bold;
           transition: all 0.2s;
@@ -168,12 +168,12 @@ export default function DemoPage() {
         @media (prefers-color-scheme: dark) {
           .demo-badge {
             background: #ffd93d;
-            color: #0B0B0C;
+            color: var(--color-bg);
           }
 
           .create-account-link {
-            background: #8AB4F8;
-            color: #0B0B0C;
+            background: var(--color-accent);
+            color: var(--color-bg);
           }
 
           .create-account-link:hover {

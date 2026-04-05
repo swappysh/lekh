@@ -448,7 +448,7 @@ export default function UserPage() {
         <style jsx>{`
           .container {
             padding: 20px;
-            font-family: monospace;
+            font-family: var(--font-mono);
             width: 70vw;
             margin: 0 auto;
           }
@@ -469,19 +469,19 @@ export default function UserPage() {
         <p><a href="/">Create a new user URL</a></p>
         <style jsx global>{`
           body {
-            background: #FAFAF7;
-            color: #111111;
+            background: var(--color-bg);
+            color: var(--color-text);
             font-size: 18px;
             line-height: 1.6;
           }
           @media (prefers-color-scheme: dark) {
             body {
-              background: #0B0B0C;
-              color: #EDEDED;
+              background: var(--color-bg);
+              color: var(--color-text);
             }
           }
           a {
-            color: #0B57D0;
+            color: var(--color-accent);
             text-decoration: underline;
           }
           a:visited {
@@ -489,7 +489,7 @@ export default function UserPage() {
           }
           @media (prefers-color-scheme: dark) {
             a {
-              color: #8AB4F8;
+              color: var(--color-accent);
             }
             a:visited {
               color: #B39DDB;
@@ -499,7 +499,7 @@ export default function UserPage() {
         <style jsx>{`
           .container {
             padding: 20px;
-            font-family: monospace;
+            font-family: var(--font-mono);
             width: 70vw;
             margin: 0 auto;
           }
@@ -559,19 +559,19 @@ export default function UserPage() {
       </button>
       <style jsx global>{`
         body {
-          background: #FAFAF7;
-          color: #111111;
+          background: var(--color-bg);
+          color: var(--color-text);
           font-size: 18px;
           line-height: 1.6;
         }
         @media (prefers-color-scheme: dark) {
           body {
-            background: #0B0B0C;
-            color: #EDEDED;
+            background: var(--color-bg);
+            color: var(--color-text);
           }
         }
         a {
-          color: #0B57D0;
+          color: var(--color-accent);
           text-decoration: underline;
         }
         a:visited {
@@ -579,7 +579,7 @@ export default function UserPage() {
         }
         @media (prefers-color-scheme: dark) {
           a {
-            color: #8AB4F8;
+            color: var(--color-accent);
           }
           a:visited {
             color: #B39DDB;
@@ -589,7 +589,7 @@ export default function UserPage() {
       <style jsx>{`
         .container {
           padding: 20px;
-          font-family: monospace;
+          font-family: var(--font-mono);
           width: 70vw;
           margin: 0 auto;
         }
@@ -661,7 +661,7 @@ export default function UserPage() {
           width: 40px;
           height: 40px;
           border-radius: 50%;
-          background: #0B57D0;
+          background: var(--color-accent);
           color: white;
           border: none;
           font-size: 18px;
@@ -679,8 +679,8 @@ export default function UserPage() {
         }
         @media (prefers-color-scheme: dark) {
           .help-button {
-            background: #8AB4F8;
-            color: #0B0B0C;
+            background: var(--color-accent);
+            color: var(--color-bg);
           }
           .help-button:hover {
             background: #A8C7FA;
