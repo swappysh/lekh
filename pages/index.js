@@ -66,7 +66,7 @@ export default function Home() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     const isPublic = showPublicFlow
-    
+
     if (!username.trim() || (!isPublic && !password.trim()) || !isAvailable) return
 
     const passwordStrength = getPasswordStrength(password)
@@ -80,7 +80,7 @@ export default function Home() {
 
     try {
       const saltBytes = crypto.getRandomValues(new Uint8Array(16))
-      
+
       const effectivePassword = isPublic ? username.trim() : password
       const { publicKey, encryptedPrivateKey, salt } = await PublicKeyEncryption.generateAuthorKeys(
         effectivePassword,
@@ -104,7 +104,18 @@ export default function Home() {
       const payload = await response.json()
 
       if (!response.ok) {
-        setMessage(`Error: ${payload?.error || 'Failed to create URL'}`)
+        setIsSubmitting(false)
+        const errorMap = {
+          'Username already taken': 'This username is taken. Try another one.',
+          'Invalid username': 'Username can only contain letters, numbers, hyphens, and underscores.',
+          'Failed to verify username availability': 'Unable to check availability. Please try again.',
+          'Missing required fields': 'Something went wrong. Please try again.',
+          'Invalid isPublic value': 'Something went wrong. Please try again.',
+          'Failed to create user': 'Unable to create your space. Please try again.',
+          'Internal server error': 'Our server had an issue. Please try again in a moment.',
+        }
+        const friendlyError = errorMap[payload?.error] || 'Unable to create your space. Please try again.'
+        setMessage(`Error: ${friendlyError}`)
       } else {
         const createdUsername = payload?.username || username.trim()
         setMessage(`your space is ready → lekh.space/${createdUsername}`)
@@ -119,10 +130,9 @@ export default function Home() {
         setAcknowledgedRisk(false)
       }
     } catch (err) {
-      setMessage('Error creating URL: ' + err.message)
+      setIsSubmitting(false)
+      setMessage('Error: Unable to reach the server. Please check your connection and try again.')
     }
-
-    setIsSubmitting(false)
   }
 
   const generateRandomUsername = async () => {
@@ -188,7 +198,10 @@ export default function Home() {
               <input
                 type="text"
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={(e) => {
+                  setUsername(e.target.value)
+                  if (message.startsWith('Error')) setMessage('')
+                }}
                 placeholder="[username]"
                 pattern="[a-zA-Z0-9_\-]+"
                 title="Only letters, numbers, hyphens, and underscores allowed"
@@ -218,6 +231,7 @@ export default function Home() {
                 onChange={(e) => {
                   setPassword(e.target.value)
                   setAcknowledgedRisk(false) // Reset when password changes
+                  if (message.startsWith('Error')) setMessage('')
                 }}
                 placeholder="[••••••••]"
                 required
@@ -313,7 +327,10 @@ export default function Home() {
                 <input
                   type="text"
                   value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  onChange={(e) => {
+                    setUsername(e.target.value)
+                    if (message.startsWith('Error')) setMessage('')
+                  }}
                   placeholder="your-name"
                   pattern="[a-zA-Z0-9_\-]+"
                   title="Only letters, numbers, hyphens, and underscores allowed"
