@@ -13,6 +13,7 @@ export default function Home() {
   const [availabilityError, setAvailabilityError] = useState(false)
   const [showPublicFlow, setShowPublicFlow] = useState(false)
   const [acknowledgedRisk, setAcknowledgedRisk] = useState(false)
+  const [isGeneratingUsername, setIsGeneratingUsername] = useState(false)
 
   // Check username availability with debounce
   useEffect(() => {
@@ -135,6 +136,7 @@ export default function Home() {
   }
 
   const generateRandomUsername = async () => {
+    setIsGeneratingUsername(true)
     let attempts = 0
     while (attempts < 5) {
       try {
@@ -142,9 +144,9 @@ export default function Home() {
         if (!response.ok) {
           throw new Error('API request failed')
         }
-        
+
         const { username: candidate, error } = await response.json()
-        
+
         if (error) {
           throw new Error(error)
         }
@@ -152,6 +154,7 @@ export default function Home() {
         setUsername(candidate)
         setIsAvailable(true)
         setAvailabilityError(false)
+        setIsGeneratingUsername(false)
         return
       } catch (err) {
         if (err instanceof TypeError || err.name === 'NetworkError' || err.message === 'API request failed') {
@@ -166,6 +169,7 @@ export default function Home() {
     setUsername(fallback)
     setIsAvailable(true)
     setAvailabilityError(false)
+    setIsGeneratingUsername(false)
   }
 
 
@@ -362,8 +366,14 @@ export default function Home() {
             </div>
 
             <div className="buttons">
-              <button type="button" onClick={generateRandomUsername}>
-                Suggest a name
+              <button type="button" onClick={generateRandomUsername} disabled={isGeneratingUsername}>
+                {isGeneratingUsername ? (
+                  <>
+                    <span className="button-spinner"></span>Generating...
+                  </>
+                ) : (
+                  'Suggest a name'
+                )}
               </button>
               <button
                 type="submit"
