@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 
-export default function PasswordModal({ isOpen, onSubmit, onClose, title = "Enter Password" }) {
+export default function PasswordModal({ isOpen, onSubmit, onClose, title = "Unlock your writing" }) {
   const [password, setPassword] = useState('')
   const inputRef = useRef(null)
 
@@ -37,7 +37,7 @@ export default function PasswordModal({ isOpen, onSubmit, onClose, title = "Ente
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Enter password to decrypt entries..."
+            placeholder="Your password"
             className="password-input"
           />
           <div className="modal-buttons">

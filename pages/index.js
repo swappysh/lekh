@@ -174,8 +174,8 @@ export default function Home() {
       {!showPublicFlow ? (
         <>
           <h1>lekh.space/[username]</h1>
-          <p>&gt; Your words, encrypted. Once saved, permanent.</p>
-          <p>&gt; Forget your password = lost forever.</p>
+          <p>Write freely. Everything is encrypted and stays private — only you can read it.</p>
+          <p>Your password is the key. Keep it safe — there's no recovery if you forget it.</p>
 
           <div className="demo-cta">
             <button
@@ -223,7 +223,7 @@ export default function Home() {
             </div>
 
             <div className="input-group">
-              <label>password:</label>
+              <label>Choose a password</label>
               <input
                 type="password"
                 value={password}
@@ -232,7 +232,7 @@ export default function Home() {
                   setAcknowledgedRisk(false) // Reset when password changes
                   if (message.startsWith('Error')) setMessage('')
                 }}
-                placeholder="[••••••••]"
+                placeholder="at least 8 characters"
                 required
               />
               {password && (
@@ -244,7 +244,7 @@ export default function Home() {
               )}
               {password && (
                 <div className="password-hint">
-                  No password reset. Forget it and your writing is gone.
+                  There's no recovery if you forget this. We can't reset it for you.
                 </div>
               )}
               {password && getPasswordStrength(password) === 'weak' && (
@@ -273,7 +273,7 @@ export default function Home() {
                 }
                 className="create-button"
               >
-                {isSubmitting ? 'creating...' : '[create →]'}
+                {isSubmitting ? 'Creating your space...' : 'Create my space'}
               </button>
             </div>
           </form>
@@ -353,7 +353,7 @@ export default function Home() {
 
             <div className="buttons">
               <button type="button" onClick={generateRandomUsername}>
-                Generate Random
+                Suggest a name
               </button>
               <button
                 type="submit"

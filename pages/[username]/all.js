@@ -212,7 +212,7 @@ export default function AllEntriesPage() {
             }
           }}>
             <div className="prompt-group">
-              <label>Password:</label>
+              <label>Your password</label>
               <input
                 type="password"
                 name="password"
@@ -225,7 +225,7 @@ export default function AllEntriesPage() {
               [Unlock →]
             </button>
           </form>
-          <p className="warning-text">⚠️ Forgot? Your entries are lost forever.</p>
+          <p className="warning-text">⚠️ There's no recovery if you forget this.</p>
         </div>
       ) : entries.length === 0 ? (
         <div className="no-entries">

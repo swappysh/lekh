@@ -26,15 +26,15 @@ describe('PasswordModal', () => {
             />
         )
 
-        expect(screen.queryByText('Enter Password')).not.toBeInTheDocument()
-        expect(screen.queryByPlaceholderText('Enter password to decrypt entries...')).not.toBeInTheDocument()
+        expect(screen.queryByText('Unlock your writing')).not.toBeInTheDocument()
+        expect(screen.queryByPlaceholderText('Your password')).not.toBeInTheDocument()
     })
 
     it('should render with default title when isOpen is true', () => {
         render(<PasswordModal {...defaultProps} />)
 
-        expect(screen.getByText('Enter Password')).toBeInTheDocument()
-        expect(screen.getByPlaceholderText('Enter password to decrypt entries...')).toBeInTheDocument()
+        expect(screen.getByText('Unlock your writing')).toBeInTheDocument()
+        expect(screen.getByPlaceholderText('Your password')).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Decrypt' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
     })
@@ -54,7 +54,7 @@ describe('PasswordModal', () => {
     it('should focus the password input when modal opens', async () => {
         render(<PasswordModal {...defaultProps} />)
 
-        const passwordInput = screen.getByPlaceholderText('Enter password to decrypt entries...')
+        const passwordInput = screen.getByPlaceholderText('Your password')
 
         await waitFor(() => {
             expect(passwordInput).toHaveFocus()
@@ -72,7 +72,7 @@ describe('PasswordModal', () => {
         const user = userEvent.setup()
         render(<PasswordModal {...defaultProps} />)
 
-        const passwordInput = screen.getByPlaceholderText('Enter password to decrypt entries...')
+        const passwordInput = screen.getByPlaceholderText('Your password')
         const submitButton = screen.getByRole('button', { name: 'Decrypt' })
 
         expect(submitButton).toBeDisabled()
@@ -93,7 +93,7 @@ describe('PasswordModal', () => {
             />
         )
 
-        const passwordInput = screen.getByPlaceholderText('Enter password to decrypt entries...')
+        const passwordInput = screen.getByPlaceholderText('Your password')
         const submitButton = screen.getByRole('button', { name: 'Decrypt' })
 
         await user.type(passwordInput, 'testpassword')
@@ -114,7 +114,7 @@ describe('PasswordModal', () => {
             />
         )
 
-        const passwordInput = screen.getByPlaceholderText('Enter password to decrypt entries...')
+        const passwordInput = screen.getByPlaceholderText('Your password')
 
         await user.type(passwordInput, 'testpassword')
         await user.keyboard('{Enter}')
@@ -134,7 +134,7 @@ describe('PasswordModal', () => {
             />
         )
 
-        const passwordInput = screen.getByPlaceholderText('Enter password to decrypt entries...')
+        const passwordInput = screen.getByPlaceholderText('Your password')
         const submitButton = screen.getByRole('button', { name: 'Decrypt' })
 
         await user.type(passwordInput, '   ')
@@ -203,7 +203,7 @@ describe('PasswordModal', () => {
 
         render(<PasswordModal {...defaultProps} />)
 
-        const passwordInput = screen.getByPlaceholderText('Enter password to decrypt entries...')
+        const passwordInput = screen.getByPlaceholderText('Your password')
 
         await user.type(passwordInput, 'mypassword')
 
@@ -218,7 +218,7 @@ describe('PasswordModal', () => {
             />
         )
 
-        const passwordInput = screen.getByPlaceholderText('Enter password to decrypt entries...')
+        const passwordInput = screen.getByPlaceholderText('Your password')
         fireEvent.change(passwordInput, { target: { value: 'testpassword' } })
 
         expect(passwordInput).toHaveValue('testpassword')
@@ -228,8 +228,8 @@ describe('PasswordModal', () => {
         rerender(<PasswordModal {...defaultProps} isOpen={true} />)
 
         // Component should reset internal state when reopened
-        const newPasswordInput = screen.getByPlaceholderText('Enter password to decrypt entries...')
-        // Note: This test verifies component behavior - in a real implementation, 
+        const newPasswordInput = screen.getByPlaceholderText('Your password')
+        // Note: This test verifies component behavior - in a real implementation,
         // the password state would need to be reset when modal opens
         expect(newPasswordInput).toHaveValue('testpassword') // Password persists without explicit reset
     })
@@ -237,7 +237,7 @@ describe('PasswordModal', () => {
     it('should have correct input type for password field', () => {
         render(<PasswordModal {...defaultProps} />)
 
-        const passwordInput = screen.getByPlaceholderText('Enter password to decrypt entries...')
+        const passwordInput = screen.getByPlaceholderText('Your password')
         expect(passwordInput).toHaveAttribute('type', 'password')
     })
 
@@ -246,7 +246,7 @@ describe('PasswordModal', () => {
 
         // Form element exists but doesn't have role="form" by default
         const form = document.querySelector('form')
-        const passwordInput = screen.getByPlaceholderText('Enter password to decrypt entries...')
+        const passwordInput = screen.getByPlaceholderText('Your password')
         const submitButton = screen.getByRole('button', { name: 'Decrypt' })
         const cancelButton = screen.getByRole('button', { name: 'Cancel' })
 
