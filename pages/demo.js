@@ -155,7 +155,7 @@ export default function DemoPage() {
         .create-account-link:hover {
           background: #0842a0;
           transform: translateY(-1px);
-          box-shadow: 0 2px 4px rgba(11, 87, 208, 0.3);
+          box-shadow: 0 2px 4px rgba(var(--color-accent-rgb), 0.3);
         }
 
         .help-text {
@@ -178,7 +178,7 @@ export default function DemoPage() {
 
           .create-account-link:hover {
             background: #a8c7fa;
-            box-shadow: 0 2px 4px rgba(138, 180, 248, 0.3);
+            box-shadow: 0 2px 4px rgba(var(--color-accent-rgb), 0.3);
           }
 
           .help-text {

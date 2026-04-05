@@ -453,7 +453,7 @@ export default function Home() {
           background: #0842a0;
           border-color: #0842a0;
           transform: translateY(-1px);
-          box-shadow: 0 4px 8px rgba(11, 87, 208, 0.3);
+          box-shadow: 0 4px 8px rgba(var(--color-accent-rgb), 0.3);
         }
 
         .demo-button:active {
@@ -575,7 +575,7 @@ export default function Home() {
           border-color: var(--color-accent);
           border-width: 2px;
           padding: 13px 11px;
-          box-shadow: 0 0 0 2px rgba(11, 87, 208, 0.1);
+          box-shadow: 0 0 0 2px rgba(var(--color-accent-rgb), 0.1);
           transition: all 0.2s;
         }
 
@@ -637,7 +637,7 @@ export default function Home() {
           border-color: var(--color-accent);
           border-width: 2px;
           padding: 13px 11px;
-          box-shadow: 0 0 0 2px rgba(11, 87, 208, 0.1);
+          box-shadow: 0 0 0 2px rgba(var(--color-accent-rgb), 0.1);
           transition: all 0.2s;
         }
 
@@ -746,15 +746,15 @@ export default function Home() {
           .url-preview {
             border-color: #555;
           }
-          
+
           button {
-            background: #333;
+            background: #2a2a2a;
             border-color: #555;
             color: white;
           }
-          
+
           button:hover:not(:disabled) {
-            background: #444;
+            background: #3a3a3a;
           }
           
           .message.success {
@@ -791,7 +791,7 @@ export default function Home() {
             border-color: var(--color-accent);
             border-width: 2px;
             padding: 13px 11px;
-            box-shadow: 0 0 0 2px rgba(138, 180, 248, 0.1);
+            box-shadow: 0 0 0 2px rgba(var(--color-accent-rgb), 0.1);
           }
 
           .username-input {
@@ -804,7 +804,7 @@ export default function Home() {
             border-color: var(--color-accent);
             border-width: 2px;
             padding: 13px 11px;
-            box-shadow: 0 0 0 2px rgba(138, 180, 248, 0.1);
+            box-shadow: 0 0 0 2px rgba(var(--color-accent-rgb), 0.1);
           }
 
           .create-button {
@@ -880,7 +880,7 @@ export default function Home() {
         .demo-button:hover {
           background: #a8c7fa;
           border-color: #a8c7fa;
-          box-shadow: 0 4px 8px rgba(138, 180, 248, 0.3);
+          box-shadow: 0 4px 8px rgba(var(--color-accent-rgb), 0.3);
         }
       }
       `}</style>

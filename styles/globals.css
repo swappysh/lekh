@@ -1,0 +1,21 @@
+:root {
+  --color-bg: #FAFAF7;
+  --color-text: #111111;
+  --color-accent: #0B57D0;
+  --color-accent-rgb: 11, 87, 208;
+  --font-mono: monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #0B0B0C;
+    --color-text: #EDEDED;
+    --color-accent: #8AB4F8;
+    --color-accent-rgb: 138, 180, 248;
+  }
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
