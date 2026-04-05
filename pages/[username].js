@@ -671,7 +671,7 @@ export default function UserPage() {
           z-index: 100;
         }
         .help-button:hover {
-          background: #0842A0;
+          background: #0842a0;
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
         @media (prefers-color-scheme: dark) {
@@ -680,7 +680,7 @@ export default function UserPage() {
             color: var(--color-bg);
           }
           .help-button:hover {
-            background: #A8C7FA;
+            background: #a8c7fa;
           }
         }
       `}</style>
