@@ -13,6 +13,7 @@ export default function Home() {
   const [availabilityError, setAvailabilityError] = useState(false)
   const [showPublicFlow, setShowPublicFlow] = useState(false)
   const [acknowledgedRisk, setAcknowledgedRisk] = useState(false)
+  const [isGeneratingUsername, setIsGeneratingUsername] = useState(false)
 
   // Check username availability with debounce
   useEffect(() => {
@@ -135,6 +136,7 @@ export default function Home() {
   }
 
   const generateRandomUsername = async () => {
+    setIsGeneratingUsername(true)
     let attempts = 0
     while (attempts < 5) {
       try {
@@ -142,9 +144,9 @@ export default function Home() {
         if (!response.ok) {
           throw new Error('API request failed')
         }
-        
+
         const { username: candidate, error } = await response.json()
-        
+
         if (error) {
           throw new Error(error)
         }
@@ -152,6 +154,7 @@ export default function Home() {
         setUsername(candidate)
         setIsAvailable(true)
         setAvailabilityError(false)
+        setIsGeneratingUsername(false)
         return
       } catch (err) {
         if (err instanceof TypeError || err.name === 'NetworkError' || err.message === 'API request failed') {
@@ -166,6 +169,7 @@ export default function Home() {
     setUsername(fallback)
     setIsAvailable(true)
     setAvailabilityError(false)
+    setIsGeneratingUsername(false)
   }
 
 
@@ -210,7 +214,9 @@ export default function Home() {
               {username && (
                 <div className="availability-status">
                   {isChecking ? (
-                    <span className="checking">checking...</span>
+                    <span className="checking">
+                      <span className="spinner"></span>checking
+                    </span>
                   ) : availabilityError ? (
                     <span className="checking">unable to verify</span>
                   ) : isAvailable === true ? (
@@ -273,7 +279,13 @@ export default function Home() {
                 }
                 className="create-button"
               >
-                {isSubmitting ? 'Creating your space...' : 'Create my space'}
+                {isSubmitting ? (
+                  <>
+                    <span className="button-spinner"></span>Creating your space
+                  </>
+                ) : (
+                  'Create my space'
+                )}
               </button>
             </div>
           </form>
@@ -339,7 +351,9 @@ export default function Home() {
               {username && (
                 <div className="availability-status">
                   {isChecking ? (
-                    <span className="checking">checking...</span>
+                    <span className="checking">
+                      <span className="spinner"></span>checking
+                    </span>
                   ) : availabilityError ? (
                     <span className="checking">unable to verify</span>
                   ) : isAvailable === true ? (
@@ -352,14 +366,26 @@ export default function Home() {
             </div>
 
             <div className="buttons">
-              <button type="button" onClick={generateRandomUsername}>
-                Suggest a name
+              <button type="button" onClick={generateRandomUsername} disabled={isGeneratingUsername}>
+                {isGeneratingUsername ? (
+                  <>
+                    <span className="button-spinner"></span>Generating...
+                  </>
+                ) : (
+                  'Suggest a name'
+                )}
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting || !isAvailable || isChecking}
               >
-                {isSubmitting ? 'Creating...' : 'Create shared space'}
+                {isSubmitting ? (
+                  <>
+                    <span className="button-spinner"></span>Creating
+                  </>
+                ) : (
+                  'Create shared space'
+                )}
               </button>
             </div>
           </form>
@@ -422,6 +448,50 @@ export default function Home() {
         }
       `}</style>
       <style jsx>{`
+        @keyframes spinner-rotate {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
+        @keyframes dots-pulse {
+          0%, 100% {
+            opacity: 0.4;
+          }
+          50% {
+            opacity: 1;
+          }
+        }
+
+        .spinner {
+          display: inline-block;
+          width: 12px;
+          height: 12px;
+          border: 2px solid var(--color-gray);
+          border-top-color: var(--color-text);
+          border-radius: 50%;
+          animation: spinner-rotate 0.8s linear infinite;
+          margin-right: 6px;
+          vertical-align: -2px;
+        }
+
+        .button-spinner {
+          display: inline-block;
+          width: 4px;
+          height: 4px;
+          border-radius: 50%;
+          background: currentColor;
+          box-shadow:
+            8px 0 0 -2px currentColor,
+            16px 0 0 -2px currentColor;
+          animation: dots-pulse 0.6s ease-in-out infinite;
+          margin-right: 8px;
+          vertical-align: -1px;
+        }
+
         .container {
           padding: 20px;
           font-family: var(--font-mono);
