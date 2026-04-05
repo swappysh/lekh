@@ -209,7 +209,7 @@ describe('End-to-End Encryption Flow', () => {
             )
 
             // User enters password
-            const passwordInput = screen.getByPlaceholderText('Enter password to decrypt entries...')
+            const passwordInput = screen.getByPlaceholderText('Your password')
             await user.type(passwordInput, password)
 
             // User submits

@@ -189,7 +189,7 @@ describe('PasswordModal', () => {
             />
         )
 
-        const passwordInput = screen.getByPlaceholderText('Enter password to decrypt entries...')
+        const passwordInput = screen.getByPlaceholderText('Your password')
 
         // Focus the input and press Escape
         passwordInput.focus()
