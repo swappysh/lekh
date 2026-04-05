@@ -110,26 +110,27 @@ export default function PasswordModal({ isOpen, onSubmit, onClose, title = "Ente
           color: white;
         }
         .modal-buttons button[type="submit"]:hover:not(:disabled) {
-          background: #0842A0;
+          background: #0842a0;
         }
         .modal-buttons button[type="submit"]:disabled {
-          background: #ccc;
+          background: #e0e0e0;
+          color: #999;
           cursor: not-allowed;
         }
         .modal-buttons button[type="button"] {
-          background: #f0f0f0;
+          background: #f5f5f5;
           color: #333;
         }
         .modal-buttons button[type="button"]:hover {
-          background: #e0e0e0;
+          background: #e8e8e8;
         }
         @media (prefers-color-scheme: dark) {
           .modal-content {
-            background: #1a1a1a;
+            background: var(--color-bg);
             color: var(--color-text);
           }
           .password-input {
-            background: #2a2a2a;
+            background: #1a1a1a;
             border-color: #444;
             color: var(--color-text);
           }
@@ -141,14 +142,19 @@ export default function PasswordModal({ isOpen, onSubmit, onClose, title = "Ente
             color: var(--color-bg);
           }
           .modal-buttons button[type="submit"]:hover:not(:disabled) {
-            background: #A8C7FA;
+            background: #a8c7fa;
+          }
+          .modal-buttons button[type="submit"]:disabled {
+            background: #555;
+            color: #999;
+            cursor: not-allowed;
           }
           .modal-buttons button[type="button"] {
-            background: #333;
+            background: #3a3a3a;
             color: var(--color-text);
           }
           .modal-buttons button[type="button"]:hover {
-            background: #444;
+            background: #4a4a4a;
           }
         }
       `}</style>

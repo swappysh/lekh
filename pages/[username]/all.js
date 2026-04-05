@@ -331,7 +331,7 @@ export default function AllEntriesPage() {
         .prompt-group input:focus {
           outline: none;
           border-color: var(--color-accent);
-          box-shadow: 0 0 0 2px rgba(11, 87, 208, 0.1);
+          box-shadow: 0 0 0 2px rgba(var(--color-accent-rgb), 0.1);
         }
         .unlock-button {
           width: 100%;
@@ -407,13 +407,13 @@ export default function AllEntriesPage() {
             color: #EDEDED;
           }
           .prompt-group input {
-            background: #333;
+            background: #1a1a1a;
             border-color: #555;
             color: white;
           }
           .prompt-group input:focus {
             border-color: var(--color-accent);
-            box-shadow: 0 0 0 2px rgba(138, 180, 248, 0.1);
+            box-shadow: 0 0 0 2px rgba(var(--color-accent-rgb), 0.1);
           }
           .unlock-button {
             background: white;
