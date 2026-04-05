@@ -210,7 +210,9 @@ export default function Home() {
               {username && (
                 <div className="availability-status">
                   {isChecking ? (
-                    <span className="checking">checking...</span>
+                    <span className="checking">
+                      <span className="spinner"></span>checking
+                    </span>
                   ) : availabilityError ? (
                     <span className="checking">unable to verify</span>
                   ) : isAvailable === true ? (
@@ -273,7 +275,13 @@ export default function Home() {
                 }
                 className="create-button"
               >
-                {isSubmitting ? 'Creating your space...' : 'Create my space'}
+                {isSubmitting ? (
+                  <>
+                    <span className="button-spinner"></span>Creating your space
+                  </>
+                ) : (
+                  'Create my space'
+                )}
               </button>
             </div>
           </form>
@@ -339,7 +347,9 @@ export default function Home() {
               {username && (
                 <div className="availability-status">
                   {isChecking ? (
-                    <span className="checking">checking...</span>
+                    <span className="checking">
+                      <span className="spinner"></span>checking
+                    </span>
                   ) : availabilityError ? (
                     <span className="checking">unable to verify</span>
                   ) : isAvailable === true ? (
@@ -359,7 +369,13 @@ export default function Home() {
                 type="submit"
                 disabled={isSubmitting || !isAvailable || isChecking}
               >
-                {isSubmitting ? 'Creating...' : 'Create shared space'}
+                {isSubmitting ? (
+                  <>
+                    <span className="button-spinner"></span>Creating
+                  </>
+                ) : (
+                  'Create shared space'
+                )}
               </button>
             </div>
           </form>
@@ -422,6 +438,50 @@ export default function Home() {
         }
       `}</style>
       <style jsx>{`
+        @keyframes spinner-rotate {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
+        @keyframes dots-pulse {
+          0%, 100% {
+            opacity: 0.4;
+          }
+          50% {
+            opacity: 1;
+          }
+        }
+
+        .spinner {
+          display: inline-block;
+          width: 12px;
+          height: 12px;
+          border: 2px solid var(--color-gray);
+          border-top-color: var(--color-text);
+          border-radius: 50%;
+          animation: spinner-rotate 0.8s linear infinite;
+          margin-right: 6px;
+          vertical-align: -2px;
+        }
+
+        .button-spinner {
+          display: inline-block;
+          width: 4px;
+          height: 4px;
+          border-radius: 50%;
+          background: currentColor;
+          box-shadow:
+            8px 0 0 -2px currentColor,
+            16px 0 0 -2px currentColor;
+          animation: dots-pulse 0.6s ease-in-out infinite;
+          margin-right: 8px;
+          vertical-align: -1px;
+        }
+
         .container {
           padding: 20px;
           font-family: var(--font-mono);
