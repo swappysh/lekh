@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { PublicKeyEncryption } from '../lib/publicKeyEncryption'
 import { supabase } from '../lib/supabase'
+import { DEBOUNCE_DELAY, JSON_CONTENT_TYPE_HEADER } from '../lib/constants'
 
 export default function Home() {
   const [username, setUsername] = useState('')
@@ -43,7 +44,7 @@ export default function Home() {
       setIsChecking(false)
     }
 
-    const timeoutId = setTimeout(checkAvailability, 300)
+    const timeoutId = setTimeout(checkAvailability, DEBOUNCE_DELAY)
     return () => clearTimeout(timeoutId)
   }, [username])
 
@@ -89,9 +90,7 @@ export default function Home() {
 
       const response = await fetch('/api/create-user', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: JSON_CONTENT_TYPE_HEADER,
         body: JSON.stringify({
           username: username.trim(),
           publicKey,
@@ -390,7 +389,7 @@ export default function Home() {
           }
         }
         a {
-          color: #0B57D0;
+          color: var(--color-accent);
           text-decoration: underline;
         }
         a:visited {
