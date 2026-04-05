@@ -66,13 +66,13 @@ export default function PasswordModal({ isOpen, onSubmit, onClose, title = "Ente
           top: 50%;
           left: 50%;
           transform: translate(-50%, -50%);
-          background: #FAFAF7;
+          background: var(--color-bg);
           padding: 30px;
           border-radius: 8px;
           box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
           z-index: 1001;
           min-width: 400px;
-          font-family: monospace;
+          font-family: var(--font-mono);
         }
         .modal-content h2 {
           margin: 0 0 20px 0;
@@ -83,14 +83,14 @@ export default function PasswordModal({ isOpen, onSubmit, onClose, title = "Ente
           padding: 12px;
           border: 1px solid #ddd;
           border-radius: 4px;
-          font-family: monospace;
+          font-family: var(--font-mono);
           font-size: 16px;
           margin-bottom: 20px;
           box-sizing: border-box;
         }
         .password-input:focus {
           outline: none;
-          border-color: #0B57D0;
+          border-color: var(--color-accent);
         }
         .modal-buttons {
           display: flex;
@@ -101,12 +101,12 @@ export default function PasswordModal({ isOpen, onSubmit, onClose, title = "Ente
           padding: 10px 20px;
           border: none;
           border-radius: 4px;
-          font-family: monospace;
+          font-family: var(--font-mono);
           cursor: pointer;
           font-size: 14px;
         }
         .modal-buttons button[type="submit"] {
-          background: #0B57D0;
+          background: var(--color-accent);
           color: white;
         }
         .modal-buttons button[type="submit"]:hover:not(:disabled) {
@@ -126,26 +126,26 @@ export default function PasswordModal({ isOpen, onSubmit, onClose, title = "Ente
         @media (prefers-color-scheme: dark) {
           .modal-content {
             background: #1a1a1a;
-            color: #EDEDED;
+            color: var(--color-text);
           }
           .password-input {
             background: #2a2a2a;
             border-color: #444;
-            color: #EDEDED;
+            color: var(--color-text);
           }
           .password-input:focus {
-            border-color: #8AB4F8;
+            border-color: var(--color-accent);
           }
           .modal-buttons button[type="submit"] {
-            background: #8AB4F8;
-            color: #0B0B0C;
+            background: var(--color-accent);
+            color: var(--color-bg);
           }
           .modal-buttons button[type="submit"]:hover:not(:disabled) {
             background: #A8C7FA;
           }
           .modal-buttons button[type="button"] {
             background: #333;
-            color: #EDEDED;
+            color: var(--color-text);
           }
           .modal-buttons button[type="button"]:hover {
             background: #444;

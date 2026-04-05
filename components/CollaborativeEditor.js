@@ -131,7 +131,7 @@ const CollaborativeEditor = forwardRef(function CollaborativeEditor({
           padding: 10px;
           font-size: 18px;
           line-height: 1.6;
-          font-family: monospace;
+          font-family: var(--font-mono);
           border: none;
           outline: none;
           resize: none;
@@ -150,7 +150,7 @@ const CollaborativeEditor = forwardRef(function CollaborativeEditor({
           padding: 8px 12px;
           border-radius: 16px;
           font-size: 12px;
-          font-family: monospace;
+          font-family: var(--font-mono);
           z-index: 100;
         }
 
@@ -162,7 +162,7 @@ const CollaborativeEditor = forwardRef(function CollaborativeEditor({
         @media (prefers-color-scheme: dark) {
           .active-editors-indicator {
             background: rgba(255, 255, 255, 0.1);
-            color: #EDEDED;
+            color: var(--color-text);
           }
         }
 

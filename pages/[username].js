@@ -6,6 +6,7 @@ import { ShortcutsModal } from '../components/ShortcutsModal'
 import { PublicKeyEncryption } from '../lib/publicKeyEncryption'
 import { CollaborativeDocument } from '../lib/collaborativeDocument'
 import { supabase } from '../lib/supabase'
+import { DEBOUNCE_DELAY, HEALTH_CHECK_INTERVAL, PRIVATE_APPEND_ROUTE, JSON_CONTENT_TYPE_HEADER } from '../lib/constants'
 
 export default function UserPage() {
   const router = useRouter()
@@ -171,11 +172,9 @@ export default function UserPage() {
   }, [username, userExists, isPublic])
 
   const sendPendingPrivateSnapshot = useCallback(async (pendingSnapshot, { keepalive = false } = {}) => {
-    const response = await fetch('/api/private-append', {
+    const response = await fetch(PRIVATE_APPEND_ROUTE, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: JSON_CONTENT_TYPE_HEADER,
       keepalive,
       body: JSON.stringify({
         username,
@@ -257,7 +256,7 @@ export default function UserPage() {
 
     if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
       const queued = navigator.sendBeacon(
-        '/api/private-append',
+        PRIVATE_APPEND_ROUTE,
         new Blob([requestBody], { type: 'application/json' })
       )
       if (queued) {
@@ -265,11 +264,9 @@ export default function UserPage() {
       }
     }
 
-    void fetch('/api/private-append', {
+    void fetch(PRIVATE_APPEND_ROUTE, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: JSON_CONTENT_TYPE_HEADER,
       keepalive: true,
       body: requestBody,
     }).then(async (response) => {
@@ -346,7 +343,7 @@ export default function UserPage() {
           console.log('Connection lost, attempting to reconnect...')
           doc.checkConnectionHealth()
         }
-      }, 30000) // Check every 30 seconds
+      }, HEALTH_CHECK_INTERVAL)
 
       // Store interval ID for cleanup
       doc.healthCheckInterval = healthCheckInterval
@@ -377,7 +374,7 @@ export default function UserPage() {
 
     const timeoutId = setTimeout(() => {
       void preparePendingPrivateSnapshot()
-    }, 300)
+    }, DEBOUNCE_DELAY)
 
     return () => {
       clearTimeout(timeoutId)
@@ -448,7 +445,7 @@ export default function UserPage() {
         <style jsx>{`
           .container {
             padding: 20px;
-            font-family: monospace;
+            font-family: var(--font-mono);
             width: 70vw;
             margin: 0 auto;
           }
@@ -469,19 +466,19 @@ export default function UserPage() {
         <p><a href="/">Create a new user URL</a></p>
         <style jsx global>{`
           body {
-            background: #FAFAF7;
-            color: #111111;
+            background: var(--color-bg);
+            color: var(--color-text);
             font-size: 18px;
             line-height: 1.6;
           }
           @media (prefers-color-scheme: dark) {
             body {
-              background: #0B0B0C;
-              color: #EDEDED;
+              background: var(--color-bg);
+              color: var(--color-text);
             }
           }
           a {
-            color: #0B57D0;
+            color: var(--color-accent);
             text-decoration: underline;
           }
           a:visited {
@@ -489,7 +486,7 @@ export default function UserPage() {
           }
           @media (prefers-color-scheme: dark) {
             a {
-              color: #8AB4F8;
+              color: var(--color-accent);
             }
             a:visited {
               color: #B39DDB;
@@ -499,7 +496,7 @@ export default function UserPage() {
         <style jsx>{`
           .container {
             padding: 20px;
-            font-family: monospace;
+            font-family: var(--font-mono);
             width: 70vw;
             margin: 0 auto;
           }
@@ -559,19 +556,19 @@ export default function UserPage() {
       </button>
       <style jsx global>{`
         body {
-          background: #FAFAF7;
-          color: #111111;
+          background: var(--color-bg);
+          color: var(--color-text);
           font-size: 18px;
           line-height: 1.6;
         }
         @media (prefers-color-scheme: dark) {
           body {
-            background: #0B0B0C;
-            color: #EDEDED;
+            background: var(--color-bg);
+            color: var(--color-text);
           }
         }
         a {
-          color: #0B57D0;
+          color: var(--color-accent);
           text-decoration: underline;
         }
         a:visited {
@@ -579,7 +576,7 @@ export default function UserPage() {
         }
         @media (prefers-color-scheme: dark) {
           a {
-            color: #8AB4F8;
+            color: var(--color-accent);
           }
           a:visited {
             color: #B39DDB;
@@ -589,7 +586,7 @@ export default function UserPage() {
       <style jsx>{`
         .container {
           padding: 20px;
-          font-family: monospace;
+          font-family: var(--font-mono);
           width: 70vw;
           margin: 0 auto;
         }
@@ -661,7 +658,7 @@ export default function UserPage() {
           width: 40px;
           height: 40px;
           border-radius: 50%;
-          background: #0B57D0;
+          background: var(--color-accent);
           color: white;
           border: none;
           font-size: 18px;
@@ -679,8 +676,8 @@ export default function UserPage() {
         }
         @media (prefers-color-scheme: dark) {
           .help-button {
-            background: #8AB4F8;
-            color: #0B0B0C;
+            background: var(--color-accent);
+            color: var(--color-bg);
           }
           .help-button:hover {
             background: #A8C7FA;
