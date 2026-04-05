@@ -107,7 +107,7 @@ export default function Home() {
         setMessage(`Error: ${payload?.error || 'Failed to create URL'}`)
       } else {
         const createdUsername = payload?.username || username.trim()
-        setMessage(`URL created: https://lekh.space/${createdUsername}`)
+        setMessage(`your space is ready → lekh.space/${createdUsername}`)
         setTimeout(() => {
           window.location.href = `/${createdUsername}`
         }, 2000)
@@ -198,13 +198,13 @@ export default function Home() {
               {username && (
                 <div className="availability-status">
                   {isChecking ? (
-                    <span className="checking">⏳ Checking...</span>
+                    <span className="checking">checking...</span>
                   ) : availabilityError ? (
-                    <span className="checking">⚠️ Unable to verify availability</span>
+                    <span className="checking">unable to verify</span>
                   ) : isAvailable === true ? (
-                    <span className="available">✅ Available</span>
+                    <span className="available">available</span>
                   ) : isAvailable === false ? (
-                    <span className="unavailable">❌ Already taken</span>
+                    <span className="unavailable">taken</span>
                   ) : null}
                 </div>
               )}
@@ -229,9 +229,11 @@ export default function Home() {
                   {getPasswordStrength(password) === 'strong' && '✓ Strong password'}
                 </div>
               )}
-              <div className="password-hint">
-                If you forget this password, your writing is lost forever. No password reset available.
-              </div>
+              {password && (
+                <div className="password-hint">
+                  No password reset. Forget it and your writing is gone.
+                </div>
+              )}
               {password && getPasswordStrength(password) === 'weak' && (
                 <div className="risk-acknowledgment">
                   <label>
@@ -321,13 +323,13 @@ export default function Home() {
               {username && (
                 <div className="availability-status">
                   {isChecking ? (
-                    <span className="checking">⏳ Checking...</span>
+                    <span className="checking">checking...</span>
                   ) : availabilityError ? (
-                    <span className="checking">⚠️ Unable to verify availability</span>
+                    <span className="checking">unable to verify</span>
                   ) : isAvailable === true ? (
-                    <span className="available">✅ Available</span>
+                    <span className="available">available</span>
                   ) : isAvailable === false ? (
-                    <span className="unavailable">❌ Already taken</span>
+                    <span className="unavailable">taken</span>
                   ) : null}
                 </div>
               )}
@@ -626,7 +628,7 @@ export default function Home() {
         .password-hint {
           margin-top: 8px;
           font-size: 13px;
-          color: #dc3545;
+          color: #999;
           line-height: 1.4;
         }
 
@@ -805,7 +807,7 @@ export default function Home() {
           }
 
         .password-hint {
-          color: #ff8a80;
+          color: #777;
         }
 
         .password-strength.weak {

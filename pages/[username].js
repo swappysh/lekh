@@ -26,6 +26,7 @@ export default function UserPage() {
   const [collaborativeDoc, setCollaborativeDoc] = useState(null)
   const [activeEditors, setActiveEditors] = useState([])
   const [collaborativeContent, setCollaborativeContent] = useState('')
+  const [saveStatus, setSaveStatus] = useState('idle')
 
   useEffect(() => {
     contentRef.current = content
@@ -207,13 +208,23 @@ export default function UserPage() {
     }
 
     isSavingRef.current = true
+    setSaveStatus('saving')
     try {
       const pendingSnapshot = await preparePendingPrivateSnapshot()
       if (!pendingSnapshot) {
         return false
       }
 
-      return await sendPendingPrivateSnapshot(pendingSnapshot, { keepalive })
+      const success = await sendPendingPrivateSnapshot(pendingSnapshot, { keepalive })
+
+      if (success) {
+        setSaveStatus('saved')
+        setTimeout(() => {
+          setSaveStatus('idle')
+        }, 3000)
+      }
+
+      return success
     } catch (error) {
       console.error('Failed to append private snapshot:', error)
       return false
@@ -505,6 +516,9 @@ export default function UserPage() {
         <h1>{username}</h1>
         <span className="header-separator">·</span>
         <a href={`/${username}/all`} className="header-link">all entries</a>
+        {!isPublic && saveStatus !== 'idle' && (
+          <span className="save-status">{saveStatus === 'saving' ? 'saving...' : 'saved'}</span>
+        )}
       </div>
       {isPublic && activeEditors.length > 0 && (
         <div className="collaboration-hint">
@@ -593,18 +607,26 @@ export default function UserPage() {
         }
         .header-link {
           font-size: 16px;
-          color: #666;
-          text-decoration: none;
+          color: #555;
+          text-decoration: underline;
         }
         .header-link:hover {
           text-decoration: underline;
+        }
+        .save-status {
+          font-size: 12px;
+          color: #999;
+          margin-left: auto;
         }
         @media (prefers-color-scheme: dark) {
           .header-separator {
             color: #666;
           }
           .header-link {
-            color: #999;
+            color: #aaa;
+          }
+          .save-status {
+            color: #666;
           }
         }
         .collaboration-hint {
