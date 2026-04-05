@@ -23,10 +23,10 @@ describe('Home Page', () => {
 
   test('renders home page with title and form', () => {
     render(<Home />)
-    
+
     expect(screen.getByText('lekh.space/[username]')).toBeInTheDocument()
     expect(screen.getByPlaceholderText('[username]')).toBeInTheDocument()
-    expect(screen.getByText('[create →]')).toBeInTheDocument()
+    expect(screen.getByText('Create my space')).toBeInTheDocument()
   })
 
   test('updates username input when typing', async () => {
@@ -102,15 +102,15 @@ describe('Home Page', () => {
         eq: jest.fn(() => Promise.resolve({ data: [{ username: 'taken' }], error: null }))
       }))
     }))
-    
+
     const user = userEvent.setup()
     render(<Home />)
-    
+
     const input = screen.getByPlaceholderText('[username]')
     await user.type(input, 'taken')
-    
+
     await waitFor(() => {
-      const submitButton = screen.getByText('[create →]')
+      const submitButton = screen.getByText('Create my space')
       expect(submitButton).toBeDisabled()
     })
   })
@@ -129,23 +129,23 @@ describe('Home Page', () => {
       ok: true,
       json: jest.fn(() => Promise.resolve({ username: 'newuser' }))
     })
-    
+
     const user = userEvent.setup()
     render(<Home />)
-    
+
     const usernameInput = screen.getByPlaceholderText('[username]')
     await user.type(usernameInput, 'newuser')
-    
-    const passwordInput = screen.getByPlaceholderText('[••••••••]')
+
+    const passwordInput = screen.getByPlaceholderText('at least 8 characters')
     await user.type(passwordInput, 'SecurePassword123')
-    
+
     await waitFor(() => {
       expect(screen.getByText('available')).toBeInTheDocument()
     })
-    
-    const submitButton = screen.getByText('[create →]')
+
+    const submitButton = screen.getByText('Create my space')
     await user.click(submitButton)
-    
+
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith('/api/create-user', expect.objectContaining({
         method: 'POST'
@@ -177,23 +177,23 @@ describe('Home Page', () => {
       ok: false,
       json: jest.fn(() => Promise.resolve({ error: 'Database error' }))
     })
-    
+
     const user = userEvent.setup()
     render(<Home />)
-    
+
     const usernameInput = screen.getByPlaceholderText('[username]')
     await user.type(usernameInput, 'erroruser')
-    
-    const passwordInput = screen.getByPlaceholderText('[••••••••]')
+
+    const passwordInput = screen.getByPlaceholderText('at least 8 characters')
     await user.type(passwordInput, 'SecurePassword123')
-    
+
     await waitFor(() => {
       expect(screen.getByText('available')).toBeInTheDocument()
     })
-    
-    const submitButton = screen.getByText('[create →]')
+
+    const submitButton = screen.getByText('Create my space')
     await user.click(submitButton)
-    
+
     await waitFor(() => {
       expect(screen.getByText('Error: Unable to create your space. Please try again.')).toBeInTheDocument()
     })
@@ -215,14 +215,14 @@ describe('Home Page', () => {
     render(<Home />)
 
     // Should start with private flow
-    expect(screen.getByPlaceholderText('[••••••••]')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('at least 8 characters')).toBeInTheDocument()
 
     // Click the secondary action to switch to public flow
     const publicButton = screen.getByText('Create a shared writing space →')
     await user.click(publicButton)
 
     // Password field should be hidden in public flow
-    expect(screen.queryByPlaceholderText('[••••••••]')).not.toBeInTheDocument()
+    expect(screen.queryByPlaceholderText('at least 8 characters')).not.toBeInTheDocument()
     expect(screen.getByText('Create a shared writing space')).toBeInTheDocument()
   })
 
