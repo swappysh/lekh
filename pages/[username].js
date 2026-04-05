@@ -482,14 +482,14 @@ export default function UserPage() {
             text-decoration: underline;
           }
           a:visited {
-            color: #6B4FD3;
+            color: var(--color-link-visited);
           }
           @media (prefers-color-scheme: dark) {
             a {
               color: var(--color-accent);
             }
             a:visited {
-              color: #B39DDB;
+              color: var(--color-link-visited-dark);
             }
           }
         `}</style>
@@ -572,14 +572,14 @@ export default function UserPage() {
           text-decoration: underline;
         }
         a:visited {
-          color: #6B4FD3;
+          color: var(--color-link-visited);
         }
         @media (prefers-color-scheme: dark) {
           a {
             color: var(--color-accent);
           }
           a:visited {
-            color: #B39DDB;
+            color: var(--color-link-visited-dark);
           }
         }
       `}</style>
@@ -600,11 +600,11 @@ export default function UserPage() {
           margin: 0;
         }
         .header-separator {
-          color: #999;
+          color: var(--color-gray);
         }
         .header-link {
           font-size: 16px;
-          color: #555;
+          color: var(--color-gray-darkest);
           text-decoration: underline;
         }
         .header-link:hover {
@@ -612,29 +612,29 @@ export default function UserPage() {
         }
         .save-status {
           font-size: 12px;
-          color: #999;
+          color: var(--color-gray);
           margin-left: auto;
         }
         @media (prefers-color-scheme: dark) {
           .header-separator {
-            color: #666;
+            color: var(--color-gray-darker);
           }
           .header-link {
-            color: #aaa;
+            color: var(--color-gray-lighter);
           }
           .save-status {
-            color: #666;
+            color: var(--color-gray-darker);
           }
         }
         .collaboration-hint {
           font-size: 14px;
-          color: #666;
+          color: var(--color-gray-darker);
           margin-bottom: 10px;
           font-weight: normal;
         }
         @media (prefers-color-scheme: dark) {
           .collaboration-hint {
-            color: #999;
+            color: var(--color-gray);
           }
         }
         .stats {
@@ -642,13 +642,13 @@ export default function UserPage() {
           bottom: 20px;
           left: 20px;
           font-size: 12px;
-          color: #999;
+          color: var(--color-gray);
           display: flex;
           gap: 20px;
         }
         @media (prefers-color-scheme: dark) {
           .stats {
-            color: #666;
+            color: var(--color-gray-darker);
           }
         }
         .help-button {
@@ -671,7 +671,7 @@ export default function UserPage() {
           z-index: 100;
         }
         .help-button:hover {
-          background: #0842a0;
+          background: var(--color-accent-dark);
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
         @media (prefers-color-scheme: dark) {
@@ -680,7 +680,7 @@ export default function UserPage() {
             color: var(--color-bg);
           }
           .help-button:hover {
-            background: #a8c7fa;
+            background: var(--color-accent-light);
           }
         }
       `}</style>

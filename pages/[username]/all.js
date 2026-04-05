@@ -169,14 +169,14 @@ export default function AllEntriesPage() {
             text-decoration: underline;
           }
           a:visited {
-            color: #6B4FD3;
+            color: var(--color-link-visited);
           }
           @media (prefers-color-scheme: dark) {
             a {
               color: var(--color-accent);
             }
             a:visited {
-              color: #B39DDB;
+              color: var(--color-link-visited-dark);
             }
           }
         `}</style>
@@ -266,14 +266,14 @@ export default function AllEntriesPage() {
           text-decoration: underline;
         }
         a:visited {
-          color: #6B4FD3;
+          color: var(--color-link-visited);
         }
         @media (prefers-color-scheme: dark) {
           a {
             color: var(--color-accent);
           }
           a:visited {
-            color: #B39DDB;
+            color: var(--color-link-visited-dark);
           }
         }
       `}</style>
@@ -288,17 +288,17 @@ export default function AllEntriesPage() {
         .page-header {
           font-size: 16px;
           margin-bottom: 40px;
-          color: #666;
+          color: var(--color-gray-darker);
         }
         .header-username {
           color: var(--color-text);
           font-weight: bold;
         }
         .header-separator {
-          color: #999;
+          color: var(--color-gray);
         }
         .header-section {
-          color: #666;
+          color: var(--color-gray-darker);
         }
         .password-prompt {
           max-width: 400px;
@@ -322,7 +322,7 @@ export default function AllEntriesPage() {
         .prompt-group input {
           width: 100%;
           padding: 12px;
-          border: 1px solid #ccc;
+          border: 1px solid var(--color-border);
           border-radius: 4px;
           font-family: var(--font-mono);
           font-size: 16px;
@@ -346,11 +346,11 @@ export default function AllEntriesPage() {
           margin-bottom: 20px;
         }
         .unlock-button:hover {
-          background: #333;
+          background: var(--color-gray-text);
         }
         .warning-text {
           font-size: 14px;
-          color: #dc3545;
+          color: var(--color-error);
           margin: 0;
         }
         .header {
@@ -372,7 +372,7 @@ export default function AllEntriesPage() {
           gap: 30px;
         }
         .entry {
-          border-bottom: 1px solid #ddd;
+          border-bottom: 1px solid var(--color-border-light);
           padding-bottom: 20px;
         }
         .entry:last-child {
@@ -383,7 +383,7 @@ export default function AllEntriesPage() {
         }
         .entry-date {
           font-size: 14px;
-          color: #666;
+          color: var(--color-gray-darker);
           font-weight: bold;
         }
         .entry-content {
@@ -392,23 +392,23 @@ export default function AllEntriesPage() {
         }
         @media (prefers-color-scheme: dark) {
           .entry {
-            border-bottom: 1px solid #333;
+            border-bottom: 1px solid var(--color-border-light);
           }
           .entry-date {
-            color: #999;
+            color: var(--color-gray);
           }
           .page-header {
-            color: #999;
+            color: var(--color-gray);
           }
           .header-username {
-            color: #EDEDED;
+            color: var(--color-text);
           }
           .prompt-title {
-            color: #EDEDED;
+            color: var(--color-text);
           }
           .prompt-group input {
-            background: #1a1a1a;
-            border-color: #555;
+            background: var(--color-surface-dark);
+            border-color: var(--color-border);
             color: white;
           }
           .prompt-group input:focus {
@@ -423,7 +423,7 @@ export default function AllEntriesPage() {
             background: var(--color-text);
           }
           .warning-text {
-            color: #ff6b6b;
+            color: var(--color-error);
           }
         }
       `}</style>

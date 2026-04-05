@@ -132,7 +132,7 @@ export default function DemoPage() {
         .demo-badge {
           display: inline-block;
           padding: 4px 12px;
-          background: #ffc107;
+          background: var(--color-warning);
           color: #000;
           border-radius: 4px;
           font-size: 12px;
@@ -153,7 +153,7 @@ export default function DemoPage() {
         }
 
         .create-account-link:hover {
-          background: #0842a0;
+          background: var(--color-accent-dark);
           transform: translateY(-1px);
           box-shadow: 0 2px 4px rgba(var(--color-accent-rgb), 0.3);
         }
@@ -162,12 +162,12 @@ export default function DemoPage() {
           margin-top: 20px;
           text-align: center;
           font-size: 14px;
-          color: #666;
+          color: var(--color-gray-darker);
         }
 
         @media (prefers-color-scheme: dark) {
           .demo-badge {
-            background: #ffd93d;
+            background: var(--color-warning-dark);
             color: var(--color-bg);
           }
 
@@ -177,12 +177,12 @@ export default function DemoPage() {
           }
 
           .create-account-link:hover {
-            background: #a8c7fa;
+            background: var(--color-accent-light);
             box-shadow: 0 2px 4px rgba(var(--color-accent-rgb), 0.3);
           }
 
           .help-text {
-            color: #999;
+            color: var(--color-gray);
           }
         }
       `}</style>

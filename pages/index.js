@@ -410,14 +410,14 @@ export default function Home() {
           text-decoration: underline;
         }
         a:visited {
-          color: #6B4FD3;
+          color: var(--color-link-visited);
         }
         @media (prefers-color-scheme: dark) {
           a {
             color: var(--color-accent);
           }
           a:visited {
-            color: #B39DDB;
+            color: var(--color-link-visited-dark);
           }
         }
       `}</style>
@@ -450,8 +450,8 @@ export default function Home() {
         }
 
         .demo-button:hover {
-          background: #0842a0;
-          border-color: #0842a0;
+          background: var(--color-accent-dark);
+          border-color: var(--color-accent-dark);
           transform: translateY(-1px);
           box-shadow: 0 4px 8px rgba(var(--color-accent-rgb), 0.3);
         }
@@ -473,35 +473,35 @@ export default function Home() {
           right: 0;
           top: 50%;
           height: 1px;
-          background: #ddd;
+          background: var(--color-border-light);
         }
 
         .divider span {
           background: var(--color-bg);
           padding: 0 20px;
           position: relative;
-          color: #999;
+          color: var(--color-gray);
           font-size: 14px;
         }
 
         .secondary-action {
           width: 100%;
           padding: 16px 24px;
-          border: 1px solid #ccc;
+          border: 1px solid var(--color-border);
           border-radius: 4px;
           background: transparent;
           cursor: pointer;
           font-family: var(--font-mono);
           font-size: 16px;
           text-align: center;
-          color: #666;
+          color: var(--color-gray-darker);
           transition: all 0.2s;
         }
 
         .secondary-action:hover {
-          background: #f5f5f5;
-          color: #333;
-          border-color: #999;
+          background: var(--color-gray-light);
+          color: var(--color-gray-text);
+          border-color: var(--color-gray);
         }
 
         .back-link {
@@ -509,7 +509,7 @@ export default function Home() {
           padding: 8px 0;
           background: none;
           border: none;
-          color: #666;
+          color: var(--color-gray-darker);
           cursor: pointer;
           font-family: var(--font-mono);
           font-size: 14px;
@@ -517,7 +517,7 @@ export default function Home() {
         }
 
         .back-link:hover {
-          color: #333;
+          color: var(--color-gray-text);
         }
 
         .input-group {
@@ -530,15 +530,15 @@ export default function Home() {
         }
 
         .available {
-          color: #28a745;
+          color: var(--color-success);
         }
 
         .unavailable {
-          color: #dc3545;
+          color: var(--color-error);
         }
 
         .checking {
-          color: #6c757d;
+          color: var(--color-gray);
         }
 
         label {
@@ -551,7 +551,7 @@ export default function Home() {
           display: flex;
           align-items: center;
           font-size: 16px;
-          border: 1px solid #ccc;
+          border: 1px solid var(--color-border);
           border-radius: 4px;
           overflow: hidden;
           min-height: 48px;
@@ -560,7 +560,7 @@ export default function Home() {
         .username-input {
           width: 100%;
           padding: 14px 12px;
-          border: 1px solid #ccc;
+          border: 1px solid var(--color-border);
           border-radius: 4px;
           font-family: var(--font-mono);
           font-size: 16px;
@@ -622,7 +622,7 @@ export default function Home() {
         input[type="password"] {
           width: 100%;
           padding: 14px 12px;
-          border: 1px solid #ccc;
+          border: 1px solid var(--color-border);
           border-radius: 4px;
           font-family: var(--font-mono);
           font-size: 16px;
@@ -644,7 +644,7 @@ export default function Home() {
         .password-hint {
           margin-top: 8px;
           font-size: 13px;
-          color: #999;
+          color: var(--color-gray);
           line-height: 1.4;
         }
 
@@ -655,22 +655,22 @@ export default function Home() {
         }
 
         .password-strength.weak {
-          color: #dc3545;
+          color: var(--color-error);
         }
 
         .password-strength.okay {
-          color: #ffc107;
+          color: var(--color-warning);
         }
 
         .password-strength.strong {
-          color: #28a745;
+          color: var(--color-success);
         }
 
         .risk-acknowledgment {
           margin-top: 12px;
           padding: 12px;
-          background: #fff3cd;
-          border: 1px solid #ffc107;
+          background: var(--color-warning-bg);
+          border: 1px solid var(--color-warning-border);
           border-radius: 4px;
         }
 
@@ -694,7 +694,7 @@ export default function Home() {
 
         button {
           padding: 12px 24px;
-          border: 1px solid #ccc;
+          border: 1px solid var(--color-border);
           border-radius: 4px;
           background: white;
           cursor: pointer;
@@ -702,7 +702,7 @@ export default function Home() {
         }
 
         button:hover:not(:disabled) {
-          background: #f5f5f5;
+          background: var(--color-gray-light);
         }
 
         button:disabled {
@@ -717,15 +717,15 @@ export default function Home() {
         }
 
         .message.success {
-          background: #d4edda;
-          border: 1px solid #c3e6cb;
-          color: #155724;
+          background: var(--color-success-bg);
+          border: 1px solid var(--color-success-border);
+          color: var(--color-success-text);
         }
 
         .message.error {
-          background: #f8d7da;
-          border: 1px solid #f5c6cb;
-          color: #721c24;
+          background: var(--color-error-bg);
+          border: 1px solid var(--color-error-border);
+          color: var(--color-error-text);
         }
 
         .help {
@@ -738,52 +738,52 @@ export default function Home() {
 
         .help p {
           margin: 0 0 10px 0;
-          color: #555;
+          color: var(--color-gray-darkest);
           line-height: 1.6;
         }
 
         @media (prefers-color-scheme: dark) {
           .url-preview {
-            border-color: #555;
+            border-color: var(--color-border);
           }
 
           button {
-            background: #2a2a2a;
-            border-color: #555;
+            background: var(--color-surface-darkest);
+            border-color: var(--color-border);
             color: white;
           }
 
           button:hover:not(:disabled) {
-            background: #3a3a3a;
+            background: var(--color-surface-darker);
           }
-          
+
           .message.success {
-            background: #155724;
-            border-color: #0f4419;
-            color: #d4edda;
+            background: var(--color-success-bg);
+            border-color: var(--color-success-border);
+            color: var(--color-success-text);
           }
-          
+
           .message.error {
-            background: #721c24;
-            border-color: #5a1a1f;
-            color: #f8d7da;
+            background: var(--color-error-bg);
+            border-color: var(--color-error-border);
+            color: var(--color-error-text);
           }
 
           .available {
-            color: #40d865;
+            color: var(--color-success);
           }
 
           .unavailable {
-            color: #ff6b6b;
+            color: var(--color-error);
           }
 
           .checking {
-            color: #adb5bd;
+            color: var(--color-gray-dark);
           }
 
           input[type="password"] {
-            background: #1a1a1a;
-            border-color: #444;
+            background: var(--color-surface-dark);
+            border-color: var(--color-gray-text-alt);
             color: white;
           }
 
@@ -795,8 +795,8 @@ export default function Home() {
           }
 
           .username-input {
-            background: #1a1a1a;
-            border-color: #444;
+            background: var(--color-surface-dark);
+            border-color: var(--color-gray-text-alt);
             color: white;
           }
 
@@ -819,32 +819,32 @@ export default function Home() {
           }
 
           .help p {
-            color: #cccccc;
+            color: var(--color-gray-text);
           }
 
         .password-hint {
-          color: #777;
+          color: var(--color-gray-dark);
         }
 
         .password-strength.weak {
-          color: #ff6b6b;
+          color: var(--color-error);
         }
 
         .password-strength.okay {
-          color: #ffd93d;
+          color: var(--color-warning);
         }
 
         .password-strength.strong {
-          color: #40d865;
+          color: var(--color-success);
         }
 
         .risk-acknowledgment {
-          background: #3a3a2a;
-          border-color: #ffd93d;
+          background: var(--color-warning-bg);
+          border-color: var(--color-warning-border);
         }
 
         .divider::before {
-          background: #555;
+          background: var(--color-border);
         }
 
         .divider span {
@@ -853,22 +853,22 @@ export default function Home() {
 
           .secondary-action {
             background: transparent;
-            border-color: #555;
-            color: #999;
+            border-color: var(--color-border);
+            color: var(--color-gray);
           }
 
           .secondary-action:hover {
-            background: #222;
-            color: #ededed;
-            border-color: #777;
+            background: var(--color-surface-darker);
+            color: var(--color-text);
+            border-color: var(--color-gray-dark);
           }
 
         .back-link {
-          color: #999;
+          color: var(--color-gray);
         }
 
         .back-link:hover {
-          color: #ededed;
+          color: var(--color-text);
         }
 
         .demo-button {
@@ -878,8 +878,8 @@ export default function Home() {
         }
 
         .demo-button:hover {
-          background: #a8c7fa;
-          border-color: #a8c7fa;
+          background: var(--color-accent-light);
+          border-color: var(--color-accent-light);
           box-shadow: 0 4px 8px rgba(var(--color-accent-rgb), 0.3);
         }
       }

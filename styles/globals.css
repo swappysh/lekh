@@ -3,6 +3,46 @@
   --color-text: #111111;
   --color-accent: #0B57D0;
   --color-accent-rgb: 11, 87, 208;
+  --color-accent-dark: #0842a0;
+  --color-accent-light: #a8c7fa;
+
+  /* Gray scale */
+  --color-border: #ccc;
+  --color-border-light: #ddd;
+  --color-gray-light: #f5f5f5;
+  --color-gray-lighter: #aaa;
+  --color-gray: #999;
+  --color-gray-dark: #777;
+  --color-gray-darker: #666;
+  --color-gray-darkest: #555;
+  --color-gray-text: #333;
+  --color-gray-text-alt: #444;
+  --color-surface-dark: #1a1a1a;
+  --color-surface-darker: #222;
+  --color-surface-darkest: #2a2a2a;
+
+  /* Status colors */
+  --color-success: #28a745;
+  --color-success-dark: #40d865;
+  --color-error: #dc3545;
+  --color-error-dark: #ff6b6b;
+  --color-warning: #ffc107;
+  --color-warning-dark: #ffd93d;
+
+  /* Link colors */
+  --color-link-visited: #6B4FD3;
+  --color-link-visited-dark: #B39DDB;
+
+  /* Message backgrounds */
+  --color-success-bg: #d4edda;
+  --color-success-border: #c3e6cb;
+  --color-success-text: #155724;
+  --color-error-bg: #f8d7da;
+  --color-error-border: #f5c6cb;
+  --color-error-text: #721c24;
+  --color-warning-bg: #fff3cd;
+  --color-warning-border: #ffc107;
+
   --font-mono: monospace;
 }
 
@@ -12,6 +52,39 @@
     --color-text: #EDEDED;
     --color-accent: #8AB4F8;
     --color-accent-rgb: 138, 180, 248;
+
+    /* Gray scale overrides for dark mode */
+    --color-border: #555;
+    --color-border-light: #333;
+    --color-gray-light: #222;
+    --color-gray-lighter: #777;
+    --color-gray: #666;
+    --color-gray-dark: #999;
+    --color-gray-darker: #999;
+    --color-gray-darkest: #444;
+    --color-gray-text: #cccccc;
+    --color-gray-text-alt: #444;
+    --color-surface-dark: #222;
+    --color-surface-darker: #1a1a1a;
+    --color-surface-darkest: #3a3a3a;
+
+    /* Status colors for dark mode */
+    --color-success: #40d865;
+    --color-success-dark: #40d865;
+    --color-error: #ff6b6b;
+    --color-error-dark: #ff6b6b;
+    --color-warning: #ffd93d;
+    --color-warning-dark: #ffd93d;
+
+    /* Message backgrounds for dark mode */
+    --color-success-bg: #155724;
+    --color-success-border: #0f4419;
+    --color-success-text: #d4edda;
+    --color-error-bg: #721c24;
+    --color-error-border: #5a1a1f;
+    --color-error-text: #f8d7da;
+    --color-warning-bg: #3a3a2a;
+    --color-warning-border: #ffd93d;
   }
 }
 
