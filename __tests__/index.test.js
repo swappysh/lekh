@@ -53,7 +53,7 @@ describe('Home Page', () => {
     await user.type(input, 'available')
     
     await waitFor(() => {
-      expect(screen.getByText('✅ Available')).toBeInTheDocument()
+      expect(screen.getByText('available')).toBeInTheDocument()
     })
   })
 
@@ -63,15 +63,15 @@ describe('Home Page', () => {
         eq: jest.fn(() => Promise.resolve({ data: [{ username: 'taken' }], error: null }))
       }))
     }))
-    
+
     const user = userEvent.setup()
     render(<Home />)
-    
+
     const input = screen.getByPlaceholderText('[username]')
     await user.type(input, 'taken')
-    
+
     await waitFor(() => {
-      expect(screen.getByText('❌ Already taken')).toBeInTheDocument()
+      expect(screen.getByText('taken')).toBeInTheDocument()
     })
   })
 
@@ -140,7 +140,7 @@ describe('Home Page', () => {
     await user.type(passwordInput, 'SecurePassword123')
     
     await waitFor(() => {
-      expect(screen.getByText('✅ Available')).toBeInTheDocument()
+      expect(screen.getByText('available')).toBeInTheDocument()
     })
     
     const submitButton = screen.getByText('[create →]')
@@ -150,7 +150,7 @@ describe('Home Page', () => {
       expect(global.fetch).toHaveBeenCalledWith('/api/create-user', expect.objectContaining({
         method: 'POST'
       }))
-      expect(screen.getByText(/URL created: https:\/\/lekh\.space\/newuser/)).toBeInTheDocument()
+      expect(screen.getByText(/your space is ready → lekh\.space\/newuser/)).toBeInTheDocument()
     })
 
     const requestBody = JSON.parse(global.fetch.mock.calls[0][1].body)
@@ -188,7 +188,7 @@ describe('Home Page', () => {
     await user.type(passwordInput, 'SecurePassword123')
     
     await waitFor(() => {
-      expect(screen.getByText('✅ Available')).toBeInTheDocument()
+      expect(screen.getByText('available')).toBeInTheDocument()
     })
     
     const submitButton = screen.getByText('[create →]')
@@ -250,7 +250,7 @@ describe('Home Page', () => {
     await user.type(usernameInput, 'publicuser')
 
     await waitFor(() => {
-      expect(screen.getByText('✅ Available')).toBeInTheDocument()
+      expect(screen.getByText('available')).toBeInTheDocument()
     })
 
     const submitButton = screen.getByText('Create shared space')
@@ -261,7 +261,7 @@ describe('Home Page', () => {
       expect(global.fetch).toHaveBeenCalledWith('/api/create-user', expect.objectContaining({
         method: 'POST'
       }))
-      expect(screen.getByText(/URL created: https:\/\/lekh\.space\/publicuser/)).toBeInTheDocument()
+      expect(screen.getByText(/your space is ready → lekh\.space\/publicuser/)).toBeInTheDocument()
     })
 
     const requestBody = JSON.parse(global.fetch.mock.calls[0][1].body)
