@@ -15,23 +15,37 @@ export default function Home() {
   const [acknowledgedRisk, setAcknowledgedRisk] = useState(false)
   const [isGeneratingUsername, setIsGeneratingUsername] = useState(false)
   const [submissionStage, setSubmissionStage] = useState(null) // 'encrypting' | 'checking' | 'creating' | 'success' | null
+  const [checkingTakingLong, setCheckingTakingLong] = useState(false)
 
-  // Check username availability with debounce
+  // Check username availability with debounce and timeout fallback
   useEffect(() => {
     if (!username.trim()) {
       setIsAvailable(null)
       setAvailabilityError(false)
+      setCheckingTakingLong(false)
       return
     }
 
     const checkAvailability = async () => {
       setIsChecking(true)
+      setCheckingTakingLong(false)
+      let completed = false
+
+      // Set timeout to show "taking longer than expected" message after 5 seconds
+      const timeoutWarningId = setTimeout(() => {
+        if (!completed) {
+          setCheckingTakingLong(true)
+        }
+      }, 5000)
+
       try {
         const { data, error } = await supabase
           .from('users')
           .select('username')
           .eq('username', username.trim())
 
+        completed = true
+        clearTimeout(timeoutWarningId)
         if (error) {
           setIsAvailable(null)
           setAvailabilityError(true)
@@ -39,9 +53,13 @@ export default function Home() {
           setIsAvailable(!data || data.length === 0)
           setAvailabilityError(false)
         }
+        setCheckingTakingLong(false)
       } catch (err) {
+        completed = true
+        clearTimeout(timeoutWarningId)
         setIsAvailable(null)
         setAvailabilityError(true)
+        setCheckingTakingLong(false)
       }
       setIsChecking(false)
     }
