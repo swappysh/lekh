@@ -992,12 +992,14 @@ export default function Home() {
           .message.success {
             background: var(--color-success-bg);
             border-color: var(--color-success-border);
+            border-left-color: var(--color-success);
             color: var(--color-success-text);
           }
 
           .message.error {
             background: var(--color-error-bg);
             border-color: var(--color-error-border);
+            border-left-color: var(--color-error);
             color: var(--color-error-text);
           }
 
@@ -1045,6 +1047,12 @@ export default function Home() {
             border: 2px solid #ffffff !important;
           }
 
+          .create-button:disabled {
+            opacity: 1;
+            cursor: not-allowed;
+            animation: button-pulse 1.5s ease-in-out infinite;
+          }
+
           .create-button:hover:not(:disabled) {
             background: #222222 !important;
             border-color: #ffffff !important;
@@ -1060,14 +1068,21 @@ export default function Home() {
 
         .password-strength.weak {
           color: var(--color-error);
+          border-left-color: var(--color-error);
+          background-color: rgba(255, 107, 107, 0.1);
+          animation: pulse-bg 1.5s ease-in-out infinite;
         }
 
         .password-strength.okay {
           color: var(--color-warning);
+          border-left-color: var(--color-warning);
+          background-color: rgba(255, 217, 61, 0.1);
         }
 
         .password-strength.strong {
           color: var(--color-success);
+          border-left-color: var(--color-success);
+          background-color: rgba(64, 216, 101, 0.1);
         }
 
         .risk-acknowledgment {
