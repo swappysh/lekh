@@ -700,6 +700,15 @@ export default function UserPage() {
             font-size: 12px;
           }
         }
+        /* Reduced motion support - disable animations for accessibility */
+        @media (prefers-reduced-motion: reduce) {
+          .save-status-indicator {
+            animation: none;
+          }
+          .save-status-indicator.save-status-saving .save-status-icon {
+            animation: none;
+          }
+        }
         .collaboration-hint {
           font-size: 14px;
           color: var(--color-gray-darker);
@@ -725,12 +734,19 @@ export default function UserPage() {
             color: var(--color-gray-darker);
           }
         }
+        @media (max-width: 480px) {
+          .stats {
+            font-size: 11px;
+            gap: 12px;
+            bottom: 70px;
+          }
+        }
         .help-button {
           position: fixed;
           bottom: 20px;
           right: 20px;
-          width: 40px;
-          height: 40px;
+          width: 44px;
+          height: 44px;
           border-radius: 50%;
           background: var(--color-accent);
           color: white;
@@ -743,10 +759,22 @@ export default function UserPage() {
           align-items: center;
           justify-content: center;
           z-index: 100;
+          transition: all 0.2s ease;
+          touch-action: manipulation;
         }
         .help-button:hover {
           background: var(--color-accent-dark);
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        .help-button:active {
+          transform: scale(0.95);
+        }
+        @media (max-width: 480px) {
+          .help-button {
+            width: 48px;
+            height: 48px;
+            font-size: 20px;
+          }
         }
         @media (prefers-color-scheme: dark) {
           .help-button {

@@ -221,10 +221,11 @@ export default function Home() {
                 className="username-input"
               />
               {username && (
-                <div className="availability-indicator" aria-live="polite">
+                <div className="availability-indicator" aria-live="polite" aria-atomic="true">
                   {isChecking ? (
                     <span className="checking">
-                      <span className="spinner"></span>○ checking
+                      <span className="spinner"></span>
+                      {checkingTakingLong ? 'checking... (taking longer than expected)' : 'checking...'}
                     </span>
                   ) : availabilityError ? (
                     <span className="checking">unable to verify</span>
@@ -362,10 +363,11 @@ export default function Home() {
                 />
               </div>
               {username && (
-                <div className="availability-indicator" aria-live="polite">
+                <div className="availability-indicator" aria-live="polite" aria-atomic="true">
                   {isChecking ? (
                     <span className="checking">
-                      <span className="spinner"></span>○ checking
+                      <span className="spinner"></span>
+                      {checkingTakingLong ? 'checking... (taking longer than expected)' : 'checking...'}
                     </span>
                   ) : availabilityError ? (
                     <span className="checking">unable to verify</span>
@@ -517,6 +519,16 @@ export default function Home() {
           }
         }
 
+        /* Reduced motion support - Phase 6 accessibility */
+        @media (prefers-reduced-motion: reduce) {
+          .spinner,
+          .button-spinner,
+          .progress-indicator {
+            animation: none;
+            opacity: 1;
+          }
+        }
+
         .spinner {
           display: inline-block;
           width: 16px;
@@ -662,9 +674,10 @@ export default function Home() {
         .availability-indicator {
           margin-top: 8px;
           font-size: 13px;
+          padding: 8px 12px;
           padding-left: 8px;
           border-left: 4px solid transparent;
-          min-height: 20px;
+          min-height: 44px;
           display: flex;
           align-items: center;
           font-family: var(--font-mono);
@@ -676,16 +689,35 @@ export default function Home() {
           color: var(--color-accent);
           border-left-color: var(--color-accent);
           animation: spinner-pulse 0.8s ease-in-out infinite;
+          min-height: 44px;
+          padding: 12px 0;
         }
 
         .availability-indicator .available {
           color: var(--color-success);
           border-left-color: var(--color-success);
+          min-height: 44px;
+          padding: 12px 0;
+          display: flex;
+          align-items: center;
         }
 
         .availability-indicator .unavailable {
           color: var(--color-error);
           border-left-color: var(--color-error);
+          min-height: 44px;
+          padding: 12px 0;
+          display: flex;
+          align-items: center;
+        }
+
+        /* Reduced motion: disable animations for checking indicator */
+        @media (prefers-reduced-motion: reduce) {
+          .availability-indicator .checking {
+            animation: none;
+            opacity: 1;
+            color: var(--color-text);
+          }
         }
 
         .availability-status {
