@@ -829,8 +829,9 @@ export default function Home() {
         }
 
         .create-button:disabled {
-          opacity: 0.6;
+          opacity: 1;
           cursor: not-allowed;
+          animation: button-pulse 1.5s ease-in-out infinite;
         }
 
         input[type="password"] {
@@ -937,20 +938,25 @@ export default function Home() {
         }
 
         .message {
-          padding: 12px;
+          padding: 12px 12px 12px 12px;
+          padding-left: 8px;
           border-radius: 4px;
           margin: 20px 0;
+          border-left: 4px solid;
+          animation: fade-in 0.3s ease-out;
         }
 
         .message.success {
           background: var(--color-success-bg);
-          border: 1px solid var(--color-success-border);
+          border-color: var(--color-success-border);
+          border-left-color: var(--color-success);
           color: var(--color-success-text);
         }
 
         .message.error {
           background: var(--color-error-bg);
-          border: 1px solid var(--color-error-border);
+          border-color: var(--color-error-border);
+          border-left-color: var(--color-error);
           color: var(--color-error-text);
         }
 
