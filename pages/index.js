@@ -864,20 +864,32 @@ export default function Home() {
 
         .password-strength {
           margin-top: 8px;
-          font-size: 14px;
+          padding: 8px 12px;
+          padding-left: 8px;
+          font-size: 13px;
           font-weight: bold;
+          border-left: 3px solid;
+          border-radius: 4px;
+          font-family: var(--font-mono);
         }
 
         .password-strength.weak {
           color: var(--color-error);
+          border-left-color: var(--color-error);
+          background-color: rgba(220, 53, 69, 0.1);
+          animation: pulse-bg 1.5s ease-in-out infinite;
         }
 
         .password-strength.okay {
           color: var(--color-warning);
+          border-left-color: var(--color-warning);
+          background-color: rgba(255, 193, 7, 0.05);
         }
 
         .password-strength.strong {
           color: var(--color-success);
+          border-left-color: var(--color-success);
+          background-color: rgba(40, 167, 69, 0.05);
         }
 
         .risk-acknowledgment {
