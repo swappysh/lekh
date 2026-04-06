@@ -513,10 +513,17 @@ export default function UserPage() {
         <h1>{username}</h1>
         <span className="header-separator">·</span>
         <a href={`/${username}/all`} className="header-link">all entries</a>
-        {!isPublic && saveStatus !== 'idle' && (
-          <span className="save-status">{saveStatus === 'saving' ? 'saving...' : 'saved'}</span>
-        )}
       </div>
+      {!isPublic && saveStatus !== 'idle' && (
+        <div className={`save-status-indicator save-status-${saveStatus}`}>
+          <span className="save-status-icon">
+            {saveStatus === 'saving' ? '⟳' : '✓'}
+          </span>
+          <span className="save-status-text">
+            {saveStatus === 'saving' ? 'saving' : 'saved'}
+          </span>
+        </div>
+      )}
       {isPublic && activeEditors.length > 0 && (
         <div className="collaboration-hint">
           {activeEditors.length} other{activeEditors.length !== 1 ? 's' : ''} writing
@@ -610,10 +617,46 @@ export default function UserPage() {
         .header-link:hover {
           text-decoration: underline;
         }
-        .save-status {
-          font-size: 12px;
-          color: var(--color-gray);
-          margin-left: auto;
+        .save-status-indicator {
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 16px;
+          border-radius: 20px;
+          background: rgba(153, 153, 153, 0.1);
+          font-size: 14px;
+          min-height: 44px;
+          min-width: 120px;
+          animation: bounce-in var(--animation-duration-normal) var(--animation-easing-smooth);
+          z-index: 99;
+        }
+        .save-status-indicator.save-status-saving {
+          background: rgba(11, 87, 208, 0.1);
+          color: var(--color-loading-saving);
+        }
+        .save-status-indicator.save-status-saved {
+          background: rgba(40, 167, 69, 0.1);
+          color: var(--color-loading-saved);
+        }
+        .save-status-icon {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 16px;
+          line-height: 1;
+        }
+        .save-status-indicator.save-status-saving .save-status-icon {
+          animation: save-indicator-spin var(--animation-duration-slow) linear infinite;
+        }
+        .save-status-indicator.save-status-saved .save-status-icon {
+          animation: none;
+        }
+        .save-status-text {
+          font-weight: 500;
+          white-space: nowrap;
         }
         @media (prefers-color-scheme: dark) {
           .header-separator {
@@ -622,8 +665,48 @@ export default function UserPage() {
           .header-link {
             color: var(--color-gray-lighter);
           }
-          .save-status {
-            color: var(--color-gray-darker);
+          .save-status-indicator {
+            background: rgba(102, 102, 102, 0.15);
+          }
+          .save-status-indicator.save-status-saving {
+            background: rgba(138, 180, 248, 0.15);
+          }
+          .save-status-indicator.save-status-saved {
+            background: rgba(64, 216, 101, 0.15);
+          }
+        }
+        @media (max-width: 768px) {
+          .save-status-indicator {
+            top: 16px;
+            right: 70px;
+            padding: 8px 12px;
+            font-size: 13px;
+            min-height: 40px;
+          }
+          .save-status-icon {
+            font-size: 14px;
+          }
+        }
+        @media (max-width: 480px) {
+          .save-status-indicator {
+            top: 12px;
+            right: 62px;
+            padding: 6px 10px;
+            font-size: 12px;
+            min-height: 36px;
+            gap: 6px;
+          }
+          .save-status-icon {
+            font-size: 12px;
+          }
+        }
+        /* Reduced motion support - disable animations for accessibility */
+        @media (prefers-reduced-motion: reduce) {
+          .save-status-indicator {
+            animation: none;
+          }
+          .save-status-indicator.save-status-saving .save-status-icon {
+            animation: none;
           }
         }
         .collaboration-hint {
@@ -651,12 +734,19 @@ export default function UserPage() {
             color: var(--color-gray-darker);
           }
         }
+        @media (max-width: 480px) {
+          .stats {
+            font-size: 11px;
+            gap: 12px;
+            bottom: 70px;
+          }
+        }
         .help-button {
           position: fixed;
           bottom: 20px;
           right: 20px;
-          width: 40px;
-          height: 40px;
+          width: 44px;
+          height: 44px;
           border-radius: 50%;
           background: var(--color-accent);
           color: white;
@@ -669,10 +759,22 @@ export default function UserPage() {
           align-items: center;
           justify-content: center;
           z-index: 100;
+          transition: all 0.2s ease;
+          touch-action: manipulation;
         }
         .help-button:hover {
           background: var(--color-accent-dark);
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        .help-button:active {
+          transform: scale(0.95);
+        }
+        @media (max-width: 480px) {
+          .help-button {
+            width: 48px;
+            height: 48px;
+            font-size: 20px;
+          }
         }
         @media (prefers-color-scheme: dark) {
           .help-button {
