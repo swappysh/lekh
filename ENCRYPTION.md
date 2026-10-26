@@ -181,6 +181,10 @@ Accepted consequences:
 - Junk or forged snapshots cannot be removed with the anon key (`documents` has a
   SELECT-only policy). Use `POST /api/private-delete` with
   `{ username, clientSnapshotId }`, which goes through the service role.
+  Databases provisioned before the delete route carry a
+  `documents_prevent_delete` `BEFORE DELETE` trigger that raises; `database.sql`
+  drops it, so run the current `database.sql` (or its two `DROP` statements)
+  once on any older database.
 
 Both routes validate the username and snapshot id shape and bound payload sizes
 (see `lib/constants.js`) so an anonymous client cannot store unbounded rows.
