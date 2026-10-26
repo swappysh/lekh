@@ -1,6 +1,11 @@
 import { getSupabaseAdmin } from '../../lib/supabaseAdmin'
-
-const USERNAME_REGEX = /^[A-Za-z0-9_-]+$/
+import {
+  USERNAME_REGEX,
+  USERNAME_MAX_LENGTH,
+  MAX_PUBLIC_KEY_LENGTH,
+  MAX_ENCRYPTED_PRIVATE_KEY_LENGTH,
+  MAX_SALT_LENGTH,
+} from '../../lib/constants'
 
 function parseBody(req) {
   if (typeof req.body === 'string') {
@@ -47,7 +52,7 @@ export default async function handler(req, res) {
   const salt = String(body.salt || '')
   const isPublic = parseIsPublic(body.isPublic)
 
-  if (!username || !USERNAME_REGEX.test(username)) {
+  if (!username || username.length > USERNAME_MAX_LENGTH || !USERNAME_REGEX.test(username)) {
     return res.status(400).json({ error: 'Invalid username' })
   }
 
@@ -57,6 +62,18 @@ export default async function handler(req, res) {
 
   if (isPublic === null) {
     return res.status(400).json({ error: 'Invalid isPublic value' })
+  }
+
+  if (publicKey.length > MAX_PUBLIC_KEY_LENGTH) {
+    return res.status(413).json({ error: 'Public key too large' })
+  }
+
+  if (encryptedPrivateKey.length > MAX_ENCRYPTED_PRIVATE_KEY_LENGTH) {
+    return res.status(413).json({ error: 'Encrypted private key too large' })
+  }
+
+  if (salt.length > MAX_SALT_LENGTH) {
+    return res.status(413).json({ error: 'Salt too large' })
   }
 
   try {

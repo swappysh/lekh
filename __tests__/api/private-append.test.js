@@ -44,6 +44,62 @@ describe('/api/private-append', () => {
     expect(res.json).toHaveBeenCalledWith({ error: 'Missing required fields' })
   })
 
+  test('rejects a malformed clientSnapshotId', async () => {
+    req.body = {
+      username: 'testuser',
+      clientSnapshotId: 'bad id!',
+      encryptedContent: 'c',
+      encryptedDataKey: 'k'
+    }
+
+    await handler(req, res)
+
+    expect(res.status).toHaveBeenCalledWith(400)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Invalid clientSnapshotId' })
+  })
+
+  test('rejects an overlong clientSnapshotId', async () => {
+    req.body = {
+      username: 'testuser',
+      clientSnapshotId: 'a'.repeat(65),
+      encryptedContent: 'c',
+      encryptedDataKey: 'k'
+    }
+
+    await handler(req, res)
+
+    expect(res.status).toHaveBeenCalledWith(400)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Invalid clientSnapshotId' })
+  })
+
+  test('rejects oversized encrypted content', async () => {
+    req.body = {
+      username: 'testuser',
+      clientSnapshotId: 'snap-1',
+      encryptedContent: 'a'.repeat(3800001),
+      encryptedDataKey: 'k'
+    }
+
+    await handler(req, res)
+
+    expect(res.status).toHaveBeenCalledWith(413)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Encrypted content too large' })
+  })
+
+  test('rejects an oversized encrypted data key', async () => {
+    req.body = {
+      username: 'testuser',
+      clientSnapshotId: 'snap-1',
+      encryptedContent: 'c',
+      encryptedDataKey: 'a'.repeat(2001)
+    }
+
+    await handler(req, res)
+
+    expect(res.status).toHaveBeenCalledWith(413)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Encrypted data key too large' })
+  })
+
   test('returns not found for unknown user', async () => {
     const mockMaybeSingle = jest.fn(() => Promise.resolve({ data: null, error: null }))
     const mockEq = jest.fn(() => ({ maybeSingle: mockMaybeSingle }))

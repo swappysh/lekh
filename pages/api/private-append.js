@@ -1,6 +1,22 @@
 import { getSupabaseAdmin } from '../../lib/supabaseAdmin'
+import {
+  USERNAME_REGEX,
+  USERNAME_MAX_LENGTH,
+  SNAPSHOT_ID_REGEX,
+  SNAPSHOT_ID_MAX_LENGTH,
+  MAX_ENCRYPTED_CONTENT_LENGTH,
+  MAX_ENCRYPTED_DATA_KEY_LENGTH,
+} from '../../lib/constants'
 
-const USERNAME_REGEX = /^[A-Za-z0-9_-]+$/
+// Public-write endpoint: no session, no password. The blast radius is capped by
+// validating the caller-supplied id and by bounding payload sizes.
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '4mb',
+    },
+  },
+}
 
 function parseBody(req) {
   if (typeof req.body === 'string') {
@@ -28,12 +44,24 @@ export default async function handler(req, res) {
   const encryptedContent = String(body.encryptedContent || '')
   const encryptedDataKey = String(body.encryptedDataKey || '')
 
-  if (!username || !USERNAME_REGEX.test(username)) {
+  if (!username || username.length > USERNAME_MAX_LENGTH || !USERNAME_REGEX.test(username)) {
     return res.status(400).json({ error: 'Invalid username' })
   }
 
   if (!clientSnapshotId || !encryptedContent || !encryptedDataKey) {
     return res.status(400).json({ error: 'Missing required fields' })
+  }
+
+  if (clientSnapshotId.length > SNAPSHOT_ID_MAX_LENGTH || !SNAPSHOT_ID_REGEX.test(clientSnapshotId)) {
+    return res.status(400).json({ error: 'Invalid clientSnapshotId' })
+  }
+
+  if (encryptedContent.length > MAX_ENCRYPTED_CONTENT_LENGTH) {
+    return res.status(413).json({ error: 'Encrypted content too large' })
+  }
+
+  if (encryptedDataKey.length > MAX_ENCRYPTED_DATA_KEY_LENGTH) {
+    return res.status(413).json({ error: 'Encrypted data key too large' })
   }
 
   try {

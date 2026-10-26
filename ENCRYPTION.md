@@ -158,6 +158,33 @@ CREATE TABLE documents (
 - **Web Crypto API**: Uses browser's native cryptographic implementations
 - **Memory Safety**: Keys exist only during active sessions
 
+## Public Write Model (intended)
+
+Lekh is deliberately **public write, private read**:
+
+- **Anyone can write** to any private username using only the public anon key and
+  the owner's public RSA key. No account, session, or password is required for a
+  write (`POST /api/private-append`).
+- **Only the owner can read** plaintext, with the password that unlocks the
+  encrypted private key. The database stores ciphertext only.
+
+Accepted consequences:
+
+- The `users` and `documents` tables are readable through the anon key so any
+  browser can encrypt to a public key and the owner's browser can fetch its own
+  ciphertext. Usernames, snapshot ids, timestamps, `public_key`,
+  `encrypted_private_key`, and `salt` are therefore public. Public ciphertext plus
+  salt allows offline password guessing; PBKDF2 slows it down.
+- A snapshot id is public. The same client reuses its own id while autosaving, so
+  a row is updated in place; a fresh random id appends. An outside writer who
+  deliberately reuses an existing id replaces that row's content.
+- Junk or forged snapshots cannot be removed with the anon key (`documents` has a
+  SELECT-only policy). Use `POST /api/private-delete` with
+  `{ username, clientSnapshotId }`, which goes through the service role.
+
+Both routes validate the username and snapshot id shape and bound payload sizes
+(see `lib/constants.js`) so an anonymous client cannot store unbounded rows.
+
 ## User Experience Flow
 
 ### 1. Account Creation (`/`)

@@ -78,6 +78,24 @@ describe('/api/create-user', () => {
     expect(res.json).toHaveBeenCalledWith({ error: 'Invalid isPublic value' })
   })
 
+  test('rejects an overlong username', async () => {
+    req.body.username = 'a'.repeat(65)
+
+    await handler(req, res)
+
+    expect(res.status).toHaveBeenCalledWith(400)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Invalid username' })
+  })
+
+  test('rejects oversized key material', async () => {
+    req.body.publicKey = 'a'.repeat(2001)
+
+    await handler(req, res)
+
+    expect(res.status).toHaveBeenCalledWith(413)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Public key too large' })
+  })
+
   test('returns conflict when username is already taken', async () => {
     const mockMaybeSingle = jest.fn(() => Promise.resolve({ data: { username: 'newuser' }, error: null }))
     const mockEq = jest.fn(() => ({ maybeSingle: mockMaybeSingle }))
