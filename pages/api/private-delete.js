@@ -57,7 +57,9 @@ export default async function handler(req, res) {
       .eq('client_snapshot_id', clientSnapshotId)
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to delete snapshot' })
+      // Surface the Postgres message: the common historical cause is the
+      // `documents_prevent_delete` trigger, which has to be dropped (database.sql).
+      return res.status(500).json({ error: 'Failed to delete snapshot', detail: error.message })
     }
 
     return res.status(200).json({ ok: true })

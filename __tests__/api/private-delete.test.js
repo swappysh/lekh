@@ -88,6 +88,8 @@ describe('/api/private-delete', () => {
     await handler(req, res)
 
     expect(res.status).toHaveBeenCalledWith(500)
-    expect(res.json).toHaveBeenCalledWith({ error: 'Failed to delete snapshot' })
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ error: 'Failed to delete snapshot', detail: 'db failed' })
+    )
   })
 })
