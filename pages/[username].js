@@ -181,6 +181,7 @@ export default function UserPage() {
         clientSnapshotId: pendingSnapshot.clientSnapshotId,
         encryptedContent: pendingSnapshot.encryptedContent,
         encryptedDataKey: pendingSnapshot.encryptedDataKey,
+        publicKey: publicKeyRef.current,
       }),
     })
 
@@ -252,6 +253,7 @@ export default function UserPage() {
       clientSnapshotId: pendingSnapshot.clientSnapshotId,
       encryptedContent: pendingSnapshot.encryptedContent,
       encryptedDataKey: pendingSnapshot.encryptedDataKey,
+      publicKey: publicKeyRef.current,
     })
 
     if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {

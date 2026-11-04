@@ -16,7 +16,8 @@ describe('/api/private-append', () => {
         username: 'testuser',
         clientSnapshotId: 'snapshot-1',
         encryptedContent: 'encrypted-content',
-        encryptedDataKey: 'encrypted-data-key'
+        encryptedDataKey: 'encrypted-data-key',
+        publicKey: 'current-public-key'
       }
     }
     res = {
@@ -49,7 +50,8 @@ describe('/api/private-append', () => {
       username: 'testuser',
       clientSnapshotId: 'bad id!',
       encryptedContent: 'c',
-      encryptedDataKey: 'k'
+      encryptedDataKey: 'k',
+      publicKey: 'current-public-key'
     }
 
     await handler(req, res)
@@ -63,7 +65,8 @@ describe('/api/private-append', () => {
       username: 'testuser',
       clientSnapshotId: 'a'.repeat(65),
       encryptedContent: 'c',
-      encryptedDataKey: 'k'
+      encryptedDataKey: 'k',
+      publicKey: 'current-public-key'
     }
 
     await handler(req, res)
@@ -77,7 +80,8 @@ describe('/api/private-append', () => {
       username: 'testuser',
       clientSnapshotId: 'snap-1',
       encryptedContent: 'a'.repeat(3800001),
-      encryptedDataKey: 'k'
+      encryptedDataKey: 'k',
+      publicKey: 'current-public-key'
     }
 
     await handler(req, res)
@@ -91,7 +95,8 @@ describe('/api/private-append', () => {
       username: 'testuser',
       clientSnapshotId: 'snap-1',
       encryptedContent: 'c',
-      encryptedDataKey: 'a'.repeat(2001)
+      encryptedDataKey: 'a'.repeat(2001),
+      publicKey: 'current-public-key'
     }
 
     await handler(req, res)
@@ -140,7 +145,7 @@ describe('/api/private-append', () => {
 
   test('saves private snapshot for valid private user', async () => {
     const mockMaybeSingle = jest.fn(() =>
-      Promise.resolve({ data: { username: 'testuser', is_public: false }, error: null })
+      Promise.resolve({ data: { username: 'testuser', is_public: false, public_key: 'current-public-key' }, error: null })
     )
     const mockEq = jest.fn(() => ({ maybeSingle: mockMaybeSingle }))
     const mockSelect = jest.fn(() => ({ eq: mockEq }))
@@ -177,7 +182,7 @@ describe('/api/private-append', () => {
 
   test('returns server error when snapshot save fails', async () => {
     const mockMaybeSingle = jest.fn(() =>
-      Promise.resolve({ data: { username: 'testuser', is_public: false }, error: null })
+      Promise.resolve({ data: { username: 'testuser', is_public: false, public_key: 'current-public-key' }, error: null })
     )
     const mockEq = jest.fn(() => ({ maybeSingle: mockMaybeSingle }))
     const mockSelect = jest.fn(() => ({ eq: mockEq }))
@@ -200,5 +205,36 @@ describe('/api/private-append', () => {
 
     expect(res.status).toHaveBeenCalledWith(500)
     expect(res.json).toHaveBeenCalledWith({ error: 'Failed to save private snapshot' })
+  })
+
+  test('rejects a stale public key so an old tab cannot write to a rotated key', async () => {
+    const mockMaybeSingle = jest.fn(() =>
+      Promise.resolve({
+        data: { username: 'testuser', is_public: false, public_key: 'rotated-public-key' },
+        error: null
+      })
+    )
+    const mockEq = jest.fn(() => ({ maybeSingle: mockMaybeSingle }))
+    const mockSelect = jest.fn(() => ({ eq: mockEq }))
+    const mockUpsert = jest.fn()
+
+    getSupabaseAdmin.mockReturnValue({
+      from: jest.fn((table) => (table === 'users' ? { select: mockSelect } : { upsert: mockUpsert }))
+    })
+
+    await handler(req, res)
+
+    expect(mockUpsert).not.toHaveBeenCalled()
+    expect(res.status).toHaveBeenCalledWith(409)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Encryption key changed, reload the page' })
+  })
+
+  test('requires the client public key', async () => {
+    delete req.body.publicKey
+
+    await handler(req, res)
+
+    expect(res.status).toHaveBeenCalledWith(400)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Missing required fields' })
   })
 })

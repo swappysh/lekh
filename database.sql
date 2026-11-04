@@ -143,6 +143,65 @@ CREATE TRIGGER documents_prevent_invalid_insert
   FOR EACH ROW
   EXECUTE FUNCTION prevent_invalid_documents_insert();
 
+-- Password change: rotate the author keypair and re-wrap every entry's data key
+-- in one transaction. Called only by /api/rotate-key through the service role.
+-- Locks documents so an append cannot slip in encrypted to the old key.
+CREATE OR REPLACE FUNCTION rotate_user_key(
+  p_username TEXT,
+  p_old_public_key TEXT,
+  p_new_public_key TEXT,
+  p_encrypted_private_key TEXT,
+  p_salt TEXT,
+  p_doc_keys JSONB
+)
+RETURNS VOID AS $$
+DECLARE
+  current_key TEXT;
+  unmatched INTEGER;
+BEGIN
+  LOCK TABLE documents IN SHARE ROW EXCLUSIVE MODE;
+
+  SELECT public_key INTO current_key
+  FROM users
+  WHERE username = p_username
+  FOR UPDATE;
+
+  IF current_key IS NULL THEN
+    RAISE EXCEPTION 'user not found';
+  END IF;
+
+  IF current_key <> p_old_public_key THEN
+    RAISE EXCEPTION 'key changed';
+  END IF;
+
+  SELECT COUNT(*) INTO unmatched
+  FROM documents d
+  WHERE d.username = p_username
+    AND (
+      NOT (p_doc_keys ? d.id)
+      OR jsonb_typeof(p_doc_keys -> d.id) IS DISTINCT FROM 'string'
+    );
+
+  IF unmatched > 0 THEN
+    RAISE EXCEPTION 'entries changed';
+  END IF;
+
+  UPDATE documents d
+  SET encrypted_data_key = p_doc_keys ->> d.id
+  WHERE d.username = p_username;
+
+  UPDATE users
+  SET public_key = p_new_public_key,
+      encrypted_private_key = p_encrypted_private_key,
+      salt = p_salt
+  WHERE username = p_username;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+REVOKE ALL ON FUNCTION rotate_user_key(TEXT, TEXT, TEXT, TEXT, TEXT, JSONB) FROM PUBLIC;
+REVOKE ALL ON FUNCTION rotate_user_key(TEXT, TEXT, TEXT, TEXT, TEXT, JSONB) FROM anon, authenticated;
+GRANT EXECUTE ON FUNCTION rotate_user_key(TEXT, TEXT, TEXT, TEXT, TEXT, JSONB) TO service_role;
+
 -- Public snapshot materialization from collaborative document updates
 CREATE OR REPLACE FUNCTION refresh_public_snapshot()
 RETURNS TRIGGER AS $$

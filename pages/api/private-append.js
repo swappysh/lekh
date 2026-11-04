@@ -43,12 +43,13 @@ export default async function handler(req, res) {
   const clientSnapshotId = String(body.clientSnapshotId || '').trim()
   const encryptedContent = String(body.encryptedContent || '')
   const encryptedDataKey = String(body.encryptedDataKey || '')
+  const publicKey = String(body.publicKey || '')
 
   if (!username || username.length > USERNAME_MAX_LENGTH || !USERNAME_REGEX.test(username)) {
     return res.status(400).json({ error: 'Invalid username' })
   }
 
-  if (!clientSnapshotId || !encryptedContent || !encryptedDataKey) {
+  if (!clientSnapshotId || !encryptedContent || !encryptedDataKey || !publicKey) {
     return res.status(400).json({ error: 'Missing required fields' })
   }
 
@@ -69,7 +70,7 @@ export default async function handler(req, res) {
 
     const { data: user, error: userError } = await supabaseAdmin
       .from('users')
-      .select('username, is_public')
+      .select('username, is_public, public_key')
       .eq('username', username)
       .maybeSingle()
 
@@ -83,6 +84,12 @@ export default async function handler(req, res) {
 
     if (user.is_public) {
       return res.status(403).json({ error: 'Private append is not allowed for public users' })
+    }
+
+    // The password was changed (key rotated) since this client loaded: its content
+    // is encrypted to the old key, which may be compromised. Make it reload.
+    if (user.public_key !== publicKey) {
+      return res.status(409).json({ error: 'Encryption key changed, reload the page' })
     }
 
     const { error: upsertError } = await supabaseAdmin

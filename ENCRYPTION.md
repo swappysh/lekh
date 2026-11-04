@@ -189,6 +189,33 @@ Accepted consequences:
 Both routes validate the username and snapshot id shape and bound payload sizes
 (see `lib/constants.js`) so an anonymous client cannot store unbounded rows.
 
+## Changing the Password (key rotation)
+
+A password only wraps the RSA private key, and that same key decrypts every entry.
+So re-wrapping the key with a new password would not lock out anyone who already
+extracted it. "Change password" on `/all` therefore **rotates the keypair**:
+
+1. Unlock the current private key with the current password (wrong password fails here).
+2. Generate a new RSA keypair and wrap its private key with the new password and a new salt.
+3. Re-wrap only each entry's `encrypted_data_key` to the new public key. Content
+   ciphertext is untouched, so old entries stay readable. Every re-wrapped key is
+   verified against the new private key before anything is sent. Entries whose data
+   key cannot be decrypted (junk written by outsiders) are left as they are.
+4. `POST /api/rotate-key` is not public-write. Step `challenge` returns a random
+   nonce encrypted to the current public key plus a signed, 2 minute token. Step
+   `commit` must return the decrypted nonce, which proves the caller holds the
+   current private key without sending the password. Rotating the key invalidates
+   outstanding tokens.
+5. The `rotate_user_key` SQL function swaps `users` and every `documents` row in one
+   transaction under a table lock. If an entry appeared that the client did not
+   re-wrap, it raises and nothing changes (HTTP 409, the client can retry).
+
+Limits: entries and ciphertext the old key could read stay readable by whoever held
+it, so rotation protects only what is written afterwards. `private-append` now
+requires the writer's `publicKey` and answers 409 when it is stale, so a tab opened
+before the change cannot keep encrypting to the old key. The new password must be at
+least 12 characters. The PBKDF2 work factor is still 100k iterations.
+
 ## User Experience Flow
 
 ### 1. Account Creation (`/`)
