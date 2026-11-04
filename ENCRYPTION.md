@@ -215,13 +215,16 @@ extracted it. "Change password" on `/all` therefore **rotates the keypair**:
    public key in the same transaction; rotation takes an update lock on that row, so
    the two cannot interleave and no write can land encrypted to a rotated-out key.
 
-`/api/rotate-key` is rate limited to 12 requests per 10 minutes per client IP
-(HTTP 429 with `Retry-After`). The counter lives in the `rate_limits` table and is
-bumped by the `rate_limit_hit` SQL function, so every serverless instance shares it.
-It is per IP, not per username, so a stranger cannot lock the owner out of changing
-the password. If the counter call itself fails the request is allowed. This does not
-limit password guessing: unlocking happens in the browser and the offline attack never
-touches the server, so only the work factor and password strength slow it down.
+`/api/rotate-key` is rate limited to 12 requests per 10 minutes per client IP. Over
+the limit it answers HTTP 429 with `Retry-After` set to the seconds until the window
+resets. The counter lives in the `rate_limits` table and is bumped by the
+`rate_limit_hit` SQL function, so every serverless instance shares it. It is per IP,
+not per username, so a stranger on another network cannot lock the owner out of
+changing the password (someone behind the same NAT or carrier IP shares the quota).
+IPv6 clients are bucketed by their /64 prefix. If the counter call itself fails the
+request is allowed. This does not limit password guessing: unlocking happens in the
+browser and the offline attack never touches the server, so only the work factor and
+password strength slow it down.
 
 Limits: entries and ciphertext the old key could read stay readable by whoever held
 it, so rotation protects only what is written afterwards. `private-append` now

@@ -16,13 +16,13 @@ describe('/api/rotate-key', () => {
   let realKeys
   let nonce
 
-  // rpc answers rate_limit_hit and rotate_user_key separately
-  const rpcAnswers = (limiter, rotation = { error: null }) =>
-    jest.fn((name) => Promise.resolve(name === 'rate_limit_hit' ? limiter : rotation))
+  // rpc answers rate_limit_hit (seconds to wait, 0 = allowed) and rotate_user_key separately
+  const rpcAnswers = (limiter, rotation = { error: null }) => (name) =>
+    Promise.resolve(name === 'rate_limit_hit' ? limiter : rotation)
 
   const mockAdmin = () => {
     const maybeSingle = jest.fn(() => Promise.resolve({ data: user, error: null }))
-    rpc = rpcAnswers({ data: true, error: null })
+    rpc = jest.fn(rpcAnswers({ data: 0, error: null }))
     getSupabaseAdmin.mockReturnValue({
       from: jest.fn(() => ({ select: () => ({ eq: () => ({ maybeSingle }) }) })),
       rpc
@@ -115,7 +115,7 @@ describe('/api/rotate-key', () => {
 
   test('maps an entries-changed failure to 409', async () => {
     req.body = await commitBody()
-    rpc.mockImplementation(rpcAnswers({ data: true, error: null }, { error: { message: 'entries changed' } }))
+    rpc.mockImplementation(rpcAnswers({ data: 0, error: null }, { error: { message: 'entries changed' } }))
     await handler(req, res)
     expect(res.status).toHaveBeenCalledWith(409)
   })
@@ -144,19 +144,29 @@ describe('/api/rotate-key', () => {
     })
 
     test('answers 429 with Retry-After and does no other work once over the limit', async () => {
-      rpc.mockImplementation(rpcAnswers({ data: false, error: null }))
+      rpc.mockImplementation(rpcAnswers({ data: 421, error: null }))
       await handler(req, res)
       expect(res.status).toHaveBeenCalledWith(429)
-      expect(res.setHeader).toHaveBeenCalledWith('Retry-After', '600')
+      expect(res.setHeader).toHaveBeenCalledWith('Retry-After', '421')
       expect(rpc).toHaveBeenCalledTimes(1)
     })
 
     test('a commit over the limit never reaches the rotation', async () => {
       req.body = await commitBody()
-      rpc.mockImplementation(rpcAnswers({ data: false, error: null }))
+      rpc.mockImplementation(rpcAnswers({ data: 30, error: null }))
       await handler(req, res)
       expect(res.status).toHaveBeenCalledWith(429)
       expect(rpc).not.toHaveBeenCalledWith('rotate_user_key', expect.anything())
+    })
+
+    test.each([
+      ['an invalid username', { step: 'challenge', username: 'bad name!' }],
+      ['an unknown step', { step: 'nope', username: 'alice' }],
+    ])('rejects %s with 400 before touching the counter', async (_label, body) => {
+      req.body = body
+      await handler(req, res)
+      expect(res.status).toHaveBeenCalledWith(400)
+      expect(rpc).not.toHaveBeenCalled()
     })
 
     test('allows the request when the limiter itself errors', async () => {

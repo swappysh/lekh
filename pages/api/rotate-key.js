@@ -1,6 +1,6 @@
 import { getSupabaseAdmin } from '../../lib/supabaseAdmin'
 import { createChallenge, verifyChallenge } from '../../lib/rotateChallenge'
-import { clientIp, withinRateLimit } from '../../lib/rateLimit'
+import { clientIp, rateLimitRetryAfter } from '../../lib/rateLimit'
 import {
   ROTATE_RATE_LIMIT,
   ROTATE_RATE_WINDOW_SECONDS,
@@ -79,14 +79,14 @@ export default async function handler(req, res) {
   try {
     const supabaseAdmin = getSupabaseAdmin()
 
-    const allowed = await withinRateLimit(
+    const retryAfter = await rateLimitRetryAfter(
       supabaseAdmin,
       `rotate-key:${clientIp(req)}`,
       ROTATE_RATE_LIMIT,
       ROTATE_RATE_WINDOW_SECONDS
     )
-    if (!allowed) {
-      res.setHeader('Retry-After', String(ROTATE_RATE_WINDOW_SECONDS))
+    if (retryAfter > 0) {
+      res.setHeader('Retry-After', String(retryAfter))
       return res.status(429).json({ error: 'Too many attempts, try again later' })
     }
 

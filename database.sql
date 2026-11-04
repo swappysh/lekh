@@ -258,8 +258,9 @@ REVOKE ALL ON FUNCTION private_append(TEXT, TEXT, TEXT, TEXT, TEXT) FROM anon, a
 GRANT EXECUTE ON FUNCTION private_append(TEXT, TEXT, TEXT, TEXT, TEXT) TO service_role;
 
 -- Rate limiting: fixed window counter per key, shared by every serverless instance.
--- rate_limit_hit records one hit and returns TRUE while the key is within p_limit hits
--- per p_window_seconds. One atomic upsert, so concurrent requests cannot undercount.
+-- rate_limit_hit records one hit and returns 0 while the key is within p_limit hits per
+-- p_window_seconds, otherwise the seconds left until its window resets (always >= 1).
+-- The count is one atomic upsert, so concurrent requests cannot undercount.
 -- Called only by the API routes through the service role.
 CREATE TABLE IF NOT EXISTS rate_limits (
   key TEXT PRIMARY KEY,
@@ -269,14 +270,17 @@ CREATE TABLE IF NOT EXISTS rate_limits (
 ALTER TABLE rate_limits ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE rate_limits FROM PUBLIC, anon, authenticated;
 
-CREATE OR REPLACE FUNCTION rate_limit_hit(
+-- Changed from the first version, which returned BOOLEAN.
+DROP FUNCTION IF EXISTS rate_limit_hit(TEXT, INTEGER, INTEGER);
+CREATE FUNCTION rate_limit_hit(
   p_key TEXT,
   p_limit INTEGER,
   p_window_seconds INTEGER
 )
-RETURNS BOOLEAN AS $$
+RETURNS INTEGER AS $$
 DECLARE
   current_hits INTEGER;
+  current_window_start TIMESTAMPTZ;
 BEGIN
   INSERT INTO rate_limits AS r (key, window_start, hits)
   VALUES (p_key, NOW(), 1)
@@ -289,16 +293,31 @@ BEGIN
         WHEN r.window_start < NOW() - make_interval(secs => p_window_seconds) THEN 1
         ELSE r.hits + 1
       END
-  RETURNING hits INTO current_hits;
+  RETURNING hits, window_start INTO current_hits, current_window_start;
 
   -- Occasionally drop keys whose window ended long ago so the table stays small.
+  -- SKIP LOCKED: this transaction already holds its own row, and waiting on another
+  -- request's row while it waits on ours would deadlock.
   IF random() < 0.01 THEN
-    DELETE FROM rate_limits WHERE window_start < NOW() - INTERVAL '1 day';
+    DELETE FROM rate_limits
+    WHERE key IN (
+      SELECT key FROM rate_limits
+      WHERE window_start < NOW() - INTERVAL '1 day'
+      LIMIT 1000
+      FOR UPDATE SKIP LOCKED
+    );
   END IF;
 
-  RETURN current_hits <= p_limit;
+  IF current_hits <= p_limit THEN
+    RETURN 0;
+  END IF;
+
+  RETURN GREATEST(
+    1,
+    CEIL(EXTRACT(EPOCH FROM current_window_start + make_interval(secs => p_window_seconds) - NOW()))::INTEGER
+  );
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
 
 REVOKE ALL ON FUNCTION rate_limit_hit(TEXT, INTEGER, INTEGER) FROM PUBLIC;
 REVOKE ALL ON FUNCTION rate_limit_hit(TEXT, INTEGER, INTEGER) FROM anon, authenticated;
