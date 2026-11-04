@@ -38,6 +38,20 @@ function parseBody(req) {
 
 const tooLong = (value, max) => value.length > max
 
+const SHA256_HEX_REGEX = /^[0-9a-f]{64}$/
+
+function isValidDataKeyEntry(value) {
+  return (
+    value !== null &&
+    typeof value === 'object' &&
+    typeof value.old_hash === 'string' &&
+    SHA256_HEX_REGEX.test(value.old_hash) &&
+    typeof value.new === 'string' &&
+    value.new.length > 0 &&
+    !tooLong(value.new, MAX_ENCRYPTED_DATA_KEY_LENGTH)
+  )
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
@@ -110,7 +124,7 @@ export default async function handler(req, res) {
     if (entries.length > MAX_ROTATE_DOCUMENTS) {
       return res.status(413).json({ error: 'Too many entries' })
     }
-    if (entries.some(([, value]) => typeof value !== 'string' || !value || tooLong(value, MAX_ENCRYPTED_DATA_KEY_LENGTH))) {
+    if (entries.some(([, value]) => !isValidDataKeyEntry(value))) {
       return res.status(400).json({ error: 'Invalid dataKeys' })
     }
 

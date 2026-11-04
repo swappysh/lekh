@@ -112,8 +112,7 @@ describe('/api/private-append', () => {
 
     getSupabaseAdmin.mockReturnValue({
       from: jest.fn(() => ({
-        select: mockSelect,
-        upsert: jest.fn()
+        select: mockSelect
       }))
     })
 
@@ -132,8 +131,7 @@ describe('/api/private-append', () => {
 
     getSupabaseAdmin.mockReturnValue({
       from: jest.fn(() => ({
-        select: mockSelect,
-        upsert: jest.fn()
+        select: mockSelect
       }))
     })
 
@@ -143,63 +141,37 @@ describe('/api/private-append', () => {
     expect(res.json).toHaveBeenCalledWith({ error: 'Private append is not allowed for public users' })
   })
 
-  test('saves private snapshot for valid private user', async () => {
+  function mockPrivateUser(rpc) {
     const mockMaybeSingle = jest.fn(() =>
-      Promise.resolve({ data: { username: 'testuser', is_public: false, public_key: 'current-public-key' }, error: null })
+      Promise.resolve({ data: { username: 'testuser', is_public: false }, error: null })
     )
     const mockEq = jest.fn(() => ({ maybeSingle: mockMaybeSingle }))
     const mockSelect = jest.fn(() => ({ eq: mockEq }))
-    const mockUpsert = jest.fn(() => Promise.resolve({ error: null }))
-    const mockFrom = jest.fn((table) => {
-      if (table === 'users') {
-        return { select: mockSelect }
-      }
-      if (table === 'documents') {
-        return { upsert: mockUpsert }
-      }
-      return {}
-    })
-
     getSupabaseAdmin.mockReturnValue({
-      from: mockFrom
+      from: jest.fn(() => ({ select: mockSelect })),
+      rpc,
     })
+  }
+
+  test('saves private snapshot through private_append for a valid private user', async () => {
+    const mockRpc = jest.fn(() => Promise.resolve({ error: null }))
+    mockPrivateUser(mockRpc)
 
     await handler(req, res)
 
-    expect(mockUpsert).toHaveBeenCalledWith({
-      id: 'testuser:snapshot-1',
-      username: 'testuser',
-      encrypted_content: 'encrypted-content',
-      encrypted_data_key: 'encrypted-data-key',
-      client_snapshot_id: 'snapshot-1',
-      updated_at: expect.any(String),
-    }, {
-      onConflict: 'username,client_snapshot_id',
+    expect(mockRpc).toHaveBeenCalledWith('private_append', {
+      p_username: 'testuser',
+      p_public_key: 'current-public-key',
+      p_client_snapshot_id: 'snapshot-1',
+      p_encrypted_content: 'encrypted-content',
+      p_encrypted_data_key: 'encrypted-data-key',
     })
     expect(res.status).toHaveBeenCalledWith(200)
     expect(res.json).toHaveBeenCalledWith({ ok: true })
   })
 
   test('returns server error when snapshot save fails', async () => {
-    const mockMaybeSingle = jest.fn(() =>
-      Promise.resolve({ data: { username: 'testuser', is_public: false, public_key: 'current-public-key' }, error: null })
-    )
-    const mockEq = jest.fn(() => ({ maybeSingle: mockMaybeSingle }))
-    const mockSelect = jest.fn(() => ({ eq: mockEq }))
-    const mockUpsert = jest.fn(() => Promise.resolve({ error: { message: 'db failed' } }))
-    const mockFrom = jest.fn((table) => {
-      if (table === 'users') {
-        return { select: mockSelect }
-      }
-      if (table === 'documents') {
-        return { upsert: mockUpsert }
-      }
-      return {}
-    })
-
-    getSupabaseAdmin.mockReturnValue({
-      from: mockFrom
-    })
+    mockPrivateUser(jest.fn(() => Promise.resolve({ error: { message: 'db failed' } })))
 
     await handler(req, res)
 
@@ -207,24 +179,11 @@ describe('/api/private-append', () => {
     expect(res.json).toHaveBeenCalledWith({ error: 'Failed to save private snapshot' })
   })
 
-  test('rejects a stale public key so an old tab cannot write to a rotated key', async () => {
-    const mockMaybeSingle = jest.fn(() =>
-      Promise.resolve({
-        data: { username: 'testuser', is_public: false, public_key: 'rotated-public-key' },
-        error: null
-      })
-    )
-    const mockEq = jest.fn(() => ({ maybeSingle: mockMaybeSingle }))
-    const mockSelect = jest.fn(() => ({ eq: mockEq }))
-    const mockUpsert = jest.fn()
-
-    getSupabaseAdmin.mockReturnValue({
-      from: jest.fn((table) => (table === 'users' ? { select: mockSelect } : { upsert: mockUpsert }))
-    })
+  test('maps a key mismatch raised inside the transaction to 409', async () => {
+    mockPrivateUser(jest.fn(() => Promise.resolve({ error: { message: 'key changed' } })))
 
     await handler(req, res)
 
-    expect(mockUpsert).not.toHaveBeenCalled()
     expect(res.status).toHaveBeenCalledWith(409)
     expect(res.json).toHaveBeenCalledWith({ error: 'Encryption key changed, reload the page' })
   })

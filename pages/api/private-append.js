@@ -70,7 +70,7 @@ export default async function handler(req, res) {
 
     const { data: user, error: userError } = await supabaseAdmin
       .from('users')
-      .select('username, is_public, public_key')
+      .select('username, is_public')
       .eq('username', username)
       .maybeSingle()
 
@@ -86,26 +86,21 @@ export default async function handler(req, res) {
       return res.status(403).json({ error: 'Private append is not allowed for public users' })
     }
 
-    // The password was changed (key rotated) since this client loaded: its content
-    // is encrypted to the old key, which may be compromised. Make it reload.
-    if (user.public_key !== publicKey) {
-      return res.status(409).json({ error: 'Encryption key changed, reload the page' })
-    }
+    // The key comparison and the write happen in one transaction inside
+    // private_append, so a write encrypted to a rotated-out key cannot land
+    // between a check here and the upsert.
+    const { error: appendError } = await supabaseAdmin.rpc('private_append', {
+      p_username: username,
+      p_public_key: publicKey,
+      p_client_snapshot_id: clientSnapshotId,
+      p_encrypted_content: encryptedContent,
+      p_encrypted_data_key: encryptedDataKey,
+    })
 
-    const { error: upsertError } = await supabaseAdmin
-      .from('documents')
-      .upsert({
-        id: `${username}:${clientSnapshotId}`,
-        username,
-        encrypted_content: encryptedContent,
-        encrypted_data_key: encryptedDataKey,
-        client_snapshot_id: clientSnapshotId,
-        updated_at: new Date().toISOString(),
-      }, {
-        onConflict: 'username,client_snapshot_id',
-      })
-
-    if (upsertError) {
+    if (appendError) {
+      if (/key changed/.test(appendError.message || '')) {
+        return res.status(409).json({ error: 'Encryption key changed, reload the page' })
+      }
       return res.status(500).json({ error: 'Failed to save private snapshot' })
     }
 

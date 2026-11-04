@@ -57,7 +57,7 @@ describe('/api/rotate-key', () => {
       publicKey: 'new-public-key',
       encryptedPrivateKey: 'new-encrypted-private-key',
       salt: 'new-salt',
-      dataKeys: { 'alice:1': 'rewrapped-1' }
+      dataKeys: { 'alice:1': { old_hash: 'a'.repeat(64), new: 'rewrapped-1' } }
     }
   }
 
@@ -104,7 +104,7 @@ describe('/api/rotate-key', () => {
       p_new_public_key: 'new-public-key',
       p_encrypted_private_key: 'new-encrypted-private-key',
       p_salt: 'new-salt',
-      p_doc_keys: { 'alice:1': 'rewrapped-1' }
+      p_doc_keys: { 'alice:1': { old_hash: 'a'.repeat(64), new: 'rewrapped-1' } }
     })
   })
 
@@ -115,8 +115,14 @@ describe('/api/rotate-key', () => {
     expect(res.status).toHaveBeenCalledWith(409)
   })
 
-  test('rejects malformed dataKeys', async () => {
-    req.body = { ...(await commitBody()), dataKeys: { 'alice:1': 42 } }
+  test.each([
+    ['a bare number', 42],
+    ['a bare string (old format)', 'rewrapped-1'],
+    ['a missing old_hash', { new: 'rewrapped-1' }],
+    ['a non-hex old_hash', { old_hash: 'z'.repeat(64), new: 'rewrapped-1' }],
+    ['an empty new key', { old_hash: 'a'.repeat(64), new: '' }],
+  ])('rejects malformed dataKeys: %s', async (_label, entry) => {
+    req.body = { ...(await commitBody()), dataKeys: { 'alice:1': entry } }
     await handler(req, res)
     expect(res.status).toHaveBeenCalledWith(400)
     expect(rpc).not.toHaveBeenCalled()

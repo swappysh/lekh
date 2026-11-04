@@ -49,17 +49,23 @@ describe('password change (key rotation) with real crypto', () => {
 
     expect(rotation.publicKey).not.toBe(account.publicKey)
     expect(rotation.skipped).toBe(1)
-    expect(rotation.dataKeys.junk).toBe('bm90IGEga2V5')
+    expect(rotation.dataKeys.junk.new).toBe('bm90IGEga2V5')
 
     for (const doc of documents) {
       const text = await PublicKeyEncryption.decrypt(
         doc.encrypted_content,
-        rotation.dataKeys[doc.id],
+        rotation.dataKeys[doc.id].new,
         NEW_PASSWORD,
         rotation.encryptedPrivateKey,
         rotation.salt
       )
       expect(text).toBe(doc.text)
+    }
+
+    // old_hash must equal what Postgres computes: sha256 hex of the stored key text.
+    for (const doc of documents) {
+      const expected = require('crypto').createHash('sha256').update(doc.encrypted_data_key).digest('hex')
+      expect(rotation.dataKeys[doc.id].old_hash).toBe(expected)
     }
 
     await expect(

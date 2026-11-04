@@ -207,13 +207,20 @@ extracted it. "Change password" on `/all` therefore **rotates the keypair**:
    current private key without sending the password. Rotating the key invalidates
    outstanding tokens.
 5. The `rotate_user_key` SQL function swaps `users` and every `documents` row in one
-   transaction under a table lock. If an entry appeared that the client did not
-   re-wrap, it raises and nothing changes (HTTP 409, the client can retry).
+   transaction. For each entry the client sends the SHA-256 of the data key it read
+   plus the re-wrapped key. If an entry is new, or was rewritten since the client read
+   it (every autosave makes a fresh data key), the function raises and nothing
+   changes (HTTP 409, the client can retry). Appends go through the `private_append`
+   function, which takes a share lock on the user row and rechecks the writer's
+   public key in the same transaction; rotation takes an update lock on that row, so
+   the two cannot interleave and no write can land encrypted to a rotated-out key.
 
 Limits: entries and ciphertext the old key could read stay readable by whoever held
 it, so rotation protects only what is written afterwards. `private-append` now
 requires the writer's `publicKey` and answers 409 when it is stale, so a tab opened
-before the change cannot keep encrypting to the old key. The new password must be at
+before the change cannot keep encrypting to the old key. Anyone who already holds the
+old private key can also pass the ownership check and rotate first, so rotate
+promptly after a compromise. The new password must be at
 least 12 characters. The PBKDF2 work factor is still 100k iterations.
 
 ## User Experience Flow
