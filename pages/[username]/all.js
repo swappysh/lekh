@@ -2,6 +2,8 @@ import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
 import { PublicKeyEncryption } from '../../lib/publicKeyEncryption'
 import { supabase } from '../../lib/supabase'
+import { changePassword } from '../../lib/changePassword'
+import { MIN_PASSWORD_LENGTH } from '../../lib/constants'
 
 const getPrivateEntryTimestamp = (entry) => entry.updated_at || entry.created_at || null
 
@@ -15,6 +17,9 @@ export default function AllEntriesPage() {
   const [encryptedPrivateKey, setEncryptedPrivateKey] = useState(null)
   const [encryptedEntries, setEncryptedEntries] = useState([])
   const [decryptionAttempted, setDecryptionAttempted] = useState(false)
+  const [isPublicUser, setIsPublicUser] = useState(false)
+  const [showChangePassword, setShowChangePassword] = useState(false)
+  const [changeStatus, setChangeStatus] = useState({ busy: false, error: '', done: false })
 
   const loadAllEntries = async () => {
     if (!username) return
@@ -37,6 +42,7 @@ export default function AllEntriesPage() {
     }
 
     setUserExists(true)
+    setIsPublicUser(Boolean(userData[0].is_public))
     setUserSalt(userData[0].salt)
     setEncryptedPrivateKey(userData[0].encrypted_private_key)
 
@@ -119,6 +125,29 @@ export default function AllEntriesPage() {
     }
   }
 
+  const handleChangePassword = async (event) => {
+    event.preventDefault()
+    const form = new FormData(event.target)
+    const oldPassword = String(form.get('oldPassword') || '')
+    const newPassword = String(form.get('newPassword') || '')
+    const confirmPassword = String(form.get('confirmPassword') || '')
+
+    if (newPassword !== confirmPassword) {
+      setChangeStatus({ busy: false, error: 'New passwords do not match', done: false })
+      return
+    }
+
+    setChangeStatus({ busy: true, error: '', done: false })
+    try {
+      await changePassword({ username, oldPassword, newPassword })
+      setChangeStatus({ busy: false, error: '', done: true })
+      setShowChangePassword(false)
+      await loadAllEntries()
+    } catch (error) {
+      setChangeStatus({ busy: false, error: error.message, done: false })
+    }
+  }
+
   useEffect(() => {
     if (username) {
       loadAllEntries()
@@ -198,7 +227,42 @@ export default function AllEntriesPage() {
         <span className="header-username">{username}</span>
         <span className="header-separator"> / </span>
         <span className="header-section">all entries</span>
+        {!isPublicUser && (
+          <button
+            type="button"
+            className="change-password-link"
+            onClick={() => setShowChangePassword((open) => !open)}
+          >
+            [change password]
+          </button>
+        )}
       </div>
+
+      {changeStatus.done && (
+        <p className="change-done">Password changed. Unlock with your new password.</p>
+      )}
+
+      {showChangePassword && (
+        <form className="change-password-form" onSubmit={handleChangePassword}>
+          <div className="prompt-group">
+            <label htmlFor="oldPassword">Current password</label>
+            <input id="oldPassword" type="password" name="oldPassword" required autoFocus />
+          </div>
+          <div className="prompt-group">
+            <label htmlFor="newPassword">New password (min {MIN_PASSWORD_LENGTH} characters)</label>
+            <input id="newPassword" type="password" name="newPassword" minLength={MIN_PASSWORD_LENGTH} required />
+          </div>
+          <div className="prompt-group">
+            <label htmlFor="confirmPassword">Confirm new password</label>
+            <input id="confirmPassword" type="password" name="confirmPassword" minLength={MIN_PASSWORD_LENGTH} required />
+          </div>
+          <button type="submit" className="unlock-button" disabled={changeStatus.busy}>
+            {changeStatus.busy ? 'Changing...' : '[Change password →]'}
+          </button>
+          {changeStatus.error && <p className="warning-text">{changeStatus.error}</p>}
+          <p className="warning-text">There is no recovery if you forget this.</p>
+        </form>
+      )}
 
       {!decryptionAttempted && encryptedEntries.length > 0 ? (
         <div className="password-prompt">
@@ -299,6 +363,29 @@ export default function AllEntriesPage() {
         }
         .header-section {
           color: var(--color-gray-darker);
+        }
+        .change-password-link {
+          margin-left: 16px;
+          background: none;
+          border: none;
+          padding: 0;
+          font-family: var(--font-mono);
+          font-size: 14px;
+          color: var(--color-accent);
+          text-decoration: underline;
+          cursor: pointer;
+        }
+        .change-done {
+          color: var(--color-text);
+          margin-bottom: 24px;
+        }
+        .change-password-form {
+          max-width: 400px;
+          margin: 0 auto 40px;
+        }
+        .unlock-button:disabled {
+          opacity: 0.6;
+          cursor: default;
         }
         .password-prompt {
           max-width: 400px;

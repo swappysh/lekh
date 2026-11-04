@@ -43,12 +43,13 @@ export default async function handler(req, res) {
   const clientSnapshotId = String(body.clientSnapshotId || '').trim()
   const encryptedContent = String(body.encryptedContent || '')
   const encryptedDataKey = String(body.encryptedDataKey || '')
+  const publicKey = String(body.publicKey || '')
 
   if (!username || username.length > USERNAME_MAX_LENGTH || !USERNAME_REGEX.test(username)) {
     return res.status(400).json({ error: 'Invalid username' })
   }
 
-  if (!clientSnapshotId || !encryptedContent || !encryptedDataKey) {
+  if (!clientSnapshotId || !encryptedContent || !encryptedDataKey || !publicKey) {
     return res.status(400).json({ error: 'Missing required fields' })
   }
 
@@ -85,20 +86,21 @@ export default async function handler(req, res) {
       return res.status(403).json({ error: 'Private append is not allowed for public users' })
     }
 
-    const { error: upsertError } = await supabaseAdmin
-      .from('documents')
-      .upsert({
-        id: `${username}:${clientSnapshotId}`,
-        username,
-        encrypted_content: encryptedContent,
-        encrypted_data_key: encryptedDataKey,
-        client_snapshot_id: clientSnapshotId,
-        updated_at: new Date().toISOString(),
-      }, {
-        onConflict: 'username,client_snapshot_id',
-      })
+    // The key comparison and the write happen in one transaction inside
+    // private_append, so a write encrypted to a rotated-out key cannot land
+    // between a check here and the upsert.
+    const { error: appendError } = await supabaseAdmin.rpc('private_append', {
+      p_username: username,
+      p_public_key: publicKey,
+      p_client_snapshot_id: clientSnapshotId,
+      p_encrypted_content: encryptedContent,
+      p_encrypted_data_key: encryptedDataKey,
+    })
 
-    if (upsertError) {
+    if (appendError) {
+      if (/key changed/.test(appendError.message || '')) {
+        return res.status(409).json({ error: 'Encryption key changed, reload the page' })
+      }
       return res.status(500).json({ error: 'Failed to save private snapshot' })
     }
 

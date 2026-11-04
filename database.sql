@@ -143,6 +143,120 @@ CREATE TRIGGER documents_prevent_invalid_insert
   FOR EACH ROW
   EXECUTE FUNCTION prevent_invalid_documents_insert();
 
+-- Password change: rotate the author keypair and re-wrap every entry's data key
+-- in one transaction. Called only by /api/rotate-key through the service role.
+--
+-- p_doc_keys maps document id -> {"old_hash": <sha256 hex of the data key the client
+-- read>, "new": <re-wrapped data key>}. An entry whose stored key no longer hashes to
+-- old_hash was rewritten after the client read it (every autosave makes a fresh data
+-- key), so the whole swap is refused instead of pairing new content with a stale key.
+--
+-- Writers and rotation are serialized by the users row: private_append takes
+-- FOR SHARE, this takes FOR UPDATE, so an append cannot land encrypted to the old key.
+CREATE OR REPLACE FUNCTION rotate_user_key(
+  p_username TEXT,
+  p_old_public_key TEXT,
+  p_new_public_key TEXT,
+  p_encrypted_private_key TEXT,
+  p_salt TEXT,
+  p_doc_keys JSONB
+)
+RETURNS VOID AS $$
+DECLARE
+  current_key TEXT;
+  unmatched INTEGER;
+BEGIN
+  SELECT public_key INTO current_key
+  FROM users
+  WHERE username = p_username
+  FOR UPDATE;
+
+  IF current_key IS NULL THEN
+    RAISE EXCEPTION 'user not found';
+  END IF;
+
+  IF current_key <> p_old_public_key THEN
+    RAISE EXCEPTION 'key changed';
+  END IF;
+
+  SELECT COUNT(*) INTO unmatched
+  FROM documents d
+  WHERE d.username = p_username
+    AND (
+      NOT (p_doc_keys ? d.id)
+      OR jsonb_typeof(p_doc_keys -> d.id) IS DISTINCT FROM 'object'
+      OR jsonb_typeof(p_doc_keys -> d.id -> 'new') IS DISTINCT FROM 'string'
+      OR (p_doc_keys -> d.id ->> 'old_hash')
+           IS DISTINCT FROM encode(sha256(convert_to(d.encrypted_data_key, 'UTF8')), 'hex')
+    );
+
+  IF unmatched > 0 THEN
+    RAISE EXCEPTION 'entries changed';
+  END IF;
+
+  UPDATE documents d
+  SET encrypted_data_key = p_doc_keys -> d.id ->> 'new'
+  WHERE d.username = p_username;
+
+  UPDATE users
+  SET public_key = p_new_public_key,
+      encrypted_private_key = p_encrypted_private_key,
+      salt = p_salt
+  WHERE username = p_username;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+REVOKE ALL ON FUNCTION rotate_user_key(TEXT, TEXT, TEXT, TEXT, TEXT, JSONB) FROM PUBLIC;
+REVOKE ALL ON FUNCTION rotate_user_key(TEXT, TEXT, TEXT, TEXT, TEXT, JSONB) FROM anon, authenticated;
+GRANT EXECUTE ON FUNCTION rotate_user_key(TEXT, TEXT, TEXT, TEXT, TEXT, JSONB) TO service_role;
+
+-- Private append: compare the writer's public key and upsert in one transaction.
+-- FOR SHARE on the users row makes rotate_user_key (FOR UPDATE) wait for in-flight
+-- appends and vice versa, so a write encrypted to a rotated-out key cannot land.
+CREATE OR REPLACE FUNCTION private_append(
+  p_username TEXT,
+  p_public_key TEXT,
+  p_client_snapshot_id TEXT,
+  p_encrypted_content TEXT,
+  p_encrypted_data_key TEXT
+)
+RETURNS VOID AS $$
+DECLARE
+  current_key TEXT;
+BEGIN
+  SELECT public_key INTO current_key
+  FROM users
+  WHERE username = p_username
+  FOR SHARE;
+
+  IF current_key IS NULL THEN
+    RAISE EXCEPTION 'user not found';
+  END IF;
+
+  IF current_key <> p_public_key THEN
+    RAISE EXCEPTION 'key changed';
+  END IF;
+
+  INSERT INTO documents (id, username, encrypted_content, encrypted_data_key, client_snapshot_id, updated_at)
+  VALUES (
+    p_username || ':' || p_client_snapshot_id,
+    p_username,
+    p_encrypted_content,
+    p_encrypted_data_key,
+    p_client_snapshot_id,
+    NOW()
+  )
+  ON CONFLICT (username, client_snapshot_id) DO UPDATE
+  SET encrypted_content = EXCLUDED.encrypted_content,
+      encrypted_data_key = EXCLUDED.encrypted_data_key,
+      updated_at = EXCLUDED.updated_at;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+REVOKE ALL ON FUNCTION private_append(TEXT, TEXT, TEXT, TEXT, TEXT) FROM PUBLIC;
+REVOKE ALL ON FUNCTION private_append(TEXT, TEXT, TEXT, TEXT, TEXT) FROM anon, authenticated;
+GRANT EXECUTE ON FUNCTION private_append(TEXT, TEXT, TEXT, TEXT, TEXT) TO service_role;
+
 -- Public snapshot materialization from collaborative document updates
 CREATE OR REPLACE FUNCTION refresh_public_snapshot()
 RETURNS TRIGGER AS $$

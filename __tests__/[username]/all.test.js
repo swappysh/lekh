@@ -2,6 +2,11 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { supabase } from '../../lib/supabase'
 import AllEntriesPage from '../../pages/[username]/all'
+import { changePassword } from '../../lib/changePassword'
+
+jest.mock('../../lib/changePassword', () => ({
+  changePassword: jest.fn()
+}))
 
 // Mock PublicKeyEncryption
 jest.mock('../../lib/publicKeyEncryption', () => ({
@@ -487,5 +492,95 @@ describe('All Entries Page', () => {
         expect(entry.querySelector('.entry-content')).toBeTruthy()
       })
     })
+  })
+})
+
+describe('All Entries Page: change password', () => {
+  const mockUser = (isPublic) => {
+    supabase.from.mockImplementation((table) => {
+      if (table === 'users') {
+        return {
+          select: jest.fn(() => ({
+            eq: jest.fn(() => Promise.resolve({
+              data: [{ username: 'testuser', salt: 's', encrypted_private_key: 'k', is_public: isPublic }],
+              error: null
+            }))
+          }))
+        }
+      }
+      return {
+        select: jest.fn(() => ({
+          eq: jest.fn(() => ({
+            order: jest.fn(() => Promise.resolve({ data: [], error: null }))
+          })),
+          order: jest.fn(() => Promise.resolve({ data: [], error: null }))
+        }))
+      }
+    })
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mockRouter.query = { username: 'testuser' }
+  })
+
+  test('private users can open the form and submit it', async () => {
+    mockUser(false)
+    changePassword.mockResolvedValue({ skipped: 0 })
+    const user = userEvent.setup()
+    render(<AllEntriesPage />)
+
+    await user.click(await screen.findByText('[change password]'))
+    await user.type(screen.getByLabelText('Current password'), 'qwe123')
+    await user.type(screen.getByLabelText(/New password/), 'a much longer passphrase')
+    await user.type(screen.getByLabelText('Confirm new password'), 'a much longer passphrase')
+    await user.click(screen.getByText('[Change password →]'))
+
+    await waitFor(() => {
+      expect(changePassword).toHaveBeenCalledWith({
+        username: 'testuser',
+        oldPassword: 'qwe123',
+        newPassword: 'a much longer passphrase'
+      })
+    })
+    expect(await screen.findByText(/Password changed/)).toBeInTheDocument()
+  })
+
+  test('does not call the server when the confirmation does not match', async () => {
+    mockUser(false)
+    const user = userEvent.setup()
+    render(<AllEntriesPage />)
+
+    await user.click(await screen.findByText('[change password]'))
+    await user.type(screen.getByLabelText('Current password'), 'qwe123')
+    await user.type(screen.getByLabelText(/New password/), 'a much longer passphrase')
+    await user.type(screen.getByLabelText('Confirm new password'), 'a different passphrase!')
+    await user.click(screen.getByText('[Change password →]'))
+
+    expect(await screen.findByText('New passwords do not match')).toBeInTheDocument()
+    expect(changePassword).not.toHaveBeenCalled()
+  })
+
+  test('shows the server error, for example a wrong current password', async () => {
+    mockUser(false)
+    changePassword.mockRejectedValue(new Error('Current password is incorrect'))
+    const user = userEvent.setup()
+    render(<AllEntriesPage />)
+
+    await user.click(await screen.findByText('[change password]'))
+    await user.type(screen.getByLabelText('Current password'), 'nope')
+    await user.type(screen.getByLabelText(/New password/), 'a much longer passphrase')
+    await user.type(screen.getByLabelText('Confirm new password'), 'a much longer passphrase')
+    await user.click(screen.getByText('[Change password →]'))
+
+    expect(await screen.findByText('Current password is incorrect')).toBeInTheDocument()
+  })
+
+  test('public users do not see the option', async () => {
+    mockUser(true)
+    render(<AllEntriesPage />)
+
+    await waitFor(() => expect(screen.getByText('all entries')).toBeInTheDocument())
+    expect(screen.queryByText('[change password]')).not.toBeInTheDocument()
   })
 })
