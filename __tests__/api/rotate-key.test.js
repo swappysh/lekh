@@ -134,6 +134,16 @@ describe('/api/rotate-key', () => {
   })
 
   describe('rate limiting', () => {
+    let consoleError
+
+    beforeEach(() => {
+      consoleError = jest.spyOn(console, 'error').mockImplementation(() => {})
+    })
+
+    afterEach(() => {
+      consoleError.mockRestore()
+    })
+
     test('counts each request against the client IP', async () => {
       await handler(req, res)
       expect(rpc).toHaveBeenCalledWith('rate_limit_hit', {
@@ -170,11 +180,10 @@ describe('/api/rotate-key', () => {
     })
 
     test('allows the request when the limiter itself errors', async () => {
-      const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {})
       rpc.mockImplementation(rpcAnswers({ data: null, error: { message: 'boom' } }))
       await handler(req, res)
       expect(res.status).toHaveBeenCalledWith(200)
-      consoleError.mockRestore()
+      expect(consoleError).toHaveBeenCalled()
     })
   })
 })
