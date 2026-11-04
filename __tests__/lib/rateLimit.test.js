@@ -14,8 +14,17 @@ describe('clientIp', () => {
     expect(clientIp({})).toBe('unknown')
   })
 
-  test('unwraps an IPv4-mapped IPv6 address', () => {
-    expect(clientIp({ headers: { 'x-real-ip': '::ffff:203.0.113.9' } })).toBe('203.0.113.9')
+  test.each([
+    ['dotted', '::ffff:203.0.113.9'],
+    ['hex', '::ffff:cb00:7109'],
+    ['an IPv4 address with a port', '203.0.113.9:5678'],
+    ['a bracketed IPv4-mapped address with a port', '[::ffff:203.0.113.9]:443'],
+  ])('reduces %s to the bare IPv4 address', (_label, ip) => {
+    expect(clientIp({ headers: { 'x-real-ip': ip } })).toBe('203.0.113.9')
+  })
+
+  test('strips brackets and port from an IPv6 address before bucketing', () => {
+    expect(clientIp({ headers: { 'x-real-ip': '[2001:db8:1:2::1]:443' } })).toBe('2001:db8:1:2::/64')
   })
 
   test.each([
@@ -54,12 +63,25 @@ describe('rateLimitRetryAfter', () => {
     expect(await rateLimitRetryAfter(admin({ data: 42, error: null }), 'k', 5, 60)).toBe(42)
   })
 
-  test('treats a NULL answer as allowed', async () => {
-    expect(await rateLimitRetryAfter(admin({ data: null, error: null }), 'k', 5, 60)).toBe(0)
+  let consoleError
+
+  beforeEach(() => {
+    consoleError = jest.spyOn(console, 'error').mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    consoleError.mockRestore()
+  })
+
+  test.each([
+    ['NULL', null],
+    ['an older boolean answer true', true],
+    ['an older boolean answer false', false],
+  ])('treats %s as allowed instead of reading it as seconds', async (_label, data) => {
+    expect(await rateLimitRetryAfter(admin({ data, error: null }), 'k', 5, 60)).toBe(0)
   })
 
   test('fails open when the database call errors', async () => {
-    jest.spyOn(console, 'error').mockImplementation(() => {})
     expect(await rateLimitRetryAfter(admin({ data: null, error: { message: 'boom' } }), 'k', 5, 60)).toBe(0)
   })
 })

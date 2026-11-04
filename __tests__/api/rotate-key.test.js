@@ -170,10 +170,11 @@ describe('/api/rotate-key', () => {
     })
 
     test('allows the request when the limiter itself errors', async () => {
-      jest.spyOn(console, 'error').mockImplementation(() => {})
+      const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {})
       rpc.mockImplementation(rpcAnswers({ data: null, error: { message: 'boom' } }))
       await handler(req, res)
       expect(res.status).toHaveBeenCalledWith(200)
+      consoleError.mockRestore()
     })
   })
 })

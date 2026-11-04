@@ -295,7 +295,8 @@ BEGIN
       END
   RETURNING hits, window_start INTO current_hits, current_window_start;
 
-  -- Occasionally drop keys whose window ended long ago so the table stays small.
+  -- Occasionally drop keys whose window ended long ago so the table stays small. Rows
+  -- older than a day are assumed expired, so callers must use windows under 24 hours.
   -- SKIP LOCKED: this transaction already holds its own row, and waiting on another
   -- request's row while it waits on ours would deadlock.
   IF random() < 0.01 THEN
