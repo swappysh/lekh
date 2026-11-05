@@ -150,7 +150,7 @@ describe('User Writing Page', () => {
     expect(payload.writerToken).not.toContain(payload.clientSnapshotId)
   })
 
-  test('resends immediately under a new id and token when the server says the id is taken', async () => {
+  test('moves later saves to a new id and token after the server says the id is taken', async () => {
     let uuidCount = 0
     global.crypto.randomUUID = jest.fn(() => `uuid-${++uuidCount}`)
     global.fetch = jest.fn()
@@ -170,14 +170,34 @@ describe('User Writing Page', () => {
     })
     fireEvent(window, new Event('beforeunload'))
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledTimes(2)
+      expect(global.fetch).toHaveBeenCalledTimes(1)
     })
 
+    // The refused text is not lost: the next save re-prepares it under the new session.
+    Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true })
+    fireEvent(document, new Event('visibilitychange'))
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(2)
+    })
+    Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true })
+
     const rejected = JSON.parse(global.fetch.mock.calls[0][1].body)
-    const retried = JSON.parse(global.fetch.mock.calls[1][1].body)
-    expect(retried.clientSnapshotId).not.toBe(rejected.clientSnapshotId)
-    expect(retried.writerToken).not.toBe(rejected.writerToken)
-    expect(retried.encryptedContent).toBe(rejected.encryptedContent)
+    const next = JSON.parse(global.fetch.mock.calls[1][1].body)
+    expect(next.clientSnapshotId).not.toBe(rejected.clientSnapshotId)
+    expect(next.writerToken).not.toBe(rejected.writerToken)
+
+    // Saves after that keep using the new id and token.
+    await user.type(screen.getByPlaceholderText('Start writing...'), ' more')
+    await waitFor(() => {
+      expect(PublicKeyEncryption.encrypt).toHaveBeenCalledWith('first more', 'mock-public-key')
+    })
+    fireEvent(window, new Event('beforeunload'))
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(3)
+    })
+    const third = JSON.parse(global.fetch.mock.calls[2][1].body)
+    expect(third.clientSnapshotId).toBe(next.clientSnapshotId)
+    expect(third.writerToken).toBe(next.writerToken)
   })
 
   test('does not rotate the id on a 403 that is not a writer collision', async () => {
@@ -397,6 +417,7 @@ describe('User Writing Page', () => {
     const secondPayload = JSON.parse(global.fetch.mock.calls[1][1].body)
 
     expect(firstPayload.clientSnapshotId).toBe(secondPayload.clientSnapshotId)
+    expect(firstPayload.writerToken).toBe(secondPayload.writerToken)
   })
 
   test('handles platform detection for Mac shortcuts', async () => {

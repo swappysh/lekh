@@ -12,7 +12,8 @@ import {
 
 // Public-write endpoint: no session, no password. The blast radius is capped by
 // validating the caller-supplied id, bounding payload sizes, and binding each
-// snapshot id to the writer token that created it (a 403 means the id is taken).
+// snapshot id to the writer token that created it (a 403 with code not_writer means
+// the id belongs to another writer; other 403s are not about the id).
 export const config = {
   api: {
     bodyParser: {

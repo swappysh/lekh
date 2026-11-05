@@ -61,9 +61,6 @@ CREATE TABLE IF NOT EXISTS public_snapshots (
 
 -- Migration-safe column adds for older environments
 ALTER TABLE documents ADD COLUMN IF NOT EXISTS client_snapshot_id TEXT;
--- sha256 of the per-session writer secret that created the row. Only the holder of
--- the secret may update the row again through private_append (see below).
-ALTER TABLE documents ADD COLUMN IF NOT EXISTS writer_hash TEXT;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS is_public BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
 ALTER TABLE collaborative_documents ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
@@ -223,12 +220,23 @@ GRANT EXECUTE ON FUNCTION rotate_user_key(TEXT, TEXT, TEXT, TEXT, TEXT, JSONB) T
 -- The hash is public but not reversible, so only the original writer can keep
 -- autosaving a row. Rows with no hash (everything written before this change) are
 -- immutable here, except until the fixed cutoff below, when a tokenless writer may
--- touch a tokenless row written in the last hour: that keeps tabs loaded before the
+-- touch a tokenless row updated in the last hour: that keeps tabs loaded before the
 -- deploy autosaving. A tokenless overwrite refreshes updated_at, so without a hard
--- cutoff that branch would never close. Set the cutoff to roughly the deploy time
--- plus a day, and delete the branch afterwards. Run this section in one
--- transaction so there is no moment without a private_append function.
+-- cutoff that branch would never close.
+--
+-- TODO(remove after 2026-11-06 12:00 UTC): delete the tokenless branch from the
+-- WHERE clause below and make writerToken required in pages/api/private-append.js.
+-- The cutoff is an absolute time: set it to the deploy time plus a day before
+-- running this on a new environment, or the branch is already closed (tabs loaded
+-- before the deploy then lose autosave after their first save).
+--
+-- Run this section in one transaction so there is no moment without a
+-- private_append function. The column add is inside it because the function needs it.
 BEGIN;
+
+-- sha256 of the per-session writer secret that created the row. Only the holder of
+-- the secret may update the row again through private_append.
+ALTER TABLE documents ADD COLUMN IF NOT EXISTS writer_hash TEXT;
 
 DROP FUNCTION IF EXISTS private_append(TEXT, TEXT, TEXT, TEXT, TEXT);
 

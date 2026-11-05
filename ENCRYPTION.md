@@ -180,17 +180,22 @@ Accepted consequences:
   appends. To stop an outsider replacing an existing entry by reusing its id, each
   session also generates a random writer token and sends it with every save. The
   server stores only its sha256 (`documents.writer_hash`) and the `private_append`
-  function refuses (HTTP 403, `not the writer`) to update a row unless the hash
-  matches the one that created it. The hash is public but a 256-bit preimage is
-  not guessable. On a 403 with code `not_writer` the browser gives the snapshot a
-  new id and token and resends it once, so the entry is kept. Rows written before
-  this change have no hash and cannot be updated through `private-append`, except
-  until a fixed cutoff written in `private_append` (a tokenless writer may update a
-  tokenless row written in the last hour, so tabs loaded before the deploy keep
-  autosaving; an old tab idle for more than an hour is refused and needs a reload).
-  Delete that branch after the cutoff. Run the `private_append` section of `database.sql` (the
-  `writer_hash` column and the six-argument function, in one transaction) before
-  deploying the code.
+  function raises `not the writer` (HTTP 403 with `code: "not_writer"`) unless the
+  hash matches the one that created the row. The hash is public but a 256-bit
+  preimage is not guessable. On that 403 the browser moves later saves to a new
+  id and token, so its next autosave appends the current text as a new entry. A
+  save sent by the unload beacon cannot see the response, so it is not retried.
+  - Transition window: rows written before this change have no hash and cannot be
+    updated through `private-append`, except that until a fixed cutoff written in
+    `private_append` (2026-11-06 12:00 UTC) a tokenless writer may update a
+    tokenless row updated in the last hour. That keeps tabs loaded before the
+    deploy autosaving, and it also means an outsider can overwrite such a row
+    during the window. A tab from before the deploy that is idle for more than an
+    hour, or still open after the cutoff, is refused and shows "saving..." until
+    it is reloaded; its later text is not stored. Delete the branch after the cutoff.
+  - Deploying: run the `private_append` block of `database.sql` (it adds the
+    `writer_hash` column and the six-argument function in one transaction; running
+    the whole file also works) before deploying the code.
 - Junk or forged snapshots cannot be removed with the anon key (`documents` has a
   SELECT-only policy). `POST /api/private-delete` removes one through the service
   role, but only for the owner: because snapshot ids are public, an open delete
@@ -213,9 +218,10 @@ Known limits of the owner-only delete:
 
 - A delete proof is reusable for any snapshot of that user until its 2 minute token
   expires; it is not bound to one `clientSnapshotId`.
-- Overwrite of an existing entry through `private-append` by reusing its public
-  snapshot id is blocked by the writer token (see above). An outsider can still
-  append new junk rows under fresh ids.
+
+Known limit of public append: overwriting an existing entry by reusing its public
+snapshot id is blocked by the writer token (except during the transition window
+above), but an outsider can still append new junk rows under fresh ids.
 
 ## Changing the Password (key rotation)
 

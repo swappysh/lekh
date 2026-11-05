@@ -214,7 +214,18 @@ describe('/api/private-append', () => {
     expect(res.status).toHaveBeenCalledWith(200)
   })
 
-  test.each(['short', 'has spaces in it and is long enough!!', 'a'.repeat(129)])(
+  test.each(['a'.repeat(22), 'a'.repeat(128)])('accepts a writer token at the length bounds %#', async (token) => {
+    const mockRpc = jest.fn(() => Promise.resolve({ error: null }))
+    mockPrivateUser(mockRpc)
+    req.body.writerToken = token
+
+    await handler(req, res)
+
+    expect(res.status).toHaveBeenCalledWith(200)
+    expect(mockRpc).toHaveBeenCalled()
+  })
+
+  test.each(['short', 'a'.repeat(21), 'has spaces in it and is long enough!!', 'a'.repeat(129), {}])(
     'rejects a malformed writer token %#',
     async (token) => {
       const mockRpc = jest.fn()
