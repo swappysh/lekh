@@ -6,7 +6,7 @@
 // and that the server challenge only verifies for the holder of the private key.
 import { webcrypto } from 'crypto'
 import { PublicKeyEncryption } from '../../lib/publicKeyEncryption'
-import { createChallenge, verifyChallenge } from '../../lib/rotateChallenge'
+import { createChallenge, verifyChallenge, ROTATE_ACTION } from '../../lib/rotateChallenge'
 
 const OLD_PASSWORD = 'qwe123'
 const NEW_PASSWORD = 'correct horse battery staple'
@@ -90,9 +90,9 @@ describe('password change (key rotation) with real crypto', () => {
       const privateKey = await PublicKeyEncryption.unlockPrivateKey(
         OLD_PASSWORD, account.encryptedPrivateKey, account.salt
       )
-      const { encryptedChallenge, token } = createChallenge('alice', account.publicKey)
+      const { encryptedChallenge, token } = createChallenge('alice', account.publicKey, Date.now(), ROTATE_ACTION)
       const nonce = await PublicKeyEncryption.decryptBase64WithPrivateKey(privateKey, encryptedChallenge)
-      const base = { token, nonceBase64: nonce, username: 'alice', publicKeyBase64: account.publicKey }
+      const base = { token, nonceBase64: nonce, username: 'alice', publicKeyBase64: account.publicKey, action: ROTATE_ACTION }
 
       expect(verifyChallenge(base)).toBe(true)
       expect(verifyChallenge({ ...base, username: 'bob' })).toBe(false)
@@ -105,12 +105,12 @@ describe('password change (key rotation) with real crypto', () => {
       const privateKey = await PublicKeyEncryption.unlockPrivateKey(
         OLD_PASSWORD, account.encryptedPrivateKey, account.salt
       )
-      const { encryptedChallenge, token } = createChallenge('alice', account.publicKey)
+      const { encryptedChallenge, token } = createChallenge('alice', account.publicKey, Date.now(), ROTATE_ACTION)
       const nonce = await PublicKeyEncryption.decryptBase64WithPrivateKey(privateKey, encryptedChallenge)
       const rotated = await PublicKeyEncryption.generateAuthorKeys(NEW_PASSWORD, new Uint8Array(16))
 
       expect(
-        verifyChallenge({ token, nonceBase64: nonce, username: 'alice', publicKeyBase64: rotated.publicKey })
+        verifyChallenge({ token, nonceBase64: nonce, username: 'alice', publicKeyBase64: rotated.publicKey, action: ROTATE_ACTION })
       ).toBe(false)
     })
   })
