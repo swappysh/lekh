@@ -179,8 +179,13 @@ Accepted consequences:
   a row is updated in place; a fresh random id appends. An outside writer who
   deliberately reuses an existing id replaces that row's content.
 - Junk or forged snapshots cannot be removed with the anon key (`documents` has a
-  SELECT-only policy). Use `POST /api/private-delete` with
-  `{ username, clientSnapshotId }`, which goes through the service role.
+  SELECT-only policy). `POST /api/private-delete` removes one through the service
+  role, but only for the owner: because snapshot ids are public, an open delete
+  would let anyone erase anyone's entries. Like `/api/rotate-key` it is two steps.
+  `{ step: "challenge", username }` returns a nonce encrypted to the user's public
+  key plus a signed token (bound to the delete action); `{ step: "commit",
+  username, clientSnapshotId, token, challengeResponse }` carries the nonce
+  decrypted with the private key. A wrong, expired or password-change token is a 403.
   Databases provisioned before the delete route carry a
   `documents_prevent_delete` `BEFORE DELETE` trigger that raises; `database.sql`
   drops it, so run the current `database.sql` (or its two `DROP` statements)
