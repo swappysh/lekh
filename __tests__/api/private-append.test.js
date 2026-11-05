@@ -1,3 +1,4 @@
+import { createHash } from 'crypto'
 import handler from '../../pages/api/private-append'
 import { getSupabaseAdmin } from '../../lib/supabaseAdmin'
 
@@ -165,6 +166,7 @@ describe('/api/private-append', () => {
       p_client_snapshot_id: 'snapshot-1',
       p_encrypted_content: 'encrypted-content',
       p_encrypted_data_key: 'encrypted-data-key',
+      p_writer_hash: null,
     })
     expect(res.status).toHaveBeenCalledWith(200)
     expect(res.json).toHaveBeenCalledWith({ ok: true })
@@ -195,5 +197,45 @@ describe('/api/private-append', () => {
 
     expect(res.status).toHaveBeenCalledWith(400)
     expect(res.json).toHaveBeenCalledWith({ error: 'Missing required fields' })
+  })
+
+  const TOKEN = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQ'
+
+  test('passes only the sha256 of the writer token to the database', async () => {
+    const mockRpc = jest.fn(() => Promise.resolve({ error: null }))
+    mockPrivateUser(mockRpc)
+    req.body.writerToken = TOKEN
+
+    await handler(req, res)
+
+    const args = mockRpc.mock.calls[0][1]
+    expect(args.p_writer_hash).toBe(createHash('sha256').update(TOKEN).digest('hex'))
+    expect(JSON.stringify(args)).not.toContain(TOKEN)
+    expect(res.status).toHaveBeenCalledWith(200)
+  })
+
+  test.each(['short', 'has spaces in it and is long enough!!', 'a'.repeat(129)])(
+    'rejects a malformed writer token %#',
+    async (token) => {
+      const mockRpc = jest.fn()
+      mockPrivateUser(mockRpc)
+      req.body.writerToken = token
+
+      await handler(req, res)
+
+      expect(res.status).toHaveBeenCalledWith(400)
+      expect(res.json).toHaveBeenCalledWith({ error: 'Invalid writerToken' })
+      expect(mockRpc).not.toHaveBeenCalled()
+    }
+  )
+
+  test('maps a snapshot owned by another writer to 403', async () => {
+    mockPrivateUser(jest.fn(() => Promise.resolve({ error: { message: 'not the writer' } })))
+    req.body.writerToken = TOKEN
+
+    await handler(req, res)
+
+    expect(res.status).toHaveBeenCalledWith(403)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Snapshot belongs to another writer', code: 'not_writer' })
   })
 })

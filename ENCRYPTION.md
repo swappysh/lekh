@@ -175,9 +175,22 @@ Accepted consequences:
   ciphertext. Usernames, snapshot ids, timestamps, `public_key`,
   `encrypted_private_key`, and `salt` are therefore public. Public ciphertext plus
   salt allows offline password guessing; PBKDF2 slows it down.
-- A snapshot id is public. The same client reuses its own id while autosaving, so
-  a row is updated in place; a fresh random id appends. An outside writer who
-  deliberately reuses an existing id replaces that row's content.
+- A snapshot id is public, so it is not a credential. The same browser session
+  reuses its id while autosaving and updates the row in place; a fresh random id
+  appends. To stop an outsider replacing an existing entry by reusing its id, each
+  session also generates a random writer token and sends it with every save. The
+  server stores only its sha256 (`documents.writer_hash`) and the `private_append`
+  function refuses (HTTP 403, `not the writer`) to update a row unless the hash
+  matches the one that created it. The hash is public but a 256-bit preimage is
+  not guessable. On a 403 with code `not_writer` the browser gives the snapshot a
+  new id and token and resends it once, so the entry is kept. Rows written before
+  this change have no hash and cannot be updated through `private-append`, except
+  until a fixed cutoff written in `private_append` (a tokenless writer may update a
+  tokenless row written in the last hour, so tabs loaded before the deploy keep
+  autosaving; an old tab idle for more than an hour is refused and needs a reload).
+  Delete that branch after the cutoff. Run the `private_append` section of `database.sql` (the
+  `writer_hash` column and the six-argument function, in one transaction) before
+  deploying the code.
 - Junk or forged snapshots cannot be removed with the anon key (`documents` has a
   SELECT-only policy). `POST /api/private-delete` removes one through the service
   role, but only for the owner: because snapshot ids are public, an open delete
@@ -200,9 +213,9 @@ Known limits of the owner-only delete:
 
 - A delete proof is reusable for any snapshot of that user until its 2 minute token
   expires; it is not bound to one `clientSnapshotId`.
-- It does not stop an outsider from overwriting an entry through `private-append` by
-  reusing its public snapshot id (see above), so the delete proof protects removal
-  only, not integrity.
+- Overwrite of an existing entry through `private-append` by reusing its public
+  snapshot id is blocked by the writer token (see above). An outsider can still
+  append new junk rows under fresh ids.
 
 ## Changing the Password (key rotation)
 

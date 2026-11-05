@@ -1,15 +1,18 @@
+import { createHash } from 'crypto'
 import { getSupabaseAdmin } from '../../lib/supabaseAdmin'
 import {
   USERNAME_REGEX,
   USERNAME_MAX_LENGTH,
   SNAPSHOT_ID_REGEX,
   SNAPSHOT_ID_MAX_LENGTH,
+  WRITER_TOKEN_REGEX,
   MAX_ENCRYPTED_CONTENT_LENGTH,
   MAX_ENCRYPTED_DATA_KEY_LENGTH,
 } from '../../lib/constants'
 
 // Public-write endpoint: no session, no password. The blast radius is capped by
-// validating the caller-supplied id and by bounding payload sizes.
+// validating the caller-supplied id, bounding payload sizes, and binding each
+// snapshot id to the writer token that created it (a 403 means the id is taken).
 export const config = {
   api: {
     bodyParser: {
@@ -44,6 +47,7 @@ export default async function handler(req, res) {
   const encryptedContent = String(body.encryptedContent || '')
   const encryptedDataKey = String(body.encryptedDataKey || '')
   const publicKey = String(body.publicKey || '')
+  const writerToken = String(body.writerToken || '')
 
   if (!username || username.length > USERNAME_MAX_LENGTH || !USERNAME_REGEX.test(username)) {
     return res.status(400).json({ error: 'Invalid username' })
@@ -55,6 +59,10 @@ export default async function handler(req, res) {
 
   if (clientSnapshotId.length > SNAPSHOT_ID_MAX_LENGTH || !SNAPSHOT_ID_REGEX.test(clientSnapshotId)) {
     return res.status(400).json({ error: 'Invalid clientSnapshotId' })
+  }
+
+  if (writerToken && !WRITER_TOKEN_REGEX.test(writerToken)) {
+    return res.status(400).json({ error: 'Invalid writerToken' })
   }
 
   if (encryptedContent.length > MAX_ENCRYPTED_CONTENT_LENGTH) {
@@ -86,6 +94,10 @@ export default async function handler(req, res) {
       return res.status(403).json({ error: 'Private append is not allowed for public users' })
     }
 
+    // Only the hash of the writer token is stored. The database refuses to update
+    // an existing snapshot unless the hash matches the one that created it.
+    const writerHash = writerToken ? createHash('sha256').update(writerToken).digest('hex') : null
+
     // The key comparison and the write happen in one transaction inside
     // private_append, so a write encrypted to a rotated-out key cannot land
     // between a check here and the upsert.
@@ -95,11 +107,15 @@ export default async function handler(req, res) {
       p_client_snapshot_id: clientSnapshotId,
       p_encrypted_content: encryptedContent,
       p_encrypted_data_key: encryptedDataKey,
+      p_writer_hash: writerHash,
     })
 
     if (appendError) {
       if (/key changed/.test(appendError.message || '')) {
         return res.status(409).json({ error: 'Encryption key changed, reload the page' })
+      }
+      if (/not the writer/.test(appendError.message || '')) {
+        return res.status(403).json({ error: 'Snapshot belongs to another writer', code: 'not_writer' })
       }
       return res.status(500).json({ error: 'Failed to save private snapshot' })
     }

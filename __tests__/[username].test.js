@@ -127,6 +127,84 @@ describe('User Writing Page', () => {
     })
     expect(payload.clientSnapshotId).toContain('test-uuid-12345')
   })
+  test('sends a writer token that is not derived from the public snapshot id', async () => {
+    const user = userEvent.setup()
+    render(<UserPage />)
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Start writing...')).toBeInTheDocument()
+    })
+
+    await user.type(screen.getByPlaceholderText('Start writing...'), 'Test content')
+    await waitFor(() => {
+      expect(PublicKeyEncryption.encrypt).toHaveBeenCalled()
+    })
+    fireEvent(window, new Event('beforeunload'))
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalled()
+    })
+
+    const payload = JSON.parse(global.fetch.mock.calls[0][1].body)
+    expect(payload.writerToken).toMatch(/^[A-Za-z0-9_-]{43}$/)
+    expect(payload.writerToken).not.toContain(payload.clientSnapshotId)
+  })
+
+  test('resends immediately under a new id and token when the server says the id is taken', async () => {
+    let uuidCount = 0
+    global.crypto.randomUUID = jest.fn(() => `uuid-${++uuidCount}`)
+    global.fetch = jest.fn()
+      .mockResolvedValueOnce({ ok: false, status: 403, json: () => Promise.resolve({ code: 'not_writer' }) })
+      .mockResolvedValue({ ok: true, status: 200, json: () => Promise.resolve({ ok: true }) })
+
+    const user = userEvent.setup()
+    render(<UserPage />)
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Start writing...')).toBeInTheDocument()
+    })
+
+    await user.type(screen.getByPlaceholderText('Start writing...'), 'first')
+    await waitFor(() => {
+      expect(PublicKeyEncryption.encrypt).toHaveBeenCalled()
+    })
+    fireEvent(window, new Event('beforeunload'))
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(2)
+    })
+
+    const rejected = JSON.parse(global.fetch.mock.calls[0][1].body)
+    const retried = JSON.parse(global.fetch.mock.calls[1][1].body)
+    expect(retried.clientSnapshotId).not.toBe(rejected.clientSnapshotId)
+    expect(retried.writerToken).not.toBe(rejected.writerToken)
+    expect(retried.encryptedContent).toBe(rejected.encryptedContent)
+  })
+
+  test('does not rotate the id on a 403 that is not a writer collision', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 403,
+      json: () => Promise.resolve({ error: 'Private append is not allowed for public users' })
+    })
+
+    const user = userEvent.setup()
+    render(<UserPage />)
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Start writing...')).toBeInTheDocument()
+    })
+
+    await user.type(screen.getByPlaceholderText('Start writing...'), 'first')
+    await waitFor(() => {
+      expect(PublicKeyEncryption.encrypt).toHaveBeenCalled()
+    })
+    fireEvent(window, new Event('beforeunload'))
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalled()
+    })
+
+    expect(global.fetch).toHaveBeenCalledTimes(1)
+  })
 
   test('flushes prepared snapshot on unload without re-encrypting', async () => {
     const user = userEvent.setup()
