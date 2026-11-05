@@ -113,6 +113,7 @@ export default async function handler(req, res) {
       .eq('client_snapshot_id', clientSnapshotId)
 
     if (error) {
+      console.error('private-delete failed', error.message)
       return res.status(500).json({ error: 'Failed to delete snapshot' })
     }
 

@@ -191,8 +191,18 @@ Accepted consequences:
   drops it, so run the current `database.sql` (or its two `DROP` statements)
   once on any older database.
 
-Both routes validate the username and snapshot id shape and bound payload sizes
-(see `lib/constants.js`) so an anonymous client cannot store unbounded rows.
+`/api/private-append` and the challenge steps validate the username and snapshot id
+shape and bound payload sizes (see `lib/constants.js`) so an anonymous client cannot
+store unbounded rows. Only `/api/private-append` is anonymous: delete and rotate need
+proof of the private key.
+
+Known limits of the owner-only delete:
+
+- A delete proof is reusable for any snapshot of that user until its 2 minute token
+  expires; it is not bound to one `clientSnapshotId`.
+- It does not stop an outsider from overwriting an entry through `private-append` by
+  reusing its public snapshot id (see above), so the delete proof protects removal
+  only, not integrity.
 
 ## Changing the Password (key rotation)
 

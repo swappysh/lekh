@@ -2,7 +2,7 @@ import { webcrypto } from 'crypto'
 import handler from '../../pages/api/rotate-key'
 import { getSupabaseAdmin } from '../../lib/supabaseAdmin'
 import { PublicKeyEncryption } from '../../lib/publicKeyEncryption'
-import { createChallenge } from '../../lib/rotateChallenge'
+import { createChallenge, ROTATE_ACTION, DELETE_ACTION } from '../../lib/rotateChallenge'
 
 jest.mock('../../lib/supabaseAdmin', () => ({
   getSupabaseAdmin: jest.fn()
@@ -47,7 +47,7 @@ describe('/api/rotate-key', () => {
   })
 
   const commitBody = async () => {
-    const { encryptedChallenge, token } = createChallenge('alice', realKeys.publicKey)
+    const { encryptedChallenge, token } = createChallenge('alice', realKeys.publicKey, Date.now(), ROTATE_ACTION)
     nonce = await PublicKeyEncryption.decryptBase64WithPrivateKey(global.__priv, encryptedChallenge)
     return {
       step: 'commit',
@@ -89,6 +89,32 @@ describe('/api/rotate-key', () => {
 
   test('commit without a valid challenge answer is rejected and nothing is rotated', async () => {
     req.body = { ...(await commitBody()), challengeResponse: Buffer.from('guess').toString('base64') }
+    await handler(req, res)
+    expect(res.status).toHaveBeenCalledWith(403)
+    expect(rpc).not.toHaveBeenCalled()
+  })
+
+  test('refuses a token minted for the delete action', async () => {
+    const { encryptedChallenge, token } = createChallenge('alice', realKeys.publicKey, Date.now(), DELETE_ACTION)
+    const nonce = await PublicKeyEncryption.decryptBase64WithPrivateKey(global.__priv, encryptedChallenge)
+    req.body = { ...(await commitBody()), token, challengeResponse: nonce }
+    await handler(req, res)
+    expect(res.status).toHaveBeenCalledWith(403)
+    expect(rpc).not.toHaveBeenCalled()
+  })
+
+  test('refuses a forged token', async () => {
+    const body = await commitBody()
+    req.body = { ...body, token: body.token.replace(/.$/, (c) => (c === 'A' ? 'B' : 'A')) }
+    await handler(req, res)
+    expect(res.status).toHaveBeenCalledWith(403)
+    expect(rpc).not.toHaveBeenCalled()
+  })
+
+  test('refuses an expired token', async () => {
+    const { encryptedChallenge, token } = createChallenge('alice', realKeys.publicKey, Date.now() - 10 * 60 * 1000, ROTATE_ACTION)
+    const nonce = await PublicKeyEncryption.decryptBase64WithPrivateKey(global.__priv, encryptedChallenge)
+    req.body = { ...(await commitBody()), token, challengeResponse: nonce }
     await handler(req, res)
     expect(res.status).toHaveBeenCalledWith(403)
     expect(rpc).not.toHaveBeenCalled()
