@@ -14,23 +14,38 @@ export default function Home() {
   const [showPublicFlow, setShowPublicFlow] = useState(false)
   const [acknowledgedRisk, setAcknowledgedRisk] = useState(false)
   const [isGeneratingUsername, setIsGeneratingUsername] = useState(false)
+  const [submissionStage, setSubmissionStage] = useState(null) // 'encrypting' | 'checking' | 'creating' | 'success' | null
+  const [checkingTakingLong, setCheckingTakingLong] = useState(false)
 
-  // Check username availability with debounce
+  // Check username availability with debounce and timeout fallback
   useEffect(() => {
     if (!username.trim()) {
       setIsAvailable(null)
       setAvailabilityError(false)
+      setCheckingTakingLong(false)
       return
     }
 
     const checkAvailability = async () => {
       setIsChecking(true)
+      setCheckingTakingLong(false)
+      let completed = false
+
+      // Set timeout to show "taking longer than expected" message after 5 seconds
+      const timeoutWarningId = setTimeout(() => {
+        if (!completed) {
+          setCheckingTakingLong(true)
+        }
+      }, 5000)
+
       try {
         const { data, error } = await supabase
           .from('users')
           .select('username')
           .eq('username', username.trim())
 
+        completed = true
+        clearTimeout(timeoutWarningId)
         if (error) {
           setIsAvailable(null)
           setAvailabilityError(true)
@@ -38,9 +53,13 @@ export default function Home() {
           setIsAvailable(!data || data.length === 0)
           setAvailabilityError(false)
         }
+        setCheckingTakingLong(false)
       } catch (err) {
+        completed = true
+        clearTimeout(timeoutWarningId)
         setIsAvailable(null)
         setAvailabilityError(true)
+        setCheckingTakingLong(false)
       }
       setIsChecking(false)
     }
@@ -78,17 +97,20 @@ export default function Home() {
     }
 
     setIsSubmitting(true)
+    setSubmissionStage('encrypting')
     setMessage('')
 
     try {
       const saltBytes = crypto.getRandomValues(new Uint8Array(16))
 
       const effectivePassword = isPublic ? username.trim() : password
+      setSubmissionStage('checking')
       const { publicKey, encryptedPrivateKey, salt } = await PublicKeyEncryption.generateAuthorKeys(
         effectivePassword,
         saltBytes
       )
 
+      setSubmissionStage('creating')
       const response = await fetch('/api/create-user', {
         method: 'POST',
         headers: JSON_CONTENT_TYPE_HEADER,
@@ -105,6 +127,7 @@ export default function Home() {
 
       if (!response.ok) {
         setIsSubmitting(false)
+        setSubmissionStage(null)
         const errorMap = {
           'Username already taken': 'This username is taken. Try another one.',
           'Invalid username': 'Username can only contain letters, numbers, hyphens, and underscores.',
@@ -117,6 +140,7 @@ export default function Home() {
         const friendlyError = errorMap[payload?.error] || 'Unable to create your space. Please try again.'
         setMessage(`Error: ${friendlyError}`)
       } else {
+        setSubmissionStage('success')
         const createdUsername = payload?.username || username.trim()
         setMessage(`your space is ready → lekh.space/${createdUsername}`)
         setTimeout(() => {
@@ -128,9 +152,12 @@ export default function Home() {
         setIsAvailable(null)
         setAvailabilityError(false)
         setAcknowledgedRisk(false)
+        setIsSubmitting(false)
+        setSubmissionStage(null)
       }
     } catch (err) {
       setIsSubmitting(false)
+      setSubmissionStage(null)
       setMessage('Error: Unable to reach the server. Please check your connection and try again.')
     }
   }
@@ -212,17 +239,18 @@ export default function Home() {
                 className="username-input"
               />
               {username && (
-                <div className="availability-status">
+                <div className="availability-indicator" aria-live="polite" aria-atomic="true">
                   {isChecking ? (
                     <span className="checking">
-                      <span className="spinner"></span>checking
+                      <span className="spinner"></span>
+                      {checkingTakingLong ? 'checking... (taking longer than expected)' : 'checking...'}
                     </span>
                   ) : availabilityError ? (
                     <span className="checking">unable to verify</span>
                   ) : isAvailable === true ? (
-                    <span className="available">available</span>
+                    <span className="available">✓ available</span>
                   ) : isAvailable === false ? (
-                    <span className="unavailable">taken</span>
+                    <span className="unavailable">✗ taken</span>
                   ) : null}
                 </div>
               )}
@@ -243,9 +271,9 @@ export default function Home() {
               />
               {password && (
                 <div className={`password-strength ${getPasswordStrength(password)}`}>
-                  {getPasswordStrength(password) === 'weak' && '⚠️ Weak password'}
-                  {getPasswordStrength(password) === 'okay' && '✓ Okay password'}
-                  {getPasswordStrength(password) === 'strong' && '✓ Strong password'}
+                  {getPasswordStrength(password) === 'weak' && '⚠ weak'}
+                  {getPasswordStrength(password) === 'okay' && '○ okay'}
+                  {getPasswordStrength(password) === 'strong' && '✓ strong'}
                 </div>
               )}
               {password && (
@@ -281,7 +309,11 @@ export default function Home() {
               >
                 {isSubmitting ? (
                   <>
-                    <span className="button-spinner"></span>Creating your space
+                    <span className="progress-indicator"></span>
+                    {submissionStage === 'encrypting' && 'Encrypting...'}
+                    {submissionStage === 'checking' && 'Checking...'}
+                    {submissionStage === 'creating' && 'Creating...'}
+                    {submissionStage === 'success' && '✓ Success'}
                   </>
                 ) : (
                   'Create my space'
@@ -291,7 +323,7 @@ export default function Home() {
           </form>
 
           {message && (
-            <div className={`message ${message.startsWith('Error') ? 'error' : 'success'}`}>
+            <div className={`message ${message.startsWith('Error') ? 'error' : 'success'}`} role="alert">
               {message}
             </div>
           )}
@@ -349,17 +381,18 @@ export default function Home() {
                 />
               </div>
               {username && (
-                <div className="availability-status">
+                <div className="availability-indicator" aria-live="polite" aria-atomic="true">
                   {isChecking ? (
                     <span className="checking">
-                      <span className="spinner"></span>checking
+                      <span className="spinner"></span>
+                      {checkingTakingLong ? 'checking... (taking longer than expected)' : 'checking...'}
                     </span>
                   ) : availabilityError ? (
                     <span className="checking">unable to verify</span>
                   ) : isAvailable === true ? (
-                    <span className="available">available</span>
+                    <span className="available">✓ available</span>
                   ) : isAvailable === false ? (
-                    <span className="unavailable">taken</span>
+                    <span className="unavailable">✗ taken</span>
                   ) : null}
                 </div>
               )}
@@ -391,7 +424,7 @@ export default function Home() {
           </form>
 
           {message && (
-            <div className={`message ${message.startsWith('Error') ? 'error' : 'success'}`}>
+            <div className={`message ${message.startsWith('Error') ? 'error' : 'success'}`} role="alert">
               {message}
             </div>
           )}
@@ -457,6 +490,15 @@ export default function Home() {
           }
         }
 
+        @keyframes spinner-pulse {
+          0%, 100% {
+            opacity: 1;
+          }
+          50% {
+            opacity: 0.6;
+          }
+        }
+
         @keyframes dots-pulse {
           0%, 100% {
             opacity: 0.4;
@@ -466,19 +508,72 @@ export default function Home() {
           }
         }
 
+        @keyframes pulse-bg {
+          0%, 100% {
+            background-color: rgba(220, 53, 69, 0.1);
+          }
+          50% {
+            background-color: rgba(220, 53, 69, 0.2);
+          }
+        }
+
+        @keyframes fade-in {
+          from {
+            opacity: 0;
+            transform: translateY(-4px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes button-pulse {
+          0%, 100% {
+            opacity: 1;
+          }
+          50% {
+            opacity: 0.85;
+          }
+        }
+
+        /* Reduced motion support - Phase 6 accessibility */
+        @media (prefers-reduced-motion: reduce) {
+          .spinner,
+          .button-spinner,
+          .progress-indicator {
+            animation: none;
+            opacity: 1;
+          }
+        }
+
         .spinner {
           display: inline-block;
-          width: 12px;
-          height: 12px;
-          border: 2px solid var(--color-gray);
-          border-top-color: var(--color-text);
+          width: 16px;
+          height: 16px;
+          border: 3px solid var(--color-gray);
+          border-top-color: var(--color-accent);
           border-radius: 50%;
           animation: spinner-rotate 0.8s linear infinite;
           margin-right: 6px;
-          vertical-align: -2px;
+          vertical-align: -3px;
         }
 
         .button-spinner {
+          display: inline-block;
+          width: 4px;
+          height: 4px;
+          border-radius: 50%;
+          background: currentColor;
+          box-shadow:
+            8px 0 0 -2px currentColor,
+            16px 0 0 -2px currentColor;
+          animation: dots-pulse 0.6s ease-in-out infinite;
+          margin-right: 8px;
+          vertical-align: -1px;
+        }
+
+        .progress-indicator {
           display: inline-block;
           width: 4px;
           height: 4px;
@@ -594,6 +689,55 @@ export default function Home() {
           margin: 24px 0;
         }
 
+        .availability-indicator {
+          margin-top: 8px;
+          font-size: 13px;
+          padding: 8px 12px;
+          padding-left: 8px;
+          border-left: 4px solid transparent;
+          min-height: 44px;
+          display: flex;
+          align-items: center;
+          font-family: var(--font-mono);
+        }
+
+        .availability-indicator .checking {
+          display: flex;
+          align-items: center;
+          color: var(--color-accent);
+          border-left-color: var(--color-accent);
+          animation: spinner-pulse 0.8s ease-in-out infinite;
+          min-height: 44px;
+          padding: 12px 0;
+        }
+
+        .availability-indicator .available {
+          color: var(--color-success);
+          border-left-color: var(--color-success);
+          min-height: 44px;
+          padding: 12px 0;
+          display: flex;
+          align-items: center;
+        }
+
+        .availability-indicator .unavailable {
+          color: var(--color-error);
+          border-left-color: var(--color-error);
+          min-height: 44px;
+          padding: 12px 0;
+          display: flex;
+          align-items: center;
+        }
+
+        /* Reduced motion: disable animations for checking indicator */
+        @media (prefers-reduced-motion: reduce) {
+          .availability-indicator .checking {
+            animation: none;
+            opacity: 1;
+            color: var(--color-text);
+          }
+        }
+
         .availability-status {
           margin-top: 8px;
           font-size: 14px;
@@ -685,8 +829,9 @@ export default function Home() {
         }
 
         .create-button:disabled {
-          opacity: 0.6;
+          opacity: 1;
           cursor: not-allowed;
+          animation: button-pulse 1.5s ease-in-out infinite;
         }
 
         input[type="password"] {
@@ -720,20 +865,32 @@ export default function Home() {
 
         .password-strength {
           margin-top: 8px;
-          font-size: 14px;
+          padding: 8px 12px;
+          padding-left: 8px;
+          font-size: 13px;
           font-weight: bold;
+          border-left: 3px solid;
+          border-radius: 4px;
+          font-family: var(--font-mono);
         }
 
         .password-strength.weak {
           color: var(--color-error);
+          border-left-color: var(--color-error);
+          background-color: rgba(220, 53, 69, 0.1);
+          animation: pulse-bg 1.5s ease-in-out infinite;
         }
 
         .password-strength.okay {
           color: var(--color-warning);
+          border-left-color: var(--color-warning);
+          background-color: rgba(255, 193, 7, 0.05);
         }
 
         .password-strength.strong {
           color: var(--color-success);
+          border-left-color: var(--color-success);
+          background-color: rgba(40, 167, 69, 0.05);
         }
 
         .risk-acknowledgment {
@@ -781,20 +938,25 @@ export default function Home() {
         }
 
         .message {
-          padding: 12px;
+          padding: 12px 12px 12px 12px;
+          padding-left: 8px;
           border-radius: 4px;
           margin: 20px 0;
+          border-left: 4px solid;
+          animation: fade-in 0.3s ease-out;
         }
 
         .message.success {
           background: var(--color-success-bg);
-          border: 1px solid var(--color-success-border);
+          border-color: var(--color-success-border);
+          border-left-color: var(--color-success);
           color: var(--color-success-text);
         }
 
         .message.error {
           background: var(--color-error-bg);
-          border: 1px solid var(--color-error-border);
+          border-color: var(--color-error-border);
+          border-left-color: var(--color-error);
           color: var(--color-error-text);
         }
 
@@ -830,12 +992,14 @@ export default function Home() {
           .message.success {
             background: var(--color-success-bg);
             border-color: var(--color-success-border);
+            border-left-color: var(--color-success);
             color: var(--color-success-text);
           }
 
           .message.error {
             background: var(--color-error-bg);
             border-color: var(--color-error-border);
+            border-left-color: var(--color-error);
             color: var(--color-error-text);
           }
 
@@ -883,6 +1047,12 @@ export default function Home() {
             border: 2px solid #ffffff !important;
           }
 
+          .create-button:disabled {
+            opacity: 1;
+            cursor: not-allowed;
+            animation: button-pulse 1.5s ease-in-out infinite;
+          }
+
           .create-button:hover:not(:disabled) {
             background: #222222 !important;
             border-color: #ffffff !important;
@@ -898,14 +1068,21 @@ export default function Home() {
 
         .password-strength.weak {
           color: var(--color-error);
+          border-left-color: var(--color-error);
+          background-color: rgba(255, 107, 107, 0.1);
+          animation: pulse-bg 1.5s ease-in-out infinite;
         }
 
         .password-strength.okay {
           color: var(--color-warning);
+          border-left-color: var(--color-warning);
+          background-color: rgba(255, 217, 61, 0.1);
         }
 
         .password-strength.strong {
           color: var(--color-success);
+          border-left-color: var(--color-success);
+          background-color: rgba(64, 216, 101, 0.1);
         }
 
         .risk-acknowledgment {
