@@ -187,6 +187,13 @@ describe('/api/rotate-key', () => {
       expect(rpc).toHaveBeenCalledTimes(1)
     })
 
+    test('passes a one second wait through as Retry-After: 1', async () => {
+      rpc.mockImplementation(rpcAnswers({ data: 1, error: null }))
+      await handler(req, res)
+      expect(res.status).toHaveBeenCalledWith(429)
+      expect(res.setHeader).toHaveBeenCalledWith('Retry-After', '1')
+    })
+
     test('a commit over the limit never reaches the rotation', async () => {
       req.body = await commitBody()
       rpc.mockImplementation(rpcAnswers({ data: 30, error: null }))

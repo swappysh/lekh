@@ -18,6 +18,7 @@ describe('clientIp', () => {
     ['dotted', '::ffff:203.0.113.9'],
     ['hex', '::ffff:cb00:7109'],
     ['full form dotted', '0:0:0:0:0:ffff:203.0.113.9'],
+    ['uppercase dotted', '::FFFF:203.0.113.9'],
     ['full form hex', '0000:0000:0000:0000:0000:FFFF:cb00:7109'],
     ['an IPv4 address with a port', '203.0.113.9:5678'],
     ['a bracketed IPv4-mapped address with a port', '[::ffff:203.0.113.9]:443'],
@@ -53,6 +54,8 @@ describe('clientIp', () => {
     ['a very long string', 'a'.repeat(8000)],
     ['an IPv4 address with a leading zero', '001.002.003.004'],
     ['an out of range octet', '999.1.1.1'],
+    ['colon separated junk', 'a:b:c'],
+    ['a long run of colon groups', 'x:'.repeat(40)],
   ])('puts %s in the shared unknown bucket instead of making a new key', (_label, value) => {
     expect(clientIp({ headers: { 'x-real-ip': value } })).toBe('unknown')
   })
