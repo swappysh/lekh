@@ -306,6 +306,78 @@ NOTIFY pgrst, 'reload schema';
 
 COMMIT;
 
+-- Rate limiting: fixed window counter per key, shared by every serverless instance.
+-- rate_limit_hit records one hit and returns 0 while the key is within p_limit hits per
+-- p_window_seconds, otherwise the seconds left until its window resets (always >= 1).
+-- The count is one atomic upsert, so concurrent requests cannot undercount.
+-- Called only by the API routes through the service role.
+CREATE TABLE IF NOT EXISTS rate_limits (
+  key TEXT PRIMARY KEY,
+  window_start TIMESTAMPTZ NOT NULL,
+  hits INTEGER NOT NULL
+);
+-- The cleanup inside rate_limit_hit scans by window_start.
+CREATE INDEX IF NOT EXISTS rate_limits_window_start_idx ON rate_limits (window_start);
+ALTER TABLE rate_limits ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE rate_limits FROM PUBLIC, anon, authenticated;
+
+-- Changed from the first version, which returned BOOLEAN.
+DROP FUNCTION IF EXISTS rate_limit_hit(TEXT, INTEGER, INTEGER);
+CREATE FUNCTION rate_limit_hit(
+  p_key TEXT,
+  p_limit INTEGER,
+  p_window_seconds INTEGER
+)
+RETURNS INTEGER AS $$
+DECLARE
+  current_hits INTEGER;
+  current_window_start TIMESTAMPTZ;
+BEGIN
+  INSERT INTO rate_limits AS r (key, window_start, hits)
+  VALUES (p_key, NOW(), 1)
+  ON CONFLICT (key) DO UPDATE
+  SET window_start = CASE
+        WHEN r.window_start < NOW() - make_interval(secs => p_window_seconds) THEN NOW()
+        ELSE r.window_start
+      END,
+      hits = CASE
+        WHEN r.window_start < NOW() - make_interval(secs => p_window_seconds) THEN 1
+        ELSE r.hits + 1
+      END
+  RETURNING hits, window_start INTO current_hits, current_window_start;
+
+  -- Occasionally drop keys whose window ended long ago so the table stays small. Rows
+  -- older than a day are assumed expired, so callers must use windows under 24 hours.
+  -- SKIP LOCKED: this transaction already holds its own row, and waiting on another
+  -- request's row while it waits on ours would deadlock.
+  IF random() < 0.01 THEN
+    DELETE FROM rate_limits
+    WHERE key IN (
+      SELECT key FROM rate_limits
+      WHERE window_start < NOW() - INTERVAL '1 day'
+      LIMIT 1000
+      FOR UPDATE SKIP LOCKED
+    );
+  END IF;
+
+  IF current_hits <= p_limit THEN
+    RETURN 0;
+  END IF;
+
+  RETURN GREATEST(
+    1,
+    CEIL(EXTRACT(EPOCH FROM current_window_start + make_interval(secs => p_window_seconds) - NOW()))::INTEGER
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
+
+REVOKE ALL ON FUNCTION rate_limit_hit(TEXT, INTEGER, INTEGER) FROM PUBLIC;
+REVOKE ALL ON FUNCTION rate_limit_hit(TEXT, INTEGER, INTEGER) FROM anon, authenticated;
+GRANT EXECUTE ON FUNCTION rate_limit_hit(TEXT, INTEGER, INTEGER) TO service_role;
+
+-- PostgREST caches function signatures, and this one changed from BOOLEAN to INTEGER.
+NOTIFY pgrst, 'reload schema';
+
 -- Public snapshot materialization from collaborative document updates
 CREATE OR REPLACE FUNCTION refresh_public_snapshot()
 RETURNS TRIGGER AS $$

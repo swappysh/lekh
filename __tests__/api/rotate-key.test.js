@@ -16,9 +16,13 @@ describe('/api/rotate-key', () => {
   let realKeys
   let nonce
 
+  // rpc answers rate_limit_hit (seconds to wait, 0 = allowed) and rotate_user_key separately
+  const rpcAnswers = (limiter, rotation = { error: null }) => (name) =>
+    Promise.resolve(name === 'rate_limit_hit' ? limiter : rotation)
+
   const mockAdmin = () => {
     const maybeSingle = jest.fn(() => Promise.resolve({ data: user, error: null }))
-    rpc = jest.fn(() => Promise.resolve({ error: null }))
+    rpc = jest.fn(rpcAnswers({ data: 0, error: null }))
     getSupabaseAdmin.mockReturnValue({
       from: jest.fn(() => ({ select: () => ({ eq: () => ({ maybeSingle }) }) })),
       rpc
@@ -42,7 +46,8 @@ describe('/api/rotate-key', () => {
   beforeEach(async () => {
     user = { username: 'alice', public_key: realKeys.publicKey, is_public: false }
     res = { status: jest.fn(() => res), json: jest.fn(() => res) }
-    req = { method: 'POST', body: { step: 'challenge', username: 'alice' } }
+    req = { method: 'POST', headers: { 'x-real-ip': '203.0.113.7' }, body: { step: 'challenge', username: 'alice' } }
+    res.setHeader = jest.fn()
     mockAdmin()
   })
 
@@ -91,7 +96,7 @@ describe('/api/rotate-key', () => {
     req.body = { ...(await commitBody()), challengeResponse: Buffer.from('guess').toString('base64') }
     await handler(req, res)
     expect(res.status).toHaveBeenCalledWith(403)
-    expect(rpc).not.toHaveBeenCalled()
+    expect(rpc).not.toHaveBeenCalledWith('rotate_user_key', expect.anything())
   })
 
   test('refuses a token minted for the delete action', async () => {
@@ -100,7 +105,7 @@ describe('/api/rotate-key', () => {
     req.body = { ...(await commitBody()), token, challengeResponse: nonce }
     await handler(req, res)
     expect(res.status).toHaveBeenCalledWith(403)
-    expect(rpc).not.toHaveBeenCalled()
+    expect(rpc).not.toHaveBeenCalledWith('rotate_user_key', expect.anything())
   })
 
   test('refuses a forged token', async () => {
@@ -108,7 +113,7 @@ describe('/api/rotate-key', () => {
     req.body = { ...body, token: body.token.replace(/.$/, (c) => (c === 'A' ? 'B' : 'A')) }
     await handler(req, res)
     expect(res.status).toHaveBeenCalledWith(403)
-    expect(rpc).not.toHaveBeenCalled()
+    expect(rpc).not.toHaveBeenCalledWith('rotate_user_key', expect.anything())
   })
 
   test('refuses an expired token', async () => {
@@ -117,7 +122,7 @@ describe('/api/rotate-key', () => {
     req.body = { ...(await commitBody()), token, challengeResponse: nonce }
     await handler(req, res)
     expect(res.status).toHaveBeenCalledWith(403)
-    expect(rpc).not.toHaveBeenCalled()
+    expect(rpc).not.toHaveBeenCalledWith('rotate_user_key', expect.anything())
   })
 
   test('commit with the decrypted challenge rotates through the SQL function', async () => {
@@ -136,7 +141,7 @@ describe('/api/rotate-key', () => {
 
   test('maps an entries-changed failure to 409', async () => {
     req.body = await commitBody()
-    rpc.mockResolvedValueOnce({ error: { message: 'entries changed' } })
+    rpc.mockImplementation(rpcAnswers({ data: 0, error: null }, { error: { message: 'entries changed' } }))
     await handler(req, res)
     expect(res.status).toHaveBeenCalledWith(409)
   })
@@ -151,6 +156,74 @@ describe('/api/rotate-key', () => {
     req.body = { ...(await commitBody()), dataKeys: { 'alice:1': entry } }
     await handler(req, res)
     expect(res.status).toHaveBeenCalledWith(400)
-    expect(rpc).not.toHaveBeenCalled()
+    expect(rpc).not.toHaveBeenCalledWith('rotate_user_key', expect.anything())
+  })
+
+  describe('rate limiting', () => {
+    let consoleError
+
+    beforeEach(() => {
+      consoleError = jest.spyOn(console, 'error').mockImplementation(() => {})
+    })
+
+    afterEach(() => {
+      consoleError.mockRestore()
+    })
+
+    test('counts each request against the client IP', async () => {
+      await handler(req, res)
+      expect(rpc).toHaveBeenCalledWith('rate_limit_hit', {
+        p_key: 'rotate-key:203.0.113.7',
+        p_limit: 12,
+        p_window_seconds: 600
+      })
+    })
+
+    test('answers 429 with Retry-After and does no other work once over the limit', async () => {
+      rpc.mockImplementation(rpcAnswers({ data: 421, error: null }))
+      await handler(req, res)
+      expect(res.status).toHaveBeenCalledWith(429)
+      expect(res.setHeader).toHaveBeenCalledWith('Retry-After', '421')
+      expect(rpc).toHaveBeenCalledTimes(1)
+    })
+
+    test('passes a one second wait through as Retry-After: 1', async () => {
+      rpc.mockImplementation(rpcAnswers({ data: 1, error: null }))
+      await handler(req, res)
+      expect(res.status).toHaveBeenCalledWith(429)
+      expect(res.setHeader).toHaveBeenCalledWith('Retry-After', '1')
+    })
+
+    test('a commit over the limit never reaches the rotation', async () => {
+      req.body = await commitBody()
+      rpc.mockImplementation(rpcAnswers({ data: 30, error: null }))
+      await handler(req, res)
+      expect(res.status).toHaveBeenCalledWith(429)
+      expect(rpc).not.toHaveBeenCalledWith('rotate_user_key', expect.anything())
+    })
+
+    test('limits requests for an unknown username too, so usernames cannot be probed freely', async () => {
+      user = null
+      rpc.mockImplementation(rpcAnswers({ data: 421, error: null }))
+      await handler(req, res)
+      expect(res.status).toHaveBeenCalledWith(429)
+    })
+
+    test.each([
+      ['an invalid username', { step: 'challenge', username: 'bad name!' }],
+      ['an unknown step', { step: 'nope', username: 'alice' }],
+    ])('rejects %s with 400 before touching the counter', async (_label, body) => {
+      req.body = body
+      await handler(req, res)
+      expect(res.status).toHaveBeenCalledWith(400)
+      expect(rpc).not.toHaveBeenCalled()
+    })
+
+    test('allows the request when the limiter itself errors', async () => {
+      rpc.mockImplementation(rpcAnswers({ data: null, error: { message: 'boom' } }))
+      await handler(req, res)
+      expect(res.status).toHaveBeenCalledWith(200)
+      expect(consoleError).toHaveBeenCalled()
+    })
   })
 })
