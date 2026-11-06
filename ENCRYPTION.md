@@ -172,7 +172,7 @@ Accepted consequences:
 
 - The `users` and `documents` tables are readable through the anon key so any
   browser can encrypt to a public key and the owner's browser can fetch its own
-  ciphertext. Usernames, snapshot ids, timestamps, `public_key`,
+  ciphertext. Usernames, snapshot ids, timestamps, `writer_hash`, `public_key`,
   `encrypted_private_key`, and `salt` are therefore public. Public ciphertext plus
   salt allows offline password guessing; PBKDF2 slows it down.
 - A snapshot id is public, so it is not a credential. The same browser session

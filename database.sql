@@ -228,7 +228,8 @@ GRANT EXECUTE ON FUNCTION rotate_user_key(TEXT, TEXT, TEXT, TEXT, TEXT, JSONB) T
 -- TODO(remove after 2026-11-06 12:00 UTC): delete the tokenless branch from the
 -- WHERE clause below, make writerToken required in pages/api/private-append.js, and
 -- drop the 'Optional while old tabs drain' note in lib/constants.js, the
--- p_writer_hash: null route test and the transition bullet in ENCRYPTION.md.
+-- p_writer_hash: null route test and the transition bullet in ENCRYPTION.md. The
+-- DEFAULT NULL on p_writer_hash and the route's tokenless null can go at the same time.
 -- The cutoff is an absolute time: set it to the deploy time plus a day before
 -- running this on a new environment, or the branch is already closed (tabs loaded
 -- before the deploy then lose autosave after their first save).
