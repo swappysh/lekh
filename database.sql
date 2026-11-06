@@ -375,6 +375,9 @@ REVOKE ALL ON FUNCTION rate_limit_hit(TEXT, INTEGER, INTEGER) FROM PUBLIC;
 REVOKE ALL ON FUNCTION rate_limit_hit(TEXT, INTEGER, INTEGER) FROM anon, authenticated;
 GRANT EXECUTE ON FUNCTION rate_limit_hit(TEXT, INTEGER, INTEGER) TO service_role;
 
+-- PostgREST caches function signatures, and this one changed from BOOLEAN to INTEGER.
+NOTIFY pgrst, 'reload schema';
+
 -- Public snapshot materialization from collaborative document updates
 CREATE OR REPLACE FUNCTION refresh_public_snapshot()
 RETURNS TRIGGER AS $$

@@ -65,6 +65,14 @@ describe('clientIp', () => {
     expect(clientIp({ headers: { 'x-real-ip': '   ' } })).toBe('unknown')
   })
 
+  test('reads a bracketed IPv6 address without a port', () => {
+    expect(clientIp({ headers: { 'x-real-ip': '[2001:db8::1]' } })).toBe('2001:db8:0:0::/64')
+  })
+
+  test('counts an embedded IPv4 tail as two groups when expanding ::', () => {
+    expect(clientIp({ headers: { 'x-real-ip': '::1:0:0000:1.2.3.4' } })).toBe('0:0:0:1::/64')
+  })
+
   test('different /64 prefixes get different buckets', () => {
     expect(clientIp({ headers: { 'x-real-ip': '2001:db8:1:3::1' } })).toBe('2001:db8:1:3::/64')
   })
