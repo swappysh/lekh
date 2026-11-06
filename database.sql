@@ -213,16 +213,49 @@ GRANT EXECUTE ON FUNCTION rotate_user_key(TEXT, TEXT, TEXT, TEXT, TEXT, JSONB) T
 -- Private append: compare the writer's public key and upsert in one transaction.
 -- FOR SHARE on the users row makes rotate_user_key (FOR UPDATE) wait for in-flight
 -- appends and vice versa, so a write encrypted to a rotated-out key cannot land.
+--
+-- Snapshot ids are world-readable, so reusing an id must not let an outsider replace
+-- the row. Each browser session also sends a random writer secret; the API route
+-- stores only its sha256 (p_writer_hash) and an update must present the same hash.
+-- The hash is public but not reversible, so only the original writer can keep
+-- autosaving a row. Rows with no hash (written before this change, or by a tokenless
+-- tab since) are
+-- immutable here, except until the fixed cutoff below, when a tokenless writer may
+-- touch a tokenless row updated in the last hour: that keeps tabs loaded before the
+-- deploy autosaving. A tokenless overwrite refreshes updated_at, so without a hard
+-- cutoff that branch would never close.
+--
+-- TODO(remove after 2026-11-06 12:00 UTC): delete the tokenless branch from the
+-- WHERE clause below, make writerToken required in pages/api/private-append.js, and
+-- drop the 'Optional while old tabs drain' note in lib/constants.js, the
+-- p_writer_hash: null route test and the transition bullet in ENCRYPTION.md. The
+-- DEFAULT NULL on p_writer_hash and the route's tokenless null can go at the same time.
+-- The cutoff is an absolute time: set it to the deploy time plus a day before
+-- running this on a new environment, or the branch is already closed (tabs loaded
+-- before the deploy then lose autosave after their first save).
+--
+-- Run this section in one transaction so there is no moment without a
+-- private_append function. The column add is inside it because the function needs it.
+BEGIN;
+
+-- sha256 of the per-session writer secret that created the row. Only the holder of
+-- the secret may update the row again through private_append.
+ALTER TABLE documents ADD COLUMN IF NOT EXISTS writer_hash TEXT;
+
+DROP FUNCTION IF EXISTS private_append(TEXT, TEXT, TEXT, TEXT, TEXT);
+
 CREATE OR REPLACE FUNCTION private_append(
   p_username TEXT,
   p_public_key TEXT,
   p_client_snapshot_id TEXT,
   p_encrypted_content TEXT,
-  p_encrypted_data_key TEXT
+  p_encrypted_data_key TEXT,
+  p_writer_hash TEXT DEFAULT NULL
 )
 RETURNS VOID AS $$
 DECLARE
   current_key TEXT;
+  written INTEGER;
 BEGIN
   SELECT public_key INTO current_key
   FROM users
@@ -237,25 +270,41 @@ BEGIN
     RAISE EXCEPTION 'key changed';
   END IF;
 
-  INSERT INTO documents (id, username, encrypted_content, encrypted_data_key, client_snapshot_id, updated_at)
+  INSERT INTO documents (id, username, encrypted_content, encrypted_data_key, client_snapshot_id, writer_hash, updated_at)
   VALUES (
     p_username || ':' || p_client_snapshot_id,
     p_username,
     p_encrypted_content,
     p_encrypted_data_key,
     p_client_snapshot_id,
+    p_writer_hash,
     NOW()
   )
   ON CONFLICT (username, client_snapshot_id) DO UPDATE
   SET encrypted_content = EXCLUDED.encrypted_content,
       encrypted_data_key = EXCLUDED.encrypted_data_key,
-      updated_at = EXCLUDED.updated_at;
+      updated_at = EXCLUDED.updated_at
+  WHERE (documents.writer_hash IS NOT NULL AND documents.writer_hash = EXCLUDED.writer_hash)
+     OR (documents.writer_hash IS NULL
+         AND EXCLUDED.writer_hash IS NULL
+         AND NOW() < TIMESTAMPTZ '2026-11-06 12:00:00+00'
+         AND documents.updated_at > NOW() - INTERVAL '1 hour');
+
+  GET DIAGNOSTICS written = ROW_COUNT;
+  IF written = 0 THEN
+    RAISE EXCEPTION 'not the writer';
+  END IF;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
-REVOKE ALL ON FUNCTION private_append(TEXT, TEXT, TEXT, TEXT, TEXT) FROM PUBLIC;
-REVOKE ALL ON FUNCTION private_append(TEXT, TEXT, TEXT, TEXT, TEXT) FROM anon, authenticated;
-GRANT EXECUTE ON FUNCTION private_append(TEXT, TEXT, TEXT, TEXT, TEXT) TO service_role;
+REVOKE ALL ON FUNCTION private_append(TEXT, TEXT, TEXT, TEXT, TEXT, TEXT) FROM PUBLIC;
+REVOKE ALL ON FUNCTION private_append(TEXT, TEXT, TEXT, TEXT, TEXT, TEXT) FROM anon, authenticated;
+GRANT EXECUTE ON FUNCTION private_append(TEXT, TEXT, TEXT, TEXT, TEXT, TEXT) TO service_role;
+
+-- PostgREST caches function signatures.
+NOTIFY pgrst, 'reload schema';
+
+COMMIT;
 
 -- Public snapshot materialization from collaborative document updates
 CREATE OR REPLACE FUNCTION refresh_public_snapshot()

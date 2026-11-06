@@ -172,12 +172,35 @@ Accepted consequences:
 
 - The `users` and `documents` tables are readable through the anon key so any
   browser can encrypt to a public key and the owner's browser can fetch its own
-  ciphertext. Usernames, snapshot ids, timestamps, `public_key`,
+  ciphertext. Usernames, snapshot ids, timestamps, `writer_hash`, `public_key`,
   `encrypted_private_key`, and `salt` are therefore public. Public ciphertext plus
   salt allows offline password guessing; PBKDF2 slows it down.
-- A snapshot id is public. The same client reuses its own id while autosaving, so
-  a row is updated in place; a fresh random id appends. An outside writer who
-  deliberately reuses an existing id replaces that row's content.
+- A snapshot id is public, so it is not a credential. The same browser session
+  reuses its id while autosaving and updates the row in place; a fresh random id
+  appends. To stop an outsider replacing an existing entry by reusing its id, each
+  session also generates a random writer token and sends it with every save. The
+  server stores only its sha256 (`documents.writer_hash`) and the `private_append`
+  function raises `not the writer` (HTTP 403 with `code: "not_writer"`) unless the
+  hash matches the one that created the row. The hash is public but a 256-bit
+  preimage is not guessable. On that 403 the browser moves later saves to a new
+  id and token, so its next autosave appends the current text as a new entry. A
+  save sent by the unload beacon cannot see the response, so it is not retried.
+  - Transition window: rows with no hash (written before this change, or by a
+    tokenless tab since) cannot be updated through `private-append`, except that
+    until a fixed cutoff written in `private_append` (2026-11-06 12:00 UTC) a
+    tokenless writer may update a tokenless row updated in the last hour. That keeps tabs loaded before the
+    deploy autosaving, and it also means an outsider can overwrite such a row
+    during the window. A tab from before the deploy that is idle for more than an
+    hour, or still open after the cutoff, is refused and shows "saving..." until
+    it is reloaded; its later text is not stored. After the cutoff, delete the
+    branch, make `writerToken` required in the route, and drop the matching
+    comment in `lib/constants.js` and the `p_writer_hash: null` route test.
+  - Deploying: run the `private_append` block of `database.sql` (it adds the
+    `writer_hash` column and the six-argument function in one transaction; running
+    the whole file also works) before deploying the code. The cutoff is an absolute
+    time: on a new environment, or if the code deploy slips past it, move the date
+    literal later first, or tabs that predate the new code stop autosaving after
+    their first save.
 - Junk or forged snapshots cannot be removed with the anon key (`documents` has a
   SELECT-only policy). `POST /api/private-delete` removes one through the service
   role, but only for the owner: because snapshot ids are public, an open delete
@@ -200,9 +223,10 @@ Known limits of the owner-only delete:
 
 - A delete proof is reusable for any snapshot of that user until its 2 minute token
   expires; it is not bound to one `clientSnapshotId`.
-- It does not stop an outsider from overwriting an entry through `private-append` by
-  reusing its public snapshot id (see above), so the delete proof protects removal
-  only, not integrity.
+
+Known limit of public append: overwriting an existing entry by reusing its public
+snapshot id is blocked by the writer token (except during the transition window
+above), but an outsider can still append new junk rows under fresh ids.
 
 ## Changing the Password (key rotation)
 
