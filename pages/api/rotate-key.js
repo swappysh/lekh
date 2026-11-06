@@ -1,5 +1,5 @@
 import { getSupabaseAdmin } from '../../lib/supabaseAdmin'
-import { createChallenge, verifyChallenge } from '../../lib/rotateChallenge'
+import { createChallenge, verifyChallenge, ROTATE_ACTION } from '../../lib/rotateChallenge'
 import { clientIp, rateLimitRetryAfter } from '../../lib/rateLimit'
 import {
   ROTATE_RATE_LIMIT,
@@ -107,7 +107,7 @@ export default async function handler(req, res) {
     }
 
     if (step === 'challenge') {
-      return res.status(200).json(createChallenge(username, user.public_key))
+      return res.status(200).json(createChallenge(username, user.public_key, Date.now(), ROTATE_ACTION))
     }
 
     const token = String(body.token || '')
@@ -147,6 +147,7 @@ export default async function handler(req, res) {
       nonceBase64: challengeResponse,
       username,
       publicKeyBase64: user.public_key,
+      action: ROTATE_ACTION,
     })
     if (!proven) {
       return res.status(403).json({ error: 'Challenge failed or expired' })

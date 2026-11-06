@@ -6,6 +6,7 @@ import { ShortcutsModal } from '../components/ShortcutsModal'
 import { PublicKeyEncryption } from '../lib/publicKeyEncryption'
 import { CollaborativeDocument } from '../lib/collaborativeDocument'
 import { supabase } from '../lib/supabase'
+import { newWriterToken } from '../lib/writerToken'
 import { DEBOUNCE_DELAY, HEALTH_CHECK_INTERVAL, PRIVATE_APPEND_ROUTE, JSON_CONTENT_TYPE_HEADER } from '../lib/constants'
 
 export default function UserPage() {
@@ -21,6 +22,7 @@ export default function UserPage() {
   const lastSavedContentRef = useRef('')
   const pendingSnapshotRef = useRef(null)
   const sessionSnapshotIdRef = useRef('')
+  const writerTokenRef = useRef('')
   const isSavingRef = useRef(false)
   const [isMac, setIsMac] = useState(false)
   const [isPublic, setIsPublic] = useState(false)
@@ -41,6 +43,7 @@ export default function UserPage() {
     pendingSnapshotRef.current = null
     lastSavedContentRef.current = ''
     sessionSnapshotIdRef.current = username ? crypto.randomUUID() : ''
+    writerTokenRef.current = username ? newWriterToken() : ''
     isSavingRef.current = false
   }, [username])
 
@@ -97,6 +100,45 @@ export default function UserPage() {
     }
   }
 
+  const serializeSnapshot = useCallback((snapshot) => JSON.stringify({
+    username,
+    clientSnapshotId: snapshot.clientSnapshotId,
+    encryptedContent: snapshot.encryptedContent,
+    encryptedDataKey: snapshot.encryptedDataKey,
+    publicKey: publicKeyRef.current,
+    writerToken: snapshot.writerToken,
+  }), [username])
+
+  // The server refused the id because another writer owns it. Move later saves to a
+  // fresh id and token; the next autosave encrypts the current text and appends it
+  // as a new entry. The refused id check keeps concurrent rejections from rotating twice.
+  const startNewWriterSession = useCallback((refusedId) => {
+    if (sessionSnapshotIdRef.current !== refusedId) {
+      return
+    }
+    sessionSnapshotIdRef.current = crypto.randomUUID()
+    writerTokenRef.current = newWriterToken()
+    pendingSnapshotRef.current = null
+  }, [])
+
+  const postPrivateSnapshot = useCallback(async (snapshot, keepalive) => {
+    const response = await fetch(PRIVATE_APPEND_ROUTE, {
+      method: 'POST',
+      headers: JSON_CONTENT_TYPE_HEADER,
+      keepalive,
+      body: serializeSnapshot(snapshot),
+    })
+    if (response.ok) {
+      return { ok: true }
+    }
+
+    const payload = await response.json().catch(() => null)
+    if (response.status === 403 && payload?.code === 'not_writer') {
+      startNewWriterSession(snapshot.clientSnapshotId)
+    }
+    return { ok: false, error: payload?.error }
+  }, [serializeSnapshot, startNewWriterSession])
+
   const preparePendingPrivateSnapshot = useCallback(async () => {
     if (!username || !userExists || isPublic) {
       pendingSnapshotRef.current = null
@@ -122,10 +164,12 @@ export default function UserPage() {
       const sessionSnapshotId =
         sessionSnapshotIdRef.current || crypto.randomUUID()
       sessionSnapshotIdRef.current = sessionSnapshotId
+      writerTokenRef.current = writerTokenRef.current || newWriterToken()
 
       pendingSnapshot = {
         content: nextContent,
         clientSnapshotId: sessionSnapshotId,
+        writerToken: writerTokenRef.current,
         encryptedContent: null,
         encryptedDataKey: null,
         encryptionPromise: null,
@@ -171,24 +215,21 @@ export default function UserPage() {
     return null
   }, [username, userExists, isPublic])
 
-  const sendPendingPrivateSnapshot = useCallback(async (pendingSnapshot, { keepalive = false } = {}) => {
-    const response = await fetch(PRIVATE_APPEND_ROUTE, {
-      method: 'POST',
-      headers: JSON_CONTENT_TYPE_HEADER,
-      keepalive,
-      body: JSON.stringify({
-        username,
-        clientSnapshotId: pendingSnapshot.clientSnapshotId,
-        encryptedContent: pendingSnapshot.encryptedContent,
-        encryptedDataKey: pendingSnapshot.encryptedDataKey,
-        publicKey: publicKeyRef.current,
-      }),
-    })
+  // When the server refused the id, the session has moved to a new id and the pending
+  // snapshot was dropped. Prepare the same text under the new id so an unload flush
+  // right after still has something to send.
+  const prepareAfterRotation = useCallback(async (refusedSnapshot) => {
+    if (sessionSnapshotIdRef.current !== refusedSnapshot.clientSnapshotId) {
+      await preparePendingPrivateSnapshot()
+    }
+  }, [preparePendingPrivateSnapshot])
 
-    if (!response.ok) {
-      const payload = await response.json().catch(() => null)
-      const errorMessage = payload?.error || 'Failed to append private snapshot'
-      console.error(errorMessage)
+  const sendPendingPrivateSnapshot = useCallback(async (pendingSnapshot, { keepalive = false } = {}) => {
+    const result = await postPrivateSnapshot(pendingSnapshot, keepalive)
+
+    if (!result.ok) {
+      console.error(result.error || 'Failed to append private snapshot')
+      await prepareAfterRotation(pendingSnapshot)
       return false
     }
 
@@ -200,7 +241,7 @@ export default function UserPage() {
       pendingSnapshotRef.current = null
     }
     return true
-  }, [username])
+  }, [postPrivateSnapshot, prepareAfterRotation])
 
   const appendPrivateSnapshot = useCallback(async ({ keepalive = false } = {}) => {
     if (!username || !userExists || isPublic || isSavingRef.current) {
@@ -248,13 +289,7 @@ export default function UserPage() {
       return
     }
 
-    const requestBody = JSON.stringify({
-      username,
-      clientSnapshotId: pendingSnapshot.clientSnapshotId,
-      encryptedContent: pendingSnapshot.encryptedContent,
-      encryptedDataKey: pendingSnapshot.encryptedDataKey,
-      publicKey: publicKeyRef.current,
-    })
+    const requestBody = serializeSnapshot(pendingSnapshot)
 
     if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
       const queued = navigator.sendBeacon(
@@ -266,30 +301,23 @@ export default function UserPage() {
       }
     }
 
-    void fetch(PRIVATE_APPEND_ROUTE, {
-      method: 'POST',
-      headers: JSON_CONTENT_TYPE_HEADER,
-      keepalive: true,
-      body: requestBody,
-    }).then(async (response) => {
-      if (response.ok) {
-        lastSavedContentRef.current = pendingSnapshot.content
-        if (
-          pendingSnapshotRef.current &&
-          pendingSnapshotRef.current.clientSnapshotId === pendingSnapshot.clientSnapshotId
-        ) {
-          pendingSnapshotRef.current = null
-        }
-        return
+    void postPrivateSnapshot(pendingSnapshot, true).then((result) => {
+      if (!result.ok) {
+        console.error(result.error || 'Failed to flush private snapshot')
+        return prepareAfterRotation(pendingSnapshot)
       }
 
-      const payload = await response.json().catch(() => null)
-      const errorMessage = payload?.error || 'Failed to flush private snapshot'
-      console.error(errorMessage)
+      lastSavedContentRef.current = pendingSnapshot.content
+      if (
+        pendingSnapshotRef.current &&
+        pendingSnapshotRef.current.clientSnapshotId === pendingSnapshot.clientSnapshotId
+      ) {
+        pendingSnapshotRef.current = null
+      }
     }).catch((error) => {
       console.error('Failed to flush private snapshot:', error)
     })
-  }, [username, userExists, isPublic])
+  }, [username, userExists, isPublic, serializeSnapshot, postPrivateSnapshot, prepareAfterRotation])
 
   const shortcuts = useMemo(() => [
     {
