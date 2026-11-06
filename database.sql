@@ -218,14 +218,17 @@ GRANT EXECUTE ON FUNCTION rotate_user_key(TEXT, TEXT, TEXT, TEXT, TEXT, JSONB) T
 -- the row. Each browser session also sends a random writer secret; the API route
 -- stores only its sha256 (p_writer_hash) and an update must present the same hash.
 -- The hash is public but not reversible, so only the original writer can keep
--- autosaving a row. Rows with no hash (everything written before this change) are
+-- autosaving a row. Rows with no hash (written before this change, or by a tokenless
+-- tab since) are
 -- immutable here, except until the fixed cutoff below, when a tokenless writer may
 -- touch a tokenless row updated in the last hour: that keeps tabs loaded before the
 -- deploy autosaving. A tokenless overwrite refreshes updated_at, so without a hard
 -- cutoff that branch would never close.
 --
 -- TODO(remove after 2026-11-06 12:00 UTC): delete the tokenless branch from the
--- WHERE clause below and make writerToken required in pages/api/private-append.js.
+-- WHERE clause below, make writerToken required in pages/api/private-append.js, and
+-- drop the 'Optional while old tabs drain' note in lib/constants.js, the
+-- p_writer_hash: null route test and the transition bullet in ENCRYPTION.md.
 -- The cutoff is an absolute time: set it to the deploy time plus a day before
 -- running this on a new environment, or the branch is already closed (tabs loaded
 -- before the deploy then lose autosave after their first save).

@@ -185,17 +185,22 @@ Accepted consequences:
   preimage is not guessable. On that 403 the browser moves later saves to a new
   id and token, so its next autosave appends the current text as a new entry. A
   save sent by the unload beacon cannot see the response, so it is not retried.
-  - Transition window: rows written before this change have no hash and cannot be
-    updated through `private-append`, except that until a fixed cutoff written in
-    `private_append` (2026-11-06 12:00 UTC) a tokenless writer may update a
-    tokenless row updated in the last hour. That keeps tabs loaded before the
+  - Transition window: rows with no hash (written before this change, or by a
+    tokenless tab since) cannot be updated through `private-append`, except that
+    until a fixed cutoff written in `private_append` (2026-11-06 12:00 UTC) a
+    tokenless writer may update a tokenless row updated in the last hour. That keeps tabs loaded before the
     deploy autosaving, and it also means an outsider can overwrite such a row
     during the window. A tab from before the deploy that is idle for more than an
     hour, or still open after the cutoff, is refused and shows "saving..." until
-    it is reloaded; its later text is not stored. Delete the branch after the cutoff.
+    it is reloaded; its later text is not stored. After the cutoff, delete the
+    branch, make `writerToken` required in the route, and drop the matching
+    comment in `lib/constants.js` and the `p_writer_hash: null` route test.
   - Deploying: run the `private_append` block of `database.sql` (it adds the
     `writer_hash` column and the six-argument function in one transaction; running
-    the whole file also works) before deploying the code.
+    the whole file also works) before deploying the code. The cutoff is an absolute
+    time: on a new environment, or if the code deploy slips past it, move the date
+    literal later first, or tabs that predate the new code stop autosaving after
+    their first save.
 - Junk or forged snapshots cannot be removed with the anon key (`documents` has a
   SELECT-only policy). `POST /api/private-delete` removes one through the service
   role, but only for the owner: because snapshot ids are public, an open delete

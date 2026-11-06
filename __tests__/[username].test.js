@@ -127,7 +127,7 @@ describe('User Writing Page', () => {
     })
     expect(payload.clientSnapshotId).toContain('test-uuid-12345')
   })
-  test('sends a writer token that is not derived from the public snapshot id', async () => {
+  test('sends a 43 character writer token separate from the snapshot id', async () => {
     const user = userEvent.setup()
     render(<UserPage />)
 
@@ -193,9 +193,9 @@ describe('User Writing Page', () => {
     })
     fireEvent(window, new Event('beforeunload'))
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledTimes(3)
+      expect(global.fetch.mock.calls.length).toBeGreaterThanOrEqual(3)
     })
-    const third = JSON.parse(global.fetch.mock.calls[2][1].body)
+    const third = JSON.parse(global.fetch.mock.calls[global.fetch.mock.calls.length - 1][1].body)
     expect(third.clientSnapshotId).toBe(next.clientSnapshotId)
     expect(third.writerToken).toBe(next.writerToken)
   })
@@ -220,10 +220,184 @@ describe('User Writing Page', () => {
     })
     fireEvent(window, new Event('beforeunload'))
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalled()
+      expect(global.fetch).toHaveBeenCalledTimes(1)
     })
 
-    expect(global.fetch).toHaveBeenCalledTimes(1)
+    fireEvent(window, new Event('beforeunload'))
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(2)
+    })
+
+    const first = JSON.parse(global.fetch.mock.calls[0][1].body)
+    const second = JSON.parse(global.fetch.mock.calls[1][1].body)
+    expect(second.clientSnapshotId).toBe(first.clientSnapshotId)
+    expect(second.writerToken).toBe(first.writerToken)
+  })
+
+  test('rotates once when two requests for the same id are both refused', async () => {
+    let uuidCount = 0
+    global.crypto.randomUUID = jest.fn(() => `uuid-${++uuidCount}`)
+    global.fetch = jest.fn()
+      .mockResolvedValueOnce({ ok: false, status: 403, json: () => Promise.resolve({ code: 'not_writer' }) })
+      .mockResolvedValueOnce({ ok: false, status: 403, json: () => Promise.resolve({ code: 'not_writer' }) })
+      .mockResolvedValue({ ok: true, status: 200, json: () => Promise.resolve({ ok: true }) })
+
+    const user = userEvent.setup()
+    render(<UserPage />)
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Start writing...')).toBeInTheDocument()
+    })
+
+    await user.type(screen.getByPlaceholderText('Start writing...'), 'first')
+    await waitFor(() => {
+      expect(PublicKeyEncryption.encrypt).toHaveBeenCalledTimes(1)
+    })
+
+    // A hidden tab sends the prepared snapshot twice (fetch fallback plus append).
+    Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true })
+    fireEvent(document, new Event('visibilitychange'))
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(2)
+    })
+    await waitFor(() => {
+      expect(PublicKeyEncryption.encrypt).toHaveBeenCalledTimes(2)
+    })
+
+    fireEvent(document, new Event('visibilitychange'))
+    await waitFor(() => {
+      expect(global.fetch.mock.calls.length).toBeGreaterThanOrEqual(3)
+    })
+    Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true })
+
+    const ids = global.fetch.mock.calls.map(([, init]) => JSON.parse(init.body).clientSnapshotId)
+    expect(ids.slice(0, 2)).toEqual(['uuid-1', 'uuid-1'])
+    expect(ids.slice(2).every((id) => id === 'uuid-2')).toBe(true)
+  })
+
+  test('has the replacement snapshot ready for an unload beacon after a refused id', async () => {
+    let uuidCount = 0
+    global.crypto.randomUUID = jest.fn(() => `uuid-${++uuidCount}`)
+    global.fetch = jest.fn()
+      .mockResolvedValueOnce({ ok: false, status: 403, json: () => Promise.resolve({ code: 'not_writer' }) })
+      .mockResolvedValue({ ok: true, status: 200, json: () => Promise.resolve({ ok: true }) })
+
+    const user = userEvent.setup()
+    render(<UserPage />)
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Start writing...')).toBeInTheDocument()
+    })
+
+    await user.type(screen.getByPlaceholderText('Start writing...'), 'first')
+    await waitFor(() => {
+      expect(PublicKeyEncryption.encrypt).toHaveBeenCalledTimes(1)
+    })
+    fireEvent(window, new Event('beforeunload'))
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(1)
+    })
+    await waitFor(() => {
+      expect(PublicKeyEncryption.encrypt).toHaveBeenCalledTimes(2)
+    })
+
+    let beaconBlob = null
+    window.navigator.sendBeacon = jest.fn((url, blob) => {
+      beaconBlob = blob
+      return true
+    })
+    fireEvent(window, new Event('beforeunload'))
+
+    expect(window.navigator.sendBeacon).toHaveBeenCalledTimes(1)
+    const beaconText = await new Promise((resolve) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result)
+      reader.readAsText(beaconBlob)
+    })
+    expect(JSON.parse(beaconText).clientSnapshotId).toBe('uuid-2')
+  })
+
+  test('has the replacement snapshot ready after a refused append request', async () => {
+    let uuidCount = 0
+    global.crypto.randomUUID = jest.fn(() => `uuid-${++uuidCount}`)
+    global.fetch = jest.fn()
+      .mockResolvedValueOnce({ ok: false, status: 403, json: () => Promise.resolve({ code: 'not_writer' }) })
+      .mockResolvedValue({ ok: true, status: 200, json: () => Promise.resolve({ ok: true }) })
+
+    const user = userEvent.setup()
+    render(<UserPage />)
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Start writing...')).toBeInTheDocument()
+    })
+    await user.type(screen.getByPlaceholderText('Start writing...'), 'first')
+    await waitFor(() => {
+      expect(PublicKeyEncryption.encrypt).toHaveBeenCalledTimes(1)
+    })
+
+    // The beacon takes the flush path, so only the append request reaches fetch and is refused.
+    const beaconBlobs = []
+    window.navigator.sendBeacon = jest.fn((url, blob) => {
+      beaconBlobs.push(blob)
+      return true
+    })
+    Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true })
+    fireEvent(document, new Event('visibilitychange'))
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(1)
+    })
+    await waitFor(() => {
+      expect(PublicKeyEncryption.encrypt).toHaveBeenCalledTimes(2)
+    })
+    Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true })
+
+    fireEvent(window, new Event('beforeunload'))
+    expect(beaconBlobs).toHaveLength(2)
+    const beaconText = await new Promise((resolve) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result)
+      reader.readAsText(beaconBlobs[1])
+    })
+    expect(JSON.parse(beaconText).clientSnapshotId).toBe('uuid-2')
+  })
+
+  test('uses a new writer token when the username changes', async () => {
+    let uuidCount = 0
+    global.crypto.randomUUID = jest.fn(() => `uuid-${++uuidCount}`)
+
+    const user = userEvent.setup()
+    const { rerender } = render(<UserPage />)
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Start writing...')).toBeInTheDocument()
+    })
+    await user.type(screen.getByPlaceholderText('Start writing...'), 'first')
+    await waitFor(() => {
+      expect(PublicKeyEncryption.encrypt).toHaveBeenCalledTimes(1)
+    })
+    fireEvent(window, new Event('beforeunload'))
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(1)
+    })
+
+    mockRouter.query = { username: 'otheruser' }
+    rerender(<UserPage />)
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Start writing...')).toBeInTheDocument()
+    })
+    await user.type(screen.getByPlaceholderText('Start writing...'), 'second')
+    await waitFor(() => {
+      expect(PublicKeyEncryption.encrypt).toHaveBeenCalledWith('second', 'mock-public-key')
+    })
+    fireEvent(window, new Event('beforeunload'))
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(2)
+    })
+
+    const first = JSON.parse(global.fetch.mock.calls[0][1].body)
+    const second = JSON.parse(global.fetch.mock.calls[1][1].body)
+    expect(second.username).toBe('otheruser')
+    expect(second.writerToken).not.toBe(first.writerToken)
   })
 
   test('flushes prepared snapshot on unload without re-encrypting', async () => {

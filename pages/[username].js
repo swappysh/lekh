@@ -215,11 +215,21 @@ export default function UserPage() {
     return null
   }, [username, userExists, isPublic])
 
+  // When the server refused the id, the session has moved to a new id and the pending
+  // snapshot was dropped. Prepare the same text under the new id so an unload flush
+  // right after still has something to send.
+  const prepareAfterRotation = useCallback(async (refusedSnapshot) => {
+    if (sessionSnapshotIdRef.current !== refusedSnapshot.clientSnapshotId) {
+      await preparePendingPrivateSnapshot()
+    }
+  }, [preparePendingPrivateSnapshot])
+
   const sendPendingPrivateSnapshot = useCallback(async (pendingSnapshot, { keepalive = false } = {}) => {
     const result = await postPrivateSnapshot(pendingSnapshot, keepalive)
 
     if (!result.ok) {
       console.error(result.error || 'Failed to append private snapshot')
+      await prepareAfterRotation(pendingSnapshot)
       return false
     }
 
@@ -231,7 +241,7 @@ export default function UserPage() {
       pendingSnapshotRef.current = null
     }
     return true
-  }, [postPrivateSnapshot])
+  }, [postPrivateSnapshot, prepareAfterRotation])
 
   const appendPrivateSnapshot = useCallback(async ({ keepalive = false } = {}) => {
     if (!username || !userExists || isPublic || isSavingRef.current) {
@@ -294,7 +304,7 @@ export default function UserPage() {
     void postPrivateSnapshot(pendingSnapshot, true).then((result) => {
       if (!result.ok) {
         console.error(result.error || 'Failed to flush private snapshot')
-        return
+        return prepareAfterRotation(pendingSnapshot)
       }
 
       lastSavedContentRef.current = pendingSnapshot.content
@@ -307,7 +317,7 @@ export default function UserPage() {
     }).catch((error) => {
       console.error('Failed to flush private snapshot:', error)
     })
-  }, [username, userExists, isPublic, serializeSnapshot, postPrivateSnapshot])
+  }, [username, userExists, isPublic, serializeSnapshot, postPrivateSnapshot, prepareAfterRotation])
 
   const shortcuts = useMemo(() => [
     {
