@@ -260,7 +260,12 @@ resets. The counter lives in the `rate_limits` table and is bumped by the
 `rate_limit_hit` SQL function, so every serverless instance shares it. It is per IP,
 not per username, so a stranger on another network cannot lock the owner out of
 changing the password (someone behind the same NAT or carrier IP shares the quota).
-IPv6 clients are bucketed by their /64 prefix. If the counter call itself fails the
+IPv6 clients are bucketed by their /64 prefix. The client address is read from
+`x-real-ip` or `x-forwarded-for`, which only Vercel's edge sets reliably: behind another
+proxy, or with `next start`, those headers are missing or client controlled. A missing
+or malformed value falls into one shared `unknown` bucket, so there 12 requests from
+anyone would lock everyone out for 10 minutes. Counter windows must stay under 24 hours
+because the cleanup treats day-old rows as expired. If the counter call itself fails the
 request is allowed. This does not limit password guessing: unlocking happens in the
 browser and the offline attack never touches the server, so only the work factor and
 password strength slow it down.

@@ -195,6 +195,13 @@ describe('/api/rotate-key', () => {
       expect(rpc).not.toHaveBeenCalledWith('rotate_user_key', expect.anything())
     })
 
+    test('limits requests for an unknown username too, so usernames cannot be probed freely', async () => {
+      user = null
+      rpc.mockImplementation(rpcAnswers({ data: 421, error: null }))
+      await handler(req, res)
+      expect(res.status).toHaveBeenCalledWith(429)
+    })
+
     test.each([
       ['an invalid username', { step: 'challenge', username: 'bad name!' }],
       ['an unknown step', { step: 'nope', username: 'alice' }],

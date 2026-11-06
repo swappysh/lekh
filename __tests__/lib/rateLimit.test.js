@@ -47,6 +47,16 @@ describe('clientIp', () => {
     expect(() => clientIp({ headers: { 'x-real-ip': ip } })).not.toThrow()
   })
 
+  test.each([
+    ['text with spaces', 'evil key with spaces'],
+    ['a list in one header', '1.2.3.4 5.6.7.8'],
+    ['a very long string', 'a'.repeat(8000)],
+    ['an IPv4 address with a leading zero', '001.002.003.004'],
+    ['an out of range octet', '999.1.1.1'],
+  ])('puts %s in the shared unknown bucket instead of making a new key', (_label, value) => {
+    expect(clientIp({ headers: { 'x-real-ip': value } })).toBe('unknown')
+  })
+
   test('ignores a whitespace-only x-real-ip and uses x-forwarded-for', () => {
     expect(clientIp({ headers: { 'x-real-ip': '   ', 'x-forwarded-for': '2.2.2.2' } })).toBe('2.2.2.2')
     expect(clientIp({ headers: { 'x-real-ip': '   ' } })).toBe('unknown')

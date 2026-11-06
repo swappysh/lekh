@@ -316,6 +316,8 @@ CREATE TABLE IF NOT EXISTS rate_limits (
   window_start TIMESTAMPTZ NOT NULL,
   hits INTEGER NOT NULL
 );
+-- The cleanup inside rate_limit_hit scans by window_start.
+CREATE INDEX IF NOT EXISTS rate_limits_window_start_idx ON rate_limits (window_start);
 ALTER TABLE rate_limits ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE rate_limits FROM PUBLIC, anon, authenticated;
 
