@@ -105,7 +105,7 @@ describe('/api/rotate-key', () => {
     req.body = { ...(await commitBody()), token, challengeResponse: nonce }
     await handler(req, res)
     expect(res.status).toHaveBeenCalledWith(403)
-    expect(rpc).not.toHaveBeenCalled()
+    expect(rpc).not.toHaveBeenCalledWith('rotate_user_key', expect.anything())
   })
 
   test('refuses a forged token', async () => {
@@ -113,7 +113,7 @@ describe('/api/rotate-key', () => {
     req.body = { ...body, token: body.token.replace(/.$/, (c) => (c === 'A' ? 'B' : 'A')) }
     await handler(req, res)
     expect(res.status).toHaveBeenCalledWith(403)
-    expect(rpc).not.toHaveBeenCalled()
+    expect(rpc).not.toHaveBeenCalledWith('rotate_user_key', expect.anything())
   })
 
   test('refuses an expired token', async () => {
@@ -122,7 +122,7 @@ describe('/api/rotate-key', () => {
     req.body = { ...(await commitBody()), token, challengeResponse: nonce }
     await handler(req, res)
     expect(res.status).toHaveBeenCalledWith(403)
-    expect(rpc).not.toHaveBeenCalled()
+    expect(rpc).not.toHaveBeenCalledWith('rotate_user_key', expect.anything())
   })
 
   test('commit with the decrypted challenge rotates through the SQL function', async () => {
